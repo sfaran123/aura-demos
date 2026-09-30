@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>רשימת קופות – פקאן זמאן</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Assistant:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Assistant:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -35,7 +35,13 @@
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;direction:rtl}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px}
+:lang(ar){--f-display:"IBM Plex Sans Arabic","Rubik",system-ui,sans-serif;--f-body:"IBM Plex Sans Arabic","Assistant",system-ui,sans-serif}
+.langs{display:inline-flex;border:1px solid var(--hdr-line);border-radius:6px;overflow:hidden;align-self:center}
+.langs button{border:0;background:transparent;color:var(--hdr-sub);padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.langs button[lang=ar]{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}
+.langs button.on{background:var(--hdr-ink);color:var(--hdr-bg)}
+.langs button:hover:not(.on){color:var(--hdr-ink)}
 button,select,input{font-family:inherit;color:inherit}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
@@ -47,7 +53,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .brand span{font-size:12px;color:var(--hdr-sub);letter-spacing:.4px}
 .hdr-title{text-align:center;font-family:var(--f-display);font-weight:600;font-size:16px;color:var(--hdr-sub)}
 .hdr-title b{color:var(--hdr-ink);font-weight:700}
-.hdr-meta{display:flex;gap:18px;font-size:13px;color:var(--hdr-sub);text-align:left}
+.hdr-meta{display:flex;gap:18px;font-size:13px;color:var(--hdr-sub);text-align:end;align-items:center;flex-wrap:wrap}
 .hdr-meta div b{display:block;color:var(--hdr-ink);font-size:14px;font-family:var(--f-display);font-weight:600}
 .menubar{background:var(--surface);border-bottom:1px solid var(--line);display:flex;gap:2px;padding:0 14px;overflow-x:auto}
 .menubar a{padding:10px 14px;color:var(--ink-2);text-decoration:none;font-weight:700;font-size:14px;white-space:nowrap;border-bottom:3px solid transparent}
@@ -149,13 +155,13 @@ main{padding:16px 20px 40px;max-width:1500px;margin:0 auto}
 
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{background:var(--th-bg);color:var(--ink);font-weight:700;font-size:13px;text-align:right;padding:9px 10px;border:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+th{background:var(--th-bg);color:var(--ink);font-weight:700;font-size:13px;text-align:start;padding:9px 10px;border:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
 th.sorted{color:var(--accent-ink)}
 th .arr{font-size:10px;margin-inline-start:4px}
 td{padding:8px 10px;border:1px solid var(--grid);white-space:nowrap}
 tbody tr:nth-child(even){background:var(--zebra)}
 tbody tr:hover{background:var(--accent-soft)}
-td.n,th.n{text-align:left}
+td.n,th.n{text-align:end}
 td.n{font-family:var(--f-display);font-variant-numeric:tabular-nums}
 tfoot td{background:var(--th-bg);font-weight:800;border:1px solid var(--line)}
 .z{display:inline-block;min-width:60px;text-align:center;background:var(--navy);color:var(--navy-ink);border-radius:5px;padding:3px 8px;font-family:var(--f-display);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
@@ -188,12 +194,12 @@ tfoot td{background:var(--th-bg);font-weight:800;border:1px solid var(--line)}
 .kv{display:grid;grid-template-columns:1fr auto;margin-top:12px;font-size:15px;border:1px solid var(--grid)}
 .kv span,.kv b{padding:7px 10px;border-bottom:1px solid var(--grid)}
 .kv span{color:var(--ink-2)}
-.kv b{font-family:var(--f-display);font-variant-numeric:tabular-nums;text-align:left}
+.kv b{font-family:var(--f-display);font-variant-numeric:tabular-nums;text-align:end}
 
 @media (max-width:1150px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.tile:nth-child(4){border-inline-start:0}.tile:nth-child(n+4){border-top:1px solid var(--grid)}}
 @media (max-width:860px){
   .hdr{grid-template-columns:minmax(0,1fr);gap:6px;padding:10px 16px}
-  .hdr-title{text-align:right}.hdr-meta{text-align:right}
+  .hdr-title{text-align:start}.hdr-meta{text-align:start}
   main{padding:14px 16px 32px}
   .frow{grid-template-columns:minmax(0,1fr);gap:8px}.flabel{padding-top:0}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -207,47 +213,52 @@ tfoot td{background:var(--th-bg);font-weight:800;border:1px solid var(--line)}
 </style></head><body>
 
 <header class="hdr">
-  <div class="brand"><div class="logo">פז</div><div><b>פקאן זמאן</b><span>AURA ERP · ניהול קופות</span></div></div>
-  <div class="hdr-title"><b>דוח קופות רושמות</b> · <span id="hdr-period"></span></div>
-  <div class="hdr-meta"><div>משתמש<b>pecanzaman</b></div><div>תאריך<b id="hdr-date"></b></div></div>
+  <div class="brand"><div class="logo" data-i18n="logo">פז</div><div><b data-i18n="company">פקאן זמאן</b><span data-i18n="brandSub">AURA ERP · ניהול קופות</span></div></div>
+  <div class="hdr-title"><b data-i18n="hdrTitle">דוח קופות רושמות</b> · <span id="hdr-period"></span></div>
+  <div class="hdr-meta">
+    <div class="langs" role="group" data-i18n-aria="lang" aria-label="שפה">
+      <button type="button" data-lang="he" lang="he">עברית</button><button type="button" data-lang="ar" lang="ar">العربية</button><button type="button" data-lang="en" lang="en">English</button>
+    </div>
+    <div><span data-i18n="user">משתמש</span><b>pecanzaman</b></div><div><span data-i18n="date">תאריך</span><b id="hdr-date"></b></div>
+  </div>
 </header>
-<nav class="menubar" aria-label="תפריט ראשי">
-  <a href="#">בית</a><a href="#">מוצר</a><a href="#">לקוח</a><a href="#">מכירה</a><a href="#" class="on">קופות</a><a href="#">רכש</a><a href="#">הוצאה</a><a href="#">הכנסות</a><a href="#">דוחות</a><a href="#">הגדרות</a>
+<nav class="menubar" data-i18n-aria="mainMenu" aria-label="תפריט ראשי">
+  <a href="#" data-i18n="m0">בית</a><a href="#" data-i18n="m1">מוצר</a><a href="#" data-i18n="m2">לקוח</a><a href="#" data-i18n="m3">מכירה</a><a href="#" class="on" data-i18n="m4">קופות</a><a href="#" data-i18n="m5">רכש</a><a href="#" data-i18n="m6">הוצאה</a><a href="#" data-i18n="m7">הכנסות</a><a href="#" data-i18n="m8">דוחות</a><a href="#" data-i18n="m9">הגדרות</a>
 </nav>
 
 <main>
   <div class="pagehead">
-    <div><div class="crumbs">לוח בקרה / מכירה / קופות</div><h1 class="page-title">רשימת קופות <span class="demo">נתוני דוגמה</span></h1></div>
+    <div><div class="crumbs" data-i18n="crumbs">לוח בקרה / מכירה / קופות</div><h1 class="page-title"><span data-i18n="pageTitle">רשימת קופות</span> <span class="demo" data-i18n="demo">נתוני דוגמה</span></h1></div>
     <div>
       <div class="exports">
-        <button class="btn pdf" type="button" id="btn-pdf" aria-haspopup="dialog">⬇ סיכום PDF…</button>
-        <button class="btn csv" type="button" id="btn-csv">⬇ CSV לאקסל</button>
+        <button class="btn pdf" type="button" id="btn-pdf" aria-haspopup="dialog" data-i18n="btnPdf">⬇ סיכום PDF…</button>
+        <button class="btn csv" type="button" id="btn-csv" data-i18n="btnCsv">⬇ CSV לאקסל</button>
       </div>
       <div class="exp-msg" id="exp-msg" aria-live="polite"></div>
     </div>
   </div>
 
-  <section class="filters" aria-label="סינון">
+  <section class="filters" data-i18n-aria="filters" aria-label="סינון">
     <div class="frow">
-      <div class="flabel"><span class="step">1</span>איזה חודש?</div>
+      <div class="flabel"><span class="step">1</span><span data-i18n="qMonth">איזה חודש?</span></div>
       <div>
         <div class="chips">
           <span id="month-chips" class="chips"></span>
-          <label class="sel" for="month-sel">חודש אחר<select id="month-sel"></select></label>
+          <label class="sel" for="month-sel"><span data-i18n="otherMonth">חודש אחר</span><select id="month-sel"></select></label>
         </div>
-        <button type="button" class="linkbtn" id="range-toggle">או בחרו טווח תאריכים מדויק</button>
+        <button type="button" class="linkbtn" id="range-toggle" data-i18n="rangeToggle">או בחרו טווח תאריכים מדויק</button>
         <div class="range" id="range" hidden>
-          <label class="sel" for="d-from">מתאריך<input type="date" id="d-from"></label>
-          <label class="sel" for="d-to">עד תאריך<input type="date" id="d-to"></label>
+          <label class="sel" for="d-from"><span data-i18n="from">מתאריך</span><input type="date" id="d-from"></label>
+          <label class="sel" for="d-to"><span data-i18n="to">עד תאריך</span><input type="date" id="d-to"></label>
         </div>
       </div>
     </div>
     <div class="frow">
-      <div class="flabel"><span class="step">2</span>באיזה סניף?</div>
+      <div class="flabel"><span class="step">2</span><span data-i18n="qBranch">באיזה סניף?</span></div>
       <div class="chips" id="wh-chips"></div>
     </div>
     <div class="frow">
-      <div class="flabel"><span class="step">3</span>איזה קופאי?</div>
+      <div class="flabel"><span class="step">3</span><span data-i18n="qCashier">איזה קופאי?</span></div>
       <div><div class="chips" id="user-chips"></div><div class="hint" id="user-hint"></div></div>
     </div>
   </section>
@@ -258,22 +269,22 @@ tfoot td{background:var(--th-bg);font-weight:800;border:1px solid var(--line)}
 
   <section class="card" id="card">
     <div class="card-head">
-      <div class="search"><span aria-hidden="true">🔎</span><input id="q" type="search" placeholder="חיפוש מספר Z או קופאי" aria-label="חיפוש"></div>
+      <div class="search"><span aria-hidden="true">🔎</span><input id="q" type="search" data-i18n-ph="searchPh" data-i18n-aria="search" placeholder="חיפוש מספר Z או קופאי" aria-label="חיפוש"></div>
       <div class="tools">
-        <div class="seg" role="group" aria-label="סטטוס">
-          <button type="button" data-st="all" class="on">הכל</button><button type="button" data-st="open">פתוחות</button><button type="button" data-st="closed">סגורות</button>
+        <div class="seg" role="group" data-i18n-aria="status" aria-label="סטטוס">
+          <button type="button" data-st="all" class="on" data-i18n="all">הכל</button><button type="button" data-st="open" data-i18n="openPl">פתוחות</button><button type="button" data-st="closed" data-i18n="closedPl">סגורות</button>
         </div>
-        <button class="btn" type="button" id="btn-cols" aria-expanded="false" aria-controls="colpanel">▦ בחירת עמודות <span class="cnt" id="cols-cnt"></span></button>
+        <button class="btn" type="button" id="btn-cols" aria-expanded="false" aria-controls="colpanel"><span data-i18n="chooseCols">▦ בחירת עמודות</span> <span class="cnt" id="cols-cnt"></span></button>
       </div>
       <div class="colpanel" id="colpanel" hidden>
-        <h4>אילו עמודות להציג?</h4>
-        <div class="sub">העמודות שתבחרו יופיעו גם ברשימת דוחות Z ב-PDF וב-CSV.</div>
+        <h4 data-i18n="colsQ">אילו עמודות להציג?</h4>
+        <div class="sub" data-i18n="colsSub">העמודות שתבחרו יופיעו גם ברשימת דוחות Z ב-PDF וב-CSV.</div>
         <div class="cgroups" id="cgroups"></div>
         <div class="cpresets">
-          <button type="button" class="btn" data-preset-cols="simple">תצוגה פשוטה</button>
-          <button type="button" class="btn" data-preset-cols="accountant">רואה חשבון</button>
-          <button type="button" class="btn" data-preset-cols="all">כל העמודות</button>
-          <button type="button" class="btn" id="cols-done" style="margin-inline-start:auto">סיום</button>
+          <button type="button" class="btn" data-preset-cols="simple" data-i18n="pSimple">תצוגה פשוטה</button>
+          <button type="button" class="btn" data-preset-cols="accountant" data-i18n="pAcc">רואה חשבון</button>
+          <button type="button" class="btn" data-preset-cols="all" data-i18n="pAll">כל העמודות</button>
+          <button type="button" class="btn" id="cols-done" style="margin-inline-start:auto" data-i18n="done">סיום</button>
         </div>
       </div>
     </div>
@@ -282,25 +293,169 @@ tfoot td{background:var(--th-bg);font-weight:800;border:1px solid var(--line)}
     <div class="pager">
       <span id="pg-info"></span>
       <div class="pg" id="pg"></div>
-      <label for="pg-size">שורות בעמוד <select id="pg-size"><option value="31">31</option><option value="62">62</option><option value="0">הכל</option></select></label>
+      <label for="pg-size"><span data-i18n="rowsPer">שורות בעמוד</span> <select id="pg-size"><option value="31">31</option><option value="62">62</option><option value="0" data-i18n="all">הכל</option></select></label>
     </div>
   </section>
 </main>
 
 <div class="modal" id="pdfdlg" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="pdf-title">
-  <div class="mhead"><h3 id="pdf-title">מה להכניס לדוח ה-PDF?</h3><button type="button" class="btn" id="pdf-x" aria-label="סגור">✕</button></div>
-  <p class="msub">עמוד הסיכום (סכומים, איך שילמו, מע״מ, דורש בדיקה) תמיד נכלל. סמנו אילו טבלאות להוסיף ואילו עמודות יופיעו בכל אחת. הבחירה נשמרת לפעם הבאה.</p>
+  <div class="mhead"><h3 id="pdf-title" data-i18n="pdfTitle">מה להכניס לדוח ה-PDF?</h3><button type="button" class="btn" id="pdf-x" data-i18n-aria="close" aria-label="סגור">✕</button></div>
+  <p class="msub" data-i18n="pdfSub"></p>
   <div id="pdf-secs"></div>
-  <div class="mfoot"><button type="button" class="linkbtn" id="pdf-reset">איפוס להגדרות ברירת מחדל</button><span class="grow"></span><button type="button" class="btn" id="pdf-cancel">ביטול</button><button type="button" class="btn pdf" id="pdf-go">⬇ הורד PDF</button></div>
+  <div class="mfoot"><button type="button" class="linkbtn" id="pdf-reset" data-i18n="pdfReset">איפוס להגדרות ברירת מחדל</button><span class="grow"></span><button type="button" class="btn" id="pdf-cancel" data-i18n="cancel">ביטול</button><button type="button" class="btn pdf" id="pdf-go" data-i18n="pdfGo">⬇ הורד PDF</button></div>
 </div></div>
 <div class="drawer" id="drawer" hidden><div class="panel" role="dialog" aria-modal="true" aria-labelledby="dr-title"><div id="dr-body"></div></div></div>
 
 <script>
 (function(){
-let FONT_R=null, FONT_B=null; const FONT_URLS=["fonts/FreeSans-sub.ttf","fonts/FreeSansBold-sub.ttf"];
-const COMPANY="פקאן זמאן";
-const MONTHS=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
-const WH=[{id:1,name:"חורפיש"},{id:2,name:"ג'וליס"},{id:3,name:"השמדות"},{id:4,name:"שימוש עצמי"},{id:5,name:"משרד"}];
+let FONT_R=null, FONT_B=null; const FONT_URLS=["fonts/aura-sans.ttf","fonts/aura-sans-bold.ttf"];
+/* ================= Translations (he / ar / en) ================= */
+const LANGS={he:{name:"עברית",dir:"rtl",loc:"he-IL"},ar:{name:"العربية",dir:"rtl",loc:"ar"},en:{name:"English",dir:"ltr",loc:"en-GB"}};
+const LI={he:0,ar:1,en:2};
+const TX={
+ title:["רשימת קופות – פקאן זמאן","قائمة الصناديق – بيكان زمان","Cash registers – Pecan Zaman"],
+ company:["פקאן זמאן","بيكان زمان","Pecan Zaman"],
+ logo:["פז","بز","PZ"],
+ brandSub:["AURA ERP · ניהול קופות","AURA ERP · إدارة الصناديق","AURA ERP · Cash management"],
+ hdrTitle:["דוח קופות רושמות","تقرير الصناديق","Cash register report"],
+ user:["משתמש","المستخدم","User"],
+ date:["תאריך","التاريخ","Date"],
+ lang:["שפה","اللغة","Language"],
+ mainMenu:["תפריט ראשי","القائمة الرئيسية","Main menu"],
+ m0:["בית","الرئيسية","Home"],m1:["מוצר","المنتجات","Products"],m2:["לקוח","الزبائن","Customers"],m3:["מכירה","المبيعات","Sales"],m4:["קופות","الصناديق","Cash registers"],
+ m5:["רכש","المشتريات","Purchasing"],m6:["הוצאה","المصاريف","Expenses"],m7:["הכנסות","المداخيل","Income"],m8:["דוחות","التقارير","Reports"],m9:["הגדרות","الإعدادات","Settings"],
+ crumbs:["לוח בקרה / מכירה / קופות","لوحة التحكم / المبيعات / الصناديق","Dashboard / Sales / Cash registers"],
+ pageTitle:["רשימת קופות","قائمة الصناديق","Cash registers"],
+ demo:["נתוני דוגמה","بيانات تجريبية","Sample data"],
+ btnPdf:["⬇ סיכום PDF…","⬇ ملخص PDF…","⬇ PDF summary…"],
+ btnCsv:["⬇ CSV לאקסל","⬇ CSV لإكسل","⬇ CSV for Excel"],
+ filters:["סינון","تصفية","Filters"],
+ qMonth:["איזה חודש?","أي شهر؟","Which month?"],
+ otherMonth:["חודש אחר","شهر آخر","Other month"],
+ rangeToggle:["או בחרו טווח תאריכים מדויק","أو اختر نطاق تواريخ دقيقًا","Or pick an exact date range"],
+ from:["מתאריך","من تاريخ","From"], to:["עד תאריך","حتى تاريخ","To"],
+ qBranch:["באיזה סניף?","أي فرع؟","Which branch?"],
+ qCashier:["איזה קופאי?","أي أمين صندوق؟","Which cashier?"],
+ searchPh:["חיפוש מספר Z או קופאי","ابحث برقم Z أو أمين الصندوق","Search Z number or cashier"],
+ search:["חיפוש","بحث","Search"], status:["סטטוס","الحالة","Status"],
+ all:["הכל","الكل","All"], openPl:["פתוחות","مفتوحة","Open"], closedPl:["סגורות","مغلقة","Closed"],
+ chooseCols:["▦ בחירת עמודות","▦ اختيار الأعمدة","▦ Columns"],
+ colsQ:["אילו עמודות להציג?","أي أعمدة تريد عرضها؟","Which columns to show?"],
+ colsSub:["העמודות שתבחרו יופיעו גם ברשימת דוחות Z ב-PDF וב-CSV.","الأعمدة التي تختارها تظهر أيضًا في قائمة تقارير Z في ملفي PDF وCSV.","The columns you pick also appear in the Z report list in the PDF and CSV."],
+ pSimple:["תצוגה פשוטה","عرض بسيط","Simple view"], pAcc:["רואה חשבון","المحاسب","Accountant"], pAll:["כל העמודות","كل الأعمدة","All columns"],
+ done:["סיום","تم","Done"], rowsPer:["שורות בעמוד","صفوف في الصفحة","Rows per page"],
+ pdfTitle:["מה להכניס לדוח ה-PDF?","ماذا تريد في تقرير PDF؟","What goes into the PDF report?"],
+ pdfSub:["עמוד הסיכום (סכומים, אמצעי תשלום, מע״מ, בקרה) תמיד נכלל. סמנו אילו טבלאות להוסיף ואילו עמודות יופיעו בכל אחת. הבחירה נשמרת לפעם הבאה.","صفحة الملخص (المجاميع، وسائل الدفع، الضريبة، الرقابة) مشمولة دائمًا. اختر الجداول التي تريد إضافتها والأعمدة في كل جدول. يُحفظ اختيارك للمرة القادمة.","The summary page (totals, payment methods, VAT, control) is always included. Choose which tables to add and which columns each one shows. Your choice is saved for next time."],
+ pdfReset:["איפוס להגדרות ברירת מחדל","إعادة الإعدادات الافتراضية","Reset to defaults"],
+ cancel:["ביטול","إلغاء","Cancel"], pdfGo:["⬇ הורד PDF","⬇ تنزيل PDF","⬇ Download PDF"], close:["סגור","إغلاق","Close"],
+ thisMonth:["(החודש)","(هذا الشهر)","(this month)"], customRange:["טווח מותאם","نطاق مخصص","Custom range"],
+ allBranches:["כל הסניפים","كل الفروع","All branches"], allCashiers:["כל הקופאים","كل أمناء الصناديق","All cashiers"],
+ dimHint:["קופאים בלי קופות ב{wh} מוצגים בצבע חלש.","أمناء الصناديق الذين لا صناديق لهم في {wh} يظهرون باهتين.","Cashiers with no registers in {wh} are faded."],
+ showing:["מציג {n} קופות:","عرض {n} صناديق:","Showing {n} registers:"],
+ rmBranch:["הסר סינון סניף","إزالة تصفية الفرع","Remove branch filter"], rmCashier:["הסר סינון קופאי","إزالة تصفية أمين الصندوق","Remove cashier filter"],
+ sortedBy:["ממוין לפי {c}","مرتب حسب {c}","Sorted by {c}"],
+ asc:["מהקטן לגדול ↑","من الأصغر للأكبر ↑","low to high ↑"], desc:["מהגדול לקטן ↓","من الأكبر للأصغر ↓","high to low ↓"],
+ ascW:["מהקטן לגדול","من الأصغر للأكبر","low to high"], descW:["מהגדול לקטן","من الأكبر للأصغر","high to low"],
+ clearAll:["✕ נקה הכל","✕ مسح الكل","✕ Clear all"],
+ tZ:["דוחות Z","تقارير Z","Z reports"], tZs:["סגירות קופה · {n} פתוחות","إغلاقات صندوق · {n} مفتوحة","register closings · {n} open"],
+ tSales:["סה״כ מכירות","إجمالي المبيعات","Total sales"], inclVat:["כולל מע״מ","شامل الضريبة","incl. VAT"],
+ tCash:["מזומן","نقدًا","Cash"], tx:["{n} עסקאות","{n} معاملة","{n} transactions"], tCredit:["אשראי","بطاقة ائتمان","Credit card"],
+ tBit:["ביט","بيت","Bit"], tVat:["מע״מ","الضريبة","VAT"], ofSales:["מתוך המכירות","من المبيعات","of sales"],
+ stOpen:["פתוחה","مفتوح","Open"], stClosed:["סגורה","مغلق","Closed"],
+ details:["👁 פרטים","👁 تفاصيل","👁 Details"], total:["סה״כ","المجموع","Total"],
+ emptyT:["אין קופות להצגה","لا توجد صناديق للعرض","No registers to show"],
+ emptyS:["נסו לבחור \"כל הקופאים\" או חודש אחר.","جرّب \"كل أمناء الصناديق\" أو شهرًا آخر.","Try \"All cashiers\" or another month."],
+ rowsInfo:["שורות {a}–{b} מתוך {n}","الصفوف {a}–{b} من {n}","Rows {a}–{b} of {n}"], zeroRegs:["0 קופות","0 صناديق","0 registers"],
+ page:["עמוד {n}","صفحة {n}","Page {n}"], always:["תמיד","دائمًا","always"],
+ gapZ:["חסר מספר Z ברצף ב{wh}: {list}","أرقام Z ناقصة في {wh}: {list}","Missing Z numbers at {wh}: {list}"],
+ openRegs:["{n} קופות עדיין פתוחות: {list}","{n} صناديق ما زالت مفتوحة: {list}","{n} registers still open: {list}"],
+ best:["המכירה הגבוהה ביותר: Z {z} ב{wh}, {d} – {amt}","أعلى مبيعات: Z {z} في {wh}، {d} – {amt}","Highest sales: Z {z} at {wh}, {d} – {amt}"],
+ avg:["ממוצע ליום: {amt} ({n} ימי פעילות)","المعدل اليومي: {amt} ({n} أيام عمل)","Daily average: {amt} ({n} working days)"],
+ returns:["החזרים: {n} קופות, סה״כ {amt}","المرتجعات: {n} صناديق، المجموع {amt}","Refunds: {n} registers, total {amt}"],
+ dBranch:["סניף","الفرع","Branch"], dCashier:["קופאי","أمين الصندوق","Cashier"], dOpen:["שעת פתיחה","وقت الفتح","Opened at"], dClose:["שעת סגירה","وقت الإغلاق","Closed at"],
+ saved:["✓ {f} נשמר","✓ تم حفظ {f}","✓ {f} saved"], downloaded:["✓ {f} ירד למחשב","✓ تم تنزيل {f}","✓ {f} downloaded"],
+ declined:["ההורדה בוטלה.","تم إلغاء التنزيل.","Download cancelled."],
+ rateLimited:["חלון הורדה כבר פתוח. אשרו אותו או נסו שוב בעוד רגע.","نافذة التنزيل مفتوحة. وافق عليها أو حاول بعد لحظة.","A download prompt is already open. Confirm it or try again in a moment."],
+ cantDl:["לא ניתן להוריד את הקובץ כאן.","لا يمكن تنزيل الملف هنا.","The file can't be downloaded here."],
+ noRows:["אין שורות לייצוא. שנו את הסינון.","لا توجد صفوف للتصدير. غيّر التصفية.","No rows to export. Change the filters."],
+ pdfLib:["רכיב ה-PDF לא נטען. רעננו את העמוד ונסו שוב.","لم يتم تحميل مكوّن PDF. حدّث الصفحة وحاول مجددًا.","The PDF component didn't load. Refresh the page and try again."],
+ fontLoading:["טוען גופן…","جارٍ تحميل الخط…","Loading font…"],
+ fontFail:["לא הצלחתי לטעון את הגופן. בדקו חיבור לאינטרנט ונסו שוב.","تعذّر تحميل الخط. تحقق من الاتصال وحاول مجددًا.","Couldn't load the font. Check your connection and try again."],
+ preparing:["מכין PDF…","جارٍ تجهيز PDF…","Preparing PDF…"], pdfFail:["לא הצלחתי ליצור את ה-PDF. נסו שוב.","تعذّر إنشاء PDF. حاول مجددًا.","Couldn't create the PDF. Try again."],
+ fileCsv:["קובץ CSV","ملف CSV","CSV file"], filePdf:["קובץ PDF","ملف PDF","PDF file"],
+ csvReport:["דוח קופות","تقرير الصناديق","Cash register report"], period:["תקופה","الفترة","Period"], generated:["הופק","أُنشئ","Generated"],
+ filePrefix:["קופות","الصناديق","cash-registers"],
+ secBranch:["מכירות לפי סניף","المبيعات حسب الفرع","Sales by branch"], secBranchD:["שורה לכל סניף, מהגבוה לנמוך.","صف لكل فرع، من الأعلى للأدنى.","One row per branch, highest first."],
+ secCashier:["מכירות לפי קופאי","المبيعات حسب أمين الصندوق","Sales by cashier"], secCashierD:["שורה לכל קופאי, מהגבוה לנמוך.","صف لكل أمين صندوق، من الأعلى للأدنى.","One row per cashier, highest first."],
+ secDailyD:["שורה לכל יום בחודש.","صف لكل يوم في الشهر.","One row per day of the month."],
+ secDetail:["רשימת דוחות Z (פירוט כל הקופות)","قائمة تقارير Z (تفصيل كل الصناديق)","Z report list (every register)"],
+ secDetailD:["שורה לכל דוח Z, לפחות 31 שורות בעמוד. <b>העמודות כאן הן אותן עמודות של הטבלה במסך</b> – שינוי כאן משנה גם את המסך.","صف لكل تقرير Z، 31 صفًا على الأقل في كل صفحة. <b>الأعمدة هنا هي نفس أعمدة الجدول على الشاشة</b> – التغيير هنا يغيّر الشاشة أيضًا.","One row per Z report, at least 31 rows per page. <b>These are the same columns as the table on screen</b> – changing them here changes the screen too."],
+ markAll:["סמן הכל","تحديد الكل","Select all"], defaults:["ברירת מחדל","الافتراضي","Default"], accCols:["עמודות לרואה חשבון","أعمدة المحاسب","Accountant columns"],
+ colCount:["בפירוט ייכנסו {n} עמודות.","سيتضمن التفصيل {n} أعمدة.","The list will include {n} columns."],
+ branchAlways:["סניף (תמיד)","الفرع (دائمًا)","Branch (always)"], cashierAlways:["קופאי (תמיד)","أمين الصندوق (دائمًا)","Cashier (always)"], dateAlways:["תאריך (תמיד)","التاريخ (دائمًا)","Date (always)"],
+ /* PDF */
+ pTitle:["דוח Z מרוכז – {p}","تقرير Z مجمّع – {p}","Consolidated Z report – {p}"],
+ pIntro:["הדוח מרכז {n} דוחות Z (סגירות קופה) מ-{d} ימי עבודה{open}. מכירות נטו = סך החיובים פחות סך הזיכויים.","يجمع هذا التقرير {n} تقارير Z (إغلاقات صندوق) من {d} أيام عمل{open}. صافي المبيعات = إجمالي المبيعات ناقص إجمالي الإرجاعات.","This report combines {n} Z reports (register closings) from {d} working days{open}. Net sales = total charges minus total credits."],
+ pIntroOpen:[", מתוכם {o} קופות שעדיין לא נסגרו","، منها {o} صناديق لم تُغلق بعد",", {o} of them not closed yet"],
+ kCh:["סך החיובים","إجمالي المبيعات","Total charges"], kChS:["כל המכירות לפני החזרים","كل المبيعات قبل المرتجعات","All sales before refunds"],
+ kCr:["סך הזיכויים","إجمالي الإرجاعات","Total credits"], kCrS:["החזרים וזיכויים ללקוחות","مرتجعات وإشعارات دائنة للزبائن","Refunds and credits to customers"],
+ kNet:["מכירות נטו","صافي المبيعات","Net sales"], kNetS:["כולל מע״מ","شامل الضريبة","incl. VAT"],
+ kVat:["מע״מ שנגבה","الضريبة المحصّلة","VAT collected"], kVatS:["18% מהסכום החייב","18% من المبلغ الخاضع","18% of the liable amount"],
+ ctrlOk:["כל הקופות סגורות ומספרי ה-Z רציפים.","كل الصناديق مغلقة وأرقام Z متسلسلة.","All registers are closed and Z numbers are continuous."],
+ ctrlWarn:["בקרה: {n} נושאים לבדיקה","رقابة: {n} أمور للفحص","Control: {n} items to check"], ctrlGood:["בקרה: תקין","رقابة: سليم","Control: OK"],
+ secPay:["פירוט לפי אמצעי תשלום","تفصيل حسب وسيلة الدفع","By payment method"],
+ hMethod:["אמצעי תשלום","وسيلة الدفع","Payment method"], hCh:["חיובים","مبيعات","Charges"], hCr:["זיכויים","إرجاعات","Credits"], hNet:["נטו","صافي","Net"],
+ mCash:["מזומן","نقدًا","Cash"], mCard:["כרטיסי אשראי","بطاقات ائتمان","Credit cards"], mChq:["המחאות (שיקים)","شيكات","Cheques"], mOther:["אמצעי תשלום אחרים","وسائل دفع أخرى","Other methods"],
+ mNoPay:["מכירות ללא תשלום (ת. משלוח / חשבוניות)","مبيعات بدون دفع (إرساليات / فواتير)","Unpaid sales (delivery notes / invoices)"],
+ balOk:["תקין: סה״כ נטו שווה למכירות נטו בדוחות ה-Z","سليم: الصافي يساوي صافي المبيعات في تقارير Z","OK: net total matches net sales in the Z reports"],
+ balBad:["לבדיקה: הפרש של {x} ₪ מול דוחות ה-Z","للفحص: فرق {x} ₪ مقابل تقارير Z","Check: {x} ₪ difference vs. the Z reports"],
+ secVat:["פירוט מע״מ","تفصيل الضريبة","VAT breakdown"], hLine:["שורה","البند","Line"], hAmt:["סכום (₪)","المبلغ (₪)","Amount (₪)"], hTx:["עסקאות","معاملات","Transactions"],
+ vLiable:["סכום חייב במע״מ (לפני מע״מ)","المبلغ الخاضع للضريبة (قبل الضريبة)","VAT-liable amount (before VAT)"], vCollected:["סכום המע״מ שנגבה","مبلغ الضريبة المحصّلة","VAT collected"],
+ vExempt:["סכום שאינו חייב במע״מ","مبلغ غير خاضع للضريبة","Non-liable amount"], vTotal:["סה״כ מכירות נטו","إجمالي صافي المبيعات","Total net sales"],
+ tipsNote:["טיפים ({t} ₪) אינם חלק מהמכירות ואינם בדוח המע״מ. דוחות Z בדוח: {a}–{b}.","البقشيش ({t} ₪) ليس جزءًا من المبيعات ولا من تقرير الضريبة. تقارير Z المشمولة: {a}–{b}.","Tips ({t} ₪) are not part of sales or VAT. Z reports included: {a}–{b}."],
+ glossary:["מילון: דוח Z = סגירת קופה אחת  ·  חיובים = מכירות  ·  זיכויים = החזרים ללקוח  ·  נטו = חיובים פחות זיכויים","قاموس: تقرير Z = إغلاق صندوق واحد  ·  مبيعات = حركات البيع  ·  إرجاعات = مبالغ أعيدت للزبون  ·  صافي = المبيعات ناقص الإرجاعات","Glossary: Z report = one register closing  ·  Charges = sales  ·  Credits = refunds to customers  ·  Net = charges minus credits"],
+ toc1:["1-2 סיכום","1-2 ملخص","1-2 Summary"], tocDet:["פירוטים","تفاصيل","Breakdowns"], tocDaily:["סיכום יומי","ملخص يومي","Daily summary"], tocList:["רשימת דוחות Z","قائمة تقارير Z","Z report list"],
+ secOther:["פירוט אמצעי תשלום אחרים","تفصيل وسائل الدفع الأخرى","Other payment methods"], secOtherN:["מה נכלל בשורה \"אמצעי תשלום אחרים\"","ما يشمله بند \"وسائل دفع أخرى\"","What \"Other methods\" includes"],
+ secNotes:["נקודות מעניינות","ملاحظات مهمة","Highlights"],
+ secWh:["לפי מחסן / סניף","حسب المستودع / الفرع","By warehouse / branch"], secUser:["לפי משתמש (קופאי)","حسب المستخدم (أمين الصندوق)","By user (cashier)"], hiLo:["מהגבוה לנמוך","من الأعلى للأدنى","highest first"],
+ secDaily:["סיכום יומי","ملخص يومي","Daily summary"], bestNote:["היום החזק ביותר מסומן בירוק: {d}","أقوى يوم مظلل بالأخضر: {d}","Best day highlighted in green: {d}"], nDaysT:["{n} ימים","{n} أيام","{n} days"],
+ secList:["רשימת דוחות Z","قائمة تقارير Z","Z report list"], listNote:["{n} דוחות · {c} עמודות · ממוין לפי {s} {dir}","{n} تقارير · {c} أعمدة · مرتب حسب {s} {dir}","{n} reports · {c} columns · sorted by {s} {dir}"],
+ partTitle:["רשימת דוחות Z – חלק {i} מתוך {n}","قائمة تقارير Z – جزء {i} من {n}","Z report list – part {i} of {n}"],
+ partNote:["מספר Z ותאריך חוזרים בכל חלק","رقم Z والتاريخ يتكرران في كل جزء","Z number and date repeat in every part"],
+ partsWarn:["העמודות מחולקות ל-{n} חלקים כדי שיהיו קריאות. זה חלק 1.","الأعمدة مقسّمة إلى {n} أجزاء لتسهيل القراءة. هذا الجزء 1.","Columns are split into {n} parts for readability. This is part 1."],
+ fPeriod:["תקופה","الفترة","Period"], fBranch:["סניף","الفرع","Branch"], fCashier:["קופאי","أمين الصندوق","Cashier"], fStatus:["סטטוס","الحالة","Status"],
+ pageXY:["עמוד {p} מתוך {n}","صفحة {p} من {n}","Page {p} of {n}"], internal:["{c} · מסמך פנימי","{c} · مستند داخلي","{c} · Internal document"],
+ gN:["דוחות Z","تقارير Z","Z reports"], gCh:["חיובים","مبيعات","Charges"], gCr:["זיכויים","إرجاعات","Credits"], gNet:["מכירות נטו","صافي المبيعات","Net sales"], gCash:["מזומן","نقدًا","Cash"], gCard:["אשראי","بطاقة","Card"],
+ gChq:["שיקים","شيكات","Cheques"], gOther:["אחרים","أخرى","Other"], gTaxable:["חייב במע״מ","خاضع للضريبة","VAT-liable"], gVat:["מע״מ","الضريبة","VAT"], gExempt:["פטור ממע״מ","معفى","Exempt"],
+ gAvg:["ממוצע לדוח Z","المعدل لكل تقرير Z","Avg per Z"], gShare:["חלק מהמכירות","نسبة من المبيعات","Share of sales"], gDow:["יום","اليوم","Day"]
+};
+const MONTHS_L=[["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"],
+ ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
+ ["January","February","March","April","May","June","July","August","September","October","November","December"]];
+const DAYS_L=[["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"],["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"],["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]];
+const COLT={
+ z:["מספר Z","رقم Z","Z number"], wh:["מחסן","المستودع","Warehouse"], user:["משתמש","المستخدم","User"], day:["תאריך","التاريخ","Date"], drawer:["מונה פתיחת מגירה","عداد فتح الدرج","Drawer opens"], status:["סטטוס","الحالة","Status"],
+ charges:["סך החיובים","إجمالي المبيعات","Total charges"], credits:["סך הזיכויים","إجمالي الإرجاعات","Total credits"], net:["מכירות נטו","صافي المبيعات","Net sales"], other:["אמצעי תשלום אחרים","وسائل دفع أخرى","Other payment methods"], taxable:["סכום חייב במע״מ (לפני מע״מ)","المبلغ الخاضع للضريبة (قبل الضريبة)","VAT-liable amount (before VAT)"],
+ cash:["מזומנים","نقدًا","Cash"], cashCnt:["ספירת מזומן","عدد النقد","Cash count"], credit:["כרטיס אשראי","بطاقة ائتمان","Credit card"], creditCnt:["ספירת אשראי","عدد البطاقات","Card count"],
+ cashRet:["החזר במזומן","إرجاع نقدي","Cash refund"], cardRet:["החזרה באשראי","إرجاع بالبطاقة","Card refund"], invRet:["החזרה בשובר זיכוי","إرجاع بقسيمة دائنة","Credit-voucher refund"], voucherChange:["עודף שובר זיכוי","باقي القسيمة","Voucher change"], voucherChangeCnt:["ספירת עודף שוברי זיכוי","عدد باقي القسائم","Voucher change count"],
+ noPaySce:["מכירות ללא תשלום (תעודת משלוח)","مبيعات بدون دفع (إرسالية)","Unpaid sales (delivery notes)"], noPayTi:["מכירות ללא תשלום (חשבוניות מס)","مبيعات بدون دفع (فواتير ضريبية)","Unpaid sales (tax invoices)"],
+ gift:["סך הכל כרטיסי מתנה","إجمالي بطاقات الهدايا","Gift cards"], giftCnt:["ספירת כרטיסי מתנה","عدد بطاقات الهدايا","Gift card count"], coupon:["סך הכל קופונים","إجمالي القسائم","Coupons"], couponCnt:["ספירת קופונים","عدد القسائم","Coupon count"],
+ cheque:["סך הכל שיקים","إجمالي الشيكات","Cheques"], chequeCnt:["ספירת שיקים","عدد الشيكات","Cheque count"], deposit:["סך הכל הפקדות","إجمالي الإيداعات","Deposits"], depositCnt:["ספירת הפקדות","عدد الإيداعات","Deposit count"],
+ cibus:["סה״כ סיבוס","إجمالي سيبوس","Cibus"], cibusCnt:["מונה סיבוס","عدد سيبوس","Cibus count"], wolt:["סה״כ וולט","إجمالي وولت","Wolt"], woltCnt:["מונה וולט","عدد وولت","Wolt count"],
+ bit:["סה״כ ביט","إجمالي بيت","Bit"], bitCnt:["מונה ביט","عدد بيت","Bit count"], points:["סך נקודות","إجمالي النقاط","Points"], pointsCnt:["מונה נקודות","عدد النقاط","Points count"],
+ creditInv:["סה״כ תשלומים לחשבונית זיכוי","دفعات لفاتورة دائنة","Credit-invoice payments"], creditInvCnt:["מונה תשלומים לחשבונית זיכוי","عدد دفعات الفاتورة الدائنة","Credit-invoice payment count"],
+ totalCnt:["סך הכל ספירות","إجمالي العدّ","Total counts"], receipts:["סך הכל קבלות","إجمالي الإيصالات","Total receipts"], total:["סך הכל מכירות הכוללות מע״מ","إجمالي المبيعات شامل الضريبة","Total sales incl. VAT"],
+ vat:["מע״מ","الضريبة","VAT"], exempt:["עסקאות פטורות ממע״מ","معاملات معفاة من الضريبة","VAT-exempt sales"],
+ tipCash:["טיפ במזומן","بقشيش نقدي","Cash tip"], tipCard:["טיפ באשראי","بقشيش بالبطاقة","Card tip"], tipCibus:["טיפ סיבוס","بقشيش سيبوس","Cibus tip"],
+ opening:["יתרת פתיחה","رصيد الافتتاح","Opening balance"], opened:["ת-פתיחה","وقت الفتح","Opened"], closed:["ת-סגירה","وقت الإغلاق","Closed"], firstSale:["שעת מכירה ראשונה","وقت أول بيع","First sale"]
+};
+const GROUPT={acc:["לרואה החשבון (מחושב)","للمحاسب (محسوب)","For the accountant (calculated)"],basic:["פרטי קופה","تفاصيل الصندوق","Register details"],pay:["אמצעי תשלום","وسائل الدفع","Payment methods"],ret:["החזרים וזיכויים","مرتجعات وإشعارات دائنة","Refunds & credits"],sum:["סיכומים ומע״מ","المجاميع والضريبة","Totals & VAT"],tip:["טיפים","بقشيش","Tips"],time:["זמנים ויתרה","الأوقات والرصيد","Times & balance"]};
+const WH_L={1:["חורפיש","حرفيش","Hurfeish"],2:["ג'וליס","جولس","Julis"],3:["השמדות","إتلاف","Disposals"],4:["שימוש עצמי","استخدام ذاتي","Self use"],5:["משרד","المكتب","Office"]};
+const USER_L={8:["סלמאן בדר","سلمان بدر","Salman Badr"]};
+let LANG=(()=>{const h=(location.hash||"").slice(1);if(LANGS[h])return h;try{const v=localStorage.getItem("aura-lang");if(LANGS[v])return v}catch(e){}return "he"})();
+const t=(k,v)=>{let s=(TX[k]||[k])[LI[LANG]]??TX[k][0];if(v)for(const x in v)s=s.split("{"+x+"}").join(v[x]);return s;};
+
+const WH=[1,2,3,4,5].map(id=>({id}));
 const USERS=[{id:1,name:"pecanzaman"},{id:2,name:"Hurfeish1"},{id:3,name:"Hurfeish2"},{id:4,name:"Julis1"},{id:5,name:"samia"},{id:6,name:"mayar"},{id:7,name:"Self Service Guest"},{id:8,name:"סלמאן בדר"}];
 const pad=n=>String(n).padStart(2,"0");
 const iso=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
@@ -342,25 +497,28 @@ for(let k=2;k>=0;k--){
   }
 }
 
-/* ---------- Columns ---------- */
+/* ---------- Columns (same names and order as the live system) ---------- */
 const COLS=[
- {k:"z",t:"מספר Z",g:"basic",lock:1},{k:"wh",t:"מחסן",g:"basic"},{k:"user",t:"משתמש",g:"basic"},{k:"day",t:"תאריך",g:"basic"},{k:"drawer",t:"מונה פתיחת מגירה",g:"basic",n:1,int:1},{k:"status",t:"סטטוס",g:"basic"},
- {k:"charges",t:"סך החיובים",g:"acc",n:1},{k:"credits",t:"סך הזיכויים",g:"acc",n:1},{k:"net",t:"מכירות נטו",g:"acc",n:1},{k:"other",t:"אמצעי תשלום אחרים",g:"acc",n:1},{k:"taxable",t:"סכום חייב במע״מ (לפני מע״מ)",g:"acc",n:1},
- {k:"cash",t:"מזומנים",g:"pay",n:1},{k:"cashCnt",t:"ספירת מזומן",g:"pay",n:1,int:1},{k:"credit",t:"כרטיס אשראי",g:"pay",n:1},{k:"creditCnt",t:"ספירת אשראי",g:"pay",n:1,int:1},
- {k:"cashRet",t:"החזר במזומן",g:"ret",n:1},{k:"cardRet",t:"החזרה באשראי",g:"ret",n:1},{k:"invRet",t:"החזרה בשובר זיכוי",g:"ret",n:1},{k:"voucherChange",t:"עודף שובר זיכוי",g:"ret",n:1},{k:"voucherChangeCnt",t:"ספירת עודף שוברי זיכוי",g:"ret",n:1,int:1},
- {k:"noPaySce",t:"מכירות ללא תשלום (תעודת משלוח)",g:"sum",n:1},{k:"noPayTi",t:"מכירות ללא תשלום (חשבוניות מס)",g:"sum",n:1},
- {k:"gift",t:"סך הכל כרטיסי מתנה",g:"pay",n:1},{k:"giftCnt",t:"ספירת כרטיסי מתנה",g:"pay",n:1,int:1},{k:"coupon",t:"סך הכל קופונים",g:"pay",n:1},{k:"couponCnt",t:"ספירת קופונים",g:"pay",n:1,int:1},
- {k:"cheque",t:"סך הכל שיקים",g:"pay",n:1},{k:"chequeCnt",t:"ספירת שיקים",g:"pay",n:1,int:1},{k:"deposit",t:"סך הכל הפקדות",g:"pay",n:1},{k:"depositCnt",t:"ספירת הפקדות",g:"pay",n:1,int:1},
- {k:"cibus",t:"סה״כ סיבוס",g:"pay",n:1},{k:"cibusCnt",t:"מונה סיבוס",g:"pay",n:1,int:1},{k:"wolt",t:"סה״כ וולט",g:"pay",n:1},{k:"woltCnt",t:"מונה וולט",g:"pay",n:1,int:1},
- {k:"bit",t:"סה״כ ביט",g:"pay",n:1},{k:"bitCnt",t:"מונה ביט",g:"pay",n:1,int:1},{k:"points",t:"סך נקודות",g:"pay",n:1},{k:"pointsCnt",t:"מונה נקודות",g:"pay",n:1,int:1},
- {k:"creditInv",t:"סה״כ תשלומים לחשבונית זיכוי",g:"pay",n:1},{k:"creditInvCnt",t:"מונה תשלומים לחשבונית זיכוי",g:"pay",n:1,int:1},
- {k:"totalCnt",t:"סך הכל ספירות",g:"sum",n:1,int:1},{k:"receipts",t:"סך הכל קבלות",g:"sum",n:1},{k:"total",t:"סך הכל מכירות הכוללות מע״מ",g:"sum",n:1},{k:"vat",t:"מע״מ",g:"sum",n:1},{k:"exempt",t:"עסקאות פטורות ממע״מ",g:"sum",n:1},
- {k:"tipCash",t:"טיפ במזומן",g:"tip",n:1},{k:"tipCard",t:"טיפ באשראי",g:"tip",n:1},{k:"tipCibus",t:"טיפ סיבוס",g:"tip",n:1},
- {k:"opening",t:"יתרת פתיחה",g:"time",n:1,nosum:1},{k:"opened",t:"ת-פתיחה",g:"time"},{k:"closed",t:"ת-סגירה",g:"time"},{k:"firstSale",t:"שעת מכירה ראשונה",g:"time"}
+ {k:"z",g:"basic",lock:1},{k:"wh",g:"basic"},{k:"user",g:"basic"},{k:"day",g:"basic"},{k:"drawer",g:"basic",n:1,int:1},{k:"status",g:"basic"},
+ {k:"charges",g:"acc",n:1},{k:"credits",g:"acc",n:1},{k:"net",g:"acc",n:1},{k:"other",g:"acc",n:1},{k:"taxable",g:"acc",n:1},
+ {k:"cash",g:"pay",n:1},{k:"cashCnt",g:"pay",n:1,int:1},{k:"credit",g:"pay",n:1},{k:"creditCnt",g:"pay",n:1,int:1},
+ {k:"cashRet",g:"ret",n:1},{k:"cardRet",g:"ret",n:1},{k:"invRet",g:"ret",n:1},{k:"voucherChange",g:"ret",n:1},{k:"voucherChangeCnt",g:"ret",n:1,int:1},
+ {k:"noPaySce",g:"sum",n:1},{k:"noPayTi",g:"sum",n:1},
+ {k:"gift",g:"pay",n:1},{k:"giftCnt",g:"pay",n:1,int:1},{k:"coupon",g:"pay",n:1},{k:"couponCnt",g:"pay",n:1,int:1},
+ {k:"cheque",g:"pay",n:1},{k:"chequeCnt",g:"pay",n:1,int:1},{k:"deposit",g:"pay",n:1},{k:"depositCnt",g:"pay",n:1,int:1},
+ {k:"cibus",g:"pay",n:1},{k:"cibusCnt",g:"pay",n:1,int:1},{k:"wolt",g:"pay",n:1},{k:"woltCnt",g:"pay",n:1,int:1},
+ {k:"bit",g:"pay",n:1},{k:"bitCnt",g:"pay",n:1,int:1},{k:"points",g:"pay",n:1},{k:"pointsCnt",g:"pay",n:1,int:1},
+ {k:"creditInv",g:"pay",n:1},{k:"creditInvCnt",g:"pay",n:1,int:1},
+ {k:"totalCnt",g:"sum",n:1,int:1},{k:"receipts",g:"sum",n:1},{k:"total",g:"sum",n:1},{k:"vat",g:"sum",n:1},{k:"exempt",g:"sum",n:1},
+ {k:"tipCash",g:"tip",n:1},{k:"tipCard",g:"tip",n:1},{k:"tipCibus",g:"tip",n:1},
+ {k:"opening",g:"time",n:1,nosum:1},{k:"opened",g:"time"},{k:"closed",g:"time"},{k:"firstSale",g:"time"}
 ];
-const GROUPS={acc:"לרואה החשבון (מחושב)",basic:"פרטי קופה",pay:"אמצעי תשלום",ret:"החזרים וזיכויים",sum:"סיכומים ומע״מ",tip:"טיפים",time:"זמנים ויתרה"};
+const GROUP_KEYS=["acc","basic","pay","ret","sum","tip","time"];
 const PRESETS={simple:["z","wh","user","status","day","cash","credit","bit","total"],accountant:["z","wh","user","closed","charges","credits","net","cash","credit","cheque","other","taxable","vat","exempt"],all:COLS.map(c=>c.k)};
 const store={get(k,d){try{const v=localStorage.getItem("aura-cr-"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("aura-cr-"+k,JSON.stringify(v))}catch(e){}}};
+const L=()=>LI[LANG], rtl=()=>LANGS[LANG].dir==="rtl";
+const colT=c=>COLT[c.k][L()];
+const groupT=g=>GROUPT[g][L()];
 
 const st={mode:"month",month:monthKey(TY,TM),from:"",to:"",wh:0,user:0,status:"all",q:"",sort:"z",dir:"asc",
   cols:store.get("cols",PRESETS.simple),page:1,size:store.get("size",31)};
@@ -368,21 +526,33 @@ function setMonth(key){st.mode="month";st.month=key;const [y,m]=key.split("-").m
 setMonth(st.month);
 
 const $=id=>document.getElementById(id);
-const fmt=n=>(+n).toLocaleString("he-IL",{minimumFractionDigits:0,maximumFractionDigits:2});
-const money=n=>"₪"+Math.round(n).toLocaleString("he-IL");
-const whName=id=>WH.find(w=>w.id===id)?.name||"";
-const uName=id=>USERS.find(u=>u.id===id)?.name||"";
+const fmt=n=>(+n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:2});
+const money=n=>"₪"+Math.round(n).toLocaleString("en-US");
+const whName=id=>WH_L[id]?WH_L[id][L()]:"";
+const uName=id=>USER_L[id]?USER_L[id][L()]:(USERS.find(u=>u.id===id)?.name||"");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const monthLabel=key=>{const [y,m]=key.split("-").map(Number);return `${MONTHS[m-1]} ${y}`};
+const monthLabel=key=>{const [y,m]=key.split("-").map(Number);return `${MONTHS_L[L()][m-1]} ${y}`};
 const periodLabel=()=>st.mode==="month"?monthLabel(st.month):`${ddmmyyyy(st.from)} – ${ddmmyyyy(st.to)}`;
 const visCols=()=>COLS.filter(c=>c.lock||st.cols.includes(c.k));
+const statusT=s=>t(s==="open"?"stOpen":"stClosed");
+
+/* ---------- Language ---------- */
+function applyLang(){
+  const h=document.documentElement; h.lang=LANG; h.dir=LANGS[LANG].dir;
+  document.title=t("title");
+  document.querySelectorAll("[data-i18n]").forEach(el=>{el.textContent=t(el.dataset.i18n)});
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{el.placeholder=t(el.dataset.i18nPh)});
+  document.querySelectorAll("[data-i18n-aria]").forEach(el=>{el.setAttribute("aria-label",t(el.dataset.i18nAria))});
+  document.querySelectorAll("[data-lang]").forEach(b=>{b.classList.toggle("on",b.dataset.lang===LANG);b.setAttribute("aria-pressed",String(b.dataset.lang===LANG))});
+}
+function setLang(l){if(!LANGS[l])return;LANG=l;try{localStorage.setItem("aura-lang",l)}catch(e){}applyLang();render();if(!$("colpanel").hidden)renderColPanel();if(!$("pdfdlg").hidden)renderPdfDlg();if(!$("drawer").hidden)$("drawer").hidden=true;}
 
 /* ---------- Filtering ---------- */
 const inDates=r=>r.day>=st.from&&r.day<=st.to;
 function base(skip){return R.filter(r=>inDates(r)&&(skip==="wh"||!st.wh||r.wh===st.wh)&&(skip==="user"||!st.user||r.user===st.user))}
 function rows(){
   let a=base().filter(r=>st.status==="all"||r.status===st.status);
-  if(st.q){const q=st.q.trim().toLowerCase();a=a.filter(r=>String(r.z).includes(q)||uName(r.user).toLowerCase().includes(q)||whName(r.wh).includes(q));}
+  if(st.q){const q=st.q.trim().toLowerCase();a=a.filter(r=>String(r.z).includes(q)||uName(r.user).toLowerCase().includes(q)||whName(r.wh).toLowerCase().includes(q));}
   const k=st.sort,m=st.dir==="asc"?1:-1;
   return a.sort((x,y)=>{let A=x[k],B=y[k];if(k==="wh"){A=whName(A);B=whName(B)}if(k==="user"){A=uName(A);B=uName(B)}
     if(A<B)return -m;if(A>B)return m;return (x.wh-y.wh)||(x.z-y.z)});
@@ -396,15 +566,15 @@ function insights(a){
   const zScope=R.filter(r=>inDates(r)&&(!st.wh||r.wh===st.wh));
   WH.forEach(w=>{const zs=zScope.filter(r=>r.wh===w.id).map(r=>r.z).sort((x,y)=>x-y);const miss=[];
     for(let i=1;i<zs.length;i++) for(let z=zs[i-1]+1;z<zs[i];z++) miss.push(z);
-    if(miss.length) out.push({warn:1,text:`חסר מספר Z ברצף ב${w.name}: ${miss.slice(0,5).join(", ")}${miss.length>5?"…":""}`});});
+    if(miss.length) out.push({warn:1,text:t("gapZ",{wh:whName(w.id),list:miss.slice(0,5).join(", ")+(miss.length>5?"…":"")})});});
   const open=a.filter(r=>r.status==="open");
-  if(open.length) out.push({warn:1,text:`${open.length} קופות עדיין פתוחות: ${open.map(r=>`Z ${r.z} (${whName(r.wh)})`).join(", ")}`});
+  if(open.length) out.push({warn:1,text:t("openRegs",{n:open.length,list:open.map(r=>`Z ${r.z} (${whName(r.wh)})`).join(", ")})});
   const best=a.reduce((b,r)=>r.total>b.total?r:b,a[0]);
-  out.push({text:`המכירה הגבוהה ביותר: Z ${best.z} ב${whName(best.wh)}, ${ddmmyyyy(best.day)} – ${money(best.total)}`});
+  out.push({text:t("best",{z:best.z,wh:whName(best.wh),d:ddmmyyyy(best.day),amt:money(best.total)})});
   const days=new Set(a.map(r=>r.day)).size;
-  out.push({text:`ממוצע ליום: ${money(sum(a,"total")/days)} (${days} ימי פעילות)`});
+  out.push({text:t("avg",{amt:money(sum(a,"total")/days),n:days})});
   const ret=a.filter(r=>r.cashRet<0||r.cardRet<0||r.invRet<0);
-  if(ret.length) out.push({text:`החזרים: ${ret.length} קופות, סה״כ ${money(-(sum(a,"cashRet")+sum(a,"cardRet")+sum(a,"invRet")))}`});
+  if(ret.length) out.push({text:t("returns",{n:ret.length,amt:money(-(sum(a,"cashRet")+sum(a,"cardRet")+sum(a,"invRet")))})});
   return out;
 }
 
@@ -412,112 +582,114 @@ function insights(a){
 function chip(label,on,cnt,attrs,cls=""){return `<button type="button" class="chip ${cls} ${on?"on":""}" ${attrs} aria-pressed="${on}">${label}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`}
 function renderFilters(){
   const recent=[0,1,2].map(k=>{const d=new Date(TY,TM-k,1);return monthKey(d.getFullYear(),d.getMonth())});
-  $("month-chips").innerHTML=recent.map((key,i)=>chip(i===0?`${monthLabel(key)} (החודש)`:monthLabel(key),st.mode==="month"&&st.month===key,R.filter(r=>r.day.startsWith(key)).length,`data-month="${key}"`)).join("");
+  $("month-chips").innerHTML=recent.map((key,i)=>chip(i===0?`${monthLabel(key)} ${t("thisMonth")}`:monthLabel(key),st.mode==="month"&&st.month===key,R.filter(r=>r.day.startsWith(key)).length,`data-month="${key}"`)).join("");
   const opts=[];for(let k=0;k<24;k++){const d=new Date(TY,TM-k,1);const key=monthKey(d.getFullYear(),d.getMonth());opts.push(`<option value="${key}" ${st.mode==="month"&&st.month===key?"selected":""}>${monthLabel(key)}</option>`)}
-  $("month-sel").innerHTML=(st.mode==="range"?`<option value="" selected>טווח מותאם</option>`:"")+opts.join("");
+  $("month-sel").innerHTML=(st.mode==="range"?`<option value="" selected>${t("customRange")}</option>`:"")+opts.join("");
   $("d-from").value=st.from;$("d-to").value=st.to;
   const bw=base("wh");
-  $("wh-chips").innerHTML=chip("כל הסניפים",!st.wh,bw.length,'data-wh="0"',"all")+WH.map(w=>{const c=bw.filter(r=>r.wh===w.id).length;return chip(esc(w.name),st.wh===w.id,c,`data-wh="${w.id}"`,c?"":"dim")}).join("");
+  $("wh-chips").innerHTML=chip(t("allBranches"),!st.wh,bw.length,'data-wh="0"',"all")+WH.map(w=>{const c=bw.filter(r=>r.wh===w.id).length;return chip(esc(whName(w.id)),st.wh===w.id,c,`data-wh="${w.id}"`,c?"":"dim")}).join("");
   const bu=base("user");
-  $("user-chips").innerHTML=chip("כל הקופאים",!st.user,bu.length,'data-user="0"',"all")+USERS.map(u=>{const c=bu.filter(r=>r.user===u.id).length;return chip(`<span class="av">${esc(u.name[0].toUpperCase())}</span>${esc(u.name)}`,st.user===u.id,c,`data-user="${u.id}"`,c?"":"dim")}).join("");
-  $("user-hint").textContent=st.wh?`קופאים בלי קופות ב${whName(st.wh)} מוצגים בצבע חלש.`:"";
+  $("user-chips").innerHTML=chip(t("allCashiers"),!st.user,bu.length,'data-user="0"',"all")+USERS.map(u=>{const c=bu.filter(r=>r.user===u.id).length,nm=uName(u.id);return chip(`<span class="av">${esc(nm[0].toUpperCase())}</span><bdi>${esc(nm)}</bdi>`,st.user===u.id,c,`data-user="${u.id}"`,c?"":"dim")}).join("");
+  $("user-hint").textContent=st.wh?t("dimHint",{wh:whName(st.wh)}):"";
 }
 function renderShowing(n){
-  const p=[`<span class="t">מציג ${n} קופות:</span>`,`<span class="pill">📅 ${esc(periodLabel())}</span>`,
-    `<span class="pill">🏬 ${st.wh?esc(whName(st.wh)):"כל הסניפים"}${st.wh?'<button type="button" data-x="wh" aria-label="הסר סינון סניף">✕</button>':""}</span>`,
-    `<span class="pill">👤 ${st.user?esc(uName(st.user)):"כל הקופאים"}${st.user?'<button type="button" data-x="user" aria-label="הסר סינון קופאי">✕</button>':""}</span>`];
+  const p=[`<span class="t">${esc(t("showing",{n}))}</span>`,`<span class="pill">📅 <bdi>${esc(periodLabel())}</bdi></span>`,
+    `<span class="pill">🏬 ${st.wh?esc(whName(st.wh)):t("allBranches")}${st.wh?`<button type="button" data-x="wh" aria-label="${t("rmBranch")}">✕</button>`:""}</span>`,
+    `<span class="pill">👤 <bdi>${st.user?esc(uName(st.user)):t("allCashiers")}</bdi>${st.user?`<button type="button" data-x="user" aria-label="${t("rmCashier")}">✕</button>`:""}</span>`];
   const sc=COLS.find(c=>c.k===st.sort);
-  p.push(`<span class="sortnote">ממוין לפי ${sc.t} · ${st.dir==="asc"?"מהקטן לגדול ↑":"מהגדול לקטן ↓"}</span>`);
-  if(st.wh||st.user||st.status!=="all"||st.q||st.mode!=="month"||st.month!==monthKey(TY,TM)||st.sort!=="z"||st.dir!=="asc") p.push(`<button type="button" class="clear" id="clear">✕ נקה הכל</button>`);
+  p.push(`<span class="sortnote">${esc(t("sortedBy",{c:colT(sc)}))} · ${t(st.dir==="asc"?"asc":"desc")}</span>`);
+  if(st.wh||st.user||st.status!=="all"||st.q||st.mode!=="month"||st.month!==monthKey(TY,TM)||st.sort!=="z"||st.dir!=="asc") p.push(`<button type="button" class="clear" id="clear">${t("clearAll")}</button>`);
   $("showing").innerHTML=p.join("");
   $("hdr-period").textContent=periodLabel();
 }
 function renderTiles(a){
   const open=a.filter(r=>r.status==="open").length;
-  const T=[["דוחות Z",a.length,`סגירות קופה · ${open} פתוחות`],["סה״כ מכירות",money(sum(a,"total")),"כולל מע״מ"],["מזומן",money(sum(a,"cash")),`${fmt(sum(a,"cashCnt"))} עסקאות`],["אשראי",money(sum(a,"credit")),`${fmt(sum(a,"creditCnt"))} עסקאות`],["ביט",money(sum(a,"bit")),`${fmt(sum(a,"bitCnt"))} עסקאות`],["מע״מ",money(sum(a,"vat")),"מתוך המכירות"]];
-  $("tiles").innerHTML=T.map(([k,v,s])=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join("");
-  $("insights").innerHTML=insights(a).map(i=>`<div class="ins ${i.warn?"warn":""}">${i.warn?"⚠":"💡"} ${esc(i.text)}</div>`).join("");
+  const T=[[t("tZ"),a.length,t("tZs",{n:open})],[t("tSales"),money(sum(a,"total")),t("inclVat")],[t("tCash"),money(sum(a,"cash")),t("tx",{n:fmt(sum(a,"cashCnt"))})],[t("tCredit"),money(sum(a,"credit")),t("tx",{n:fmt(sum(a,"creditCnt"))})],[t("tBit"),money(sum(a,"bit")),t("tx",{n:fmt(sum(a,"bitCnt"))})],[t("tVat"),money(sum(a,"vat")),t("ofSales")]];
+  $("tiles").innerHTML=T.map(([k,v,s])=>`<div class="tile"><div class="k">${k}</div><div class="v"><bdi>${v}</bdi></div><div class="s">${s}</div></div>`).join("");
+  $("insights").innerHTML=insights(a).map(i=>`<div class="ins ${i.warn?"warn":""}">${i.warn?"⚠":"💡"} <span>${esc(i.text)}</span></div>`).join("");
 }
 function cellHTML(r,c){
   switch(c.k){
     case "z":return `<span class="z">Z ${r.z}</span>`;
     case "wh":return `<b>${esc(whName(r.wh))}</b>`;
-    case "user":return esc(uName(r.user));
-    case "status":return r.status==="open"?'<span class="status open">פתוחה</span>':'<span class="status closed">סגורה</span>';
+    case "user":return `<bdi>${esc(uName(r.user))}</bdi>`;
+    case "status":return `<span class="status ${r.status}">${statusT(r.status)}</span>`;
     case "day":return ddmmyyyy(r.day);
-    case "closed":return r.closed?`${ddmmyyyy(r.day).slice(0,5)} ${r.closed}`:"—";
-    case "opened":return `${ddmmyyyy(r.day).slice(0,5)} ${r.opened}`;
-    
-    case "act":return `<button type="button" class="act" data-open="${R.indexOf(r)}">👁 פרטים</button>`;
-    default:return c.n?`<span class="${r[c.k]<0?"neg":""}">${fmt(r[c.k])}</span>`:esc(r[c.k]);
+    case "closed":return r.closed?`<bdi>${ddmmyyyy(r.day).slice(0,5)} ${r.closed}</bdi>`:"—";
+    case "opened":return `<bdi>${ddmmyyyy(r.day).slice(0,5)} ${r.opened}</bdi>`;
+    case "firstSale":return `<bdi>${r.firstSale}</bdi>`;
+    case "act":return `<button type="button" class="act" data-open="${R.indexOf(r)}">${t("details")}</button>`;
+    default:return c.n?`<bdi class="${r[c.k]<0?"neg":""}">${fmt(r[c.k])}</bdi>`:esc(r[c.k]);
   }
 }
 function renderTable(a){
-  const cols=[...visCols(),{k:"act",t:"",nosort:1}];
+  const cols=[...visCols(),{k:"act",nosort:1}];
   $("cols-cnt").textContent=visCols().length;
-  $("thead").innerHTML="<tr>"+cols.map(c=>{const on=st.sort===c.k;return `<th class="${c.n?"n":""} ${on?"sorted":""}" ${c.nosort?"":`data-sort="${c.k}"`} ${on?`aria-sort="${st.dir==="asc"?"ascending":"descending"}"`:""}>${c.t}${on?`<span class="arr">${st.dir==="asc"?"▲":"▼"}</span>`:""}</th>`}).join("")+"</tr>";
+  $("thead").innerHTML="<tr>"+cols.map(c=>{const on=st.sort===c.k;return `<th class="${c.n?"n":""} ${on?"sorted":""}" ${c.nosort?"":`data-sort="${c.k}"`} ${on?`aria-sort="${st.dir==="asc"?"ascending":"descending"}"`:""}>${c.k==="act"?"":colT(c)}${on?`<span class="arr">${st.dir==="asc"?"▲":"▼"}</span>`:""}</th>`}).join("")+"</tr>";
   const size=+st.size||a.length||1, pages=Math.max(1,Math.ceil(a.length/size)); if(st.page>pages) st.page=pages;
   const slice=a.slice((st.page-1)*size,(st.page-1)*size+size);
-  if(!a.length){$("tbody").innerHTML=`<tr><td colspan="${cols.length}" class="empty"><b>אין קופות להצגה</b>נסו לבחור "כל הקופאים" או חודש אחר.</td></tr>`;$("tfoot").innerHTML="";}
+  if(!a.length){$("tbody").innerHTML=`<tr><td colspan="${cols.length}" class="empty"><b>${t("emptyT")}</b>${esc(t("emptyS"))}</td></tr>`;$("tfoot").innerHTML="";}
   else{
     $("tbody").innerHTML=slice.map(r=>"<tr>"+cols.map(c=>`<td class="${c.n?"n":""}">${cellHTML(r,c)}</td>`).join("")+"</tr>").join("");
-    $("tfoot").innerHTML="<tr>"+cols.map((c,i)=>`<td class="${c.n?"n":""}">${c.n&&!c.nosum?fmt(sum(a,c.k)):(i===0?"סה״כ":"")}</td>`).join("")+"</tr>";
+    $("tfoot").innerHTML="<tr>"+cols.map((c,i)=>`<td class="${c.n?"n":""}">${c.n&&!c.nosum?`<bdi>${fmt(sum(a,c.k))}</bdi>`:(i===0?t("total"):"")}</td>`).join("")+"</tr>";
   }
   const mc=visCols().filter(c=>c.n).slice(0,4);
-  $("mlist").innerHTML=a.length?slice.map(r=>`<div class="mcard"><div class="top"><span class="z">Z ${r.z}</span><b>${esc(whName(r.wh))}</b><span>${esc(uName(r.user))}</span><span>${ddmmyyyy(r.day)}</span>${cellHTML(r,{k:"status"})}<span style="margin-inline-start:auto">${cellHTML(r,{k:"act"})}</span></div><div class="grid">${mc.map(c=>`<div><span>${c.t}</span><b>${fmt(r[c.k])}</b></div>`).join("")}</div></div>`).join(""):`<div class="empty"><b>אין קופות להצגה</b>נסו להרחיב את הסינון.</div>`;
-  $("pg-info").textContent=a.length?`שורות ${(st.page-1)*size+1}–${Math.min(st.page*size,a.length)} מתוך ${a.length}`:"0 קופות";
-  $("pg").innerHTML=pages>1?Array.from({length:pages},(_,i)=>`<button type="button" data-page="${i+1}" class="${st.page===i+1?"on":""}" aria-label="עמוד ${i+1}">${i+1}</button>`).join(""):"";
+  $("mlist").innerHTML=a.length?slice.map(r=>`<div class="mcard"><div class="top"><span class="z">Z ${r.z}</span><b>${esc(whName(r.wh))}</b><bdi>${esc(uName(r.user))}</bdi><span>${ddmmyyyy(r.day)}</span>${cellHTML(r,{k:"status"})}<span style="margin-inline-start:auto">${cellHTML(r,{k:"act"})}</span></div><div class="grid">${mc.map(c=>`<div><span>${colT(c)}</span><b><bdi>${fmt(r[c.k])}</bdi></b></div>`).join("")}</div></div>`).join(""):`<div class="empty"><b>${t("emptyT")}</b>${esc(t("emptyS"))}</div>`;
+  $("pg-info").textContent=a.length?t("rowsInfo",{a:(st.page-1)*size+1,b:Math.min(st.page*size,a.length),n:a.length}):t("zeroRegs");
+  $("pg").innerHTML=pages>1?Array.from({length:pages},(_,i)=>`<button type="button" data-page="${i+1}" class="${st.page===i+1?"on":""}" aria-label="${t("page",{n:i+1})}">${i+1}</button>`).join(""):"";
   $("pg-size").value=String(st.size);
 }
 function renderColPanel(){
-  $("cgroups").innerHTML=Object.entries(GROUPS).map(([g,t])=>`<div class="cgroup"><b>${t}</b>${COLS.filter(c=>c.g===g).map(c=>`<label for="col-${c.k}"><input type="checkbox" id="col-${c.k}" data-col="${c.k}" ${c.lock||st.cols.includes(c.k)?"checked":""} ${c.lock?"disabled":""}>${c.t}${c.lock?' <span class="cnt">תמיד</span>':""}</label>`).join("")}</div>`).join("");
+  $("cgroups").innerHTML=GROUP_KEYS.map(g=>`<div class="cgroup"><b>${groupT(g)}</b>${COLS.filter(c=>c.g===g).map(c=>`<label for="col-${c.k}"><input type="checkbox" id="col-${c.k}" data-col="${c.k}" ${c.lock||st.cols.includes(c.k)?"checked":""} ${c.lock?"disabled":""}>${colT(c)}${c.lock?` <span class="cnt">${t("always")}</span>`:""}</label>`).join("")}</div>`).join("");
 }
 function render(){renderFilters();const a=rows();renderShowing(a.length);renderTiles(a);renderTable(a);}
 
 /* ---------- Events ---------- */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("button,th"); if(!t) return;
-  if(t.dataset.month){setMonth(t.dataset.month);$("range").hidden=true;render();}
-  else if(t.dataset.wh!=null){st.wh=+t.dataset.wh;st.page=1;if(st.user&&!base("user").some(r=>r.user===st.user))st.user=0;render();}
-  else if(t.dataset.user!=null){st.user=+t.dataset.user;st.page=1;render();}
-  else if(t.dataset.x){st[t.dataset.x]=0;render();}
-  else if(t.id==="clear"){Object.assign(st,{wh:0,user:0,status:"all",q:"",sort:"z",dir:"asc"});setMonth(monthKey(TY,TM));$("q").value="";$("range").hidden=true;document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.st==="all"));render();}
-  else if(t.dataset.st){st.status=t.dataset.st;st.page=1;document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b===t));render();}
-  else if(t.dataset.sort){const k=t.dataset.sort;if(st.sort===k)st.dir=st.dir==="asc"?"desc":"asc";else{st.sort=k;st.dir="asc"}render();}
-  else if(t.dataset.page){st.page=+t.dataset.page;render();document.getElementById("card").scrollIntoView({block:"start"});}
-  else if(t.id==="range-toggle"){$("range").hidden=!$("range").hidden;}
-  else if(t.id==="btn-cols"){const p=$("colpanel");p.hidden=!p.hidden;t.setAttribute("aria-expanded",String(!p.hidden));if(!p.hidden)renderColPanel();}
-  else if(t.id==="cols-done"){$("colpanel").hidden=true;$("btn-cols").setAttribute("aria-expanded","false");}
-  else if(t.dataset.presetCols){st.cols=[...PRESETS[t.dataset.presetCols]];store.set("cols",st.cols);renderColPanel();render();}
-  else if(t.dataset.open!=null){openDrawer(R[+t.dataset.open]);}
-  else if(t.id==="dr-close"){$("drawer").hidden=true;}
-  else if(t.id==="btn-pdf"){exportPDF(t);}
-  else if(t.id==="btn-csv"){exportCSV(t);}
+  const t0=e.target.closest("button,th"); if(!t0) return; const d=t0.dataset;
+  if(d.lang){setLang(d.lang);}
+  else if(d.month){setMonth(d.month);$("range").hidden=true;render();}
+  else if(d.wh!=null){st.wh=+d.wh;st.page=1;if(st.user&&!base("user").some(r=>r.user===st.user))st.user=0;render();}
+  else if(d.user!=null){st.user=+d.user;st.page=1;render();}
+  else if(d.x){st[d.x]=0;render();}
+  else if(t0.id==="clear"){Object.assign(st,{wh:0,user:0,status:"all",q:"",sort:"z",dir:"asc"});setMonth(monthKey(TY,TM));$("q").value="";$("range").hidden=true;document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b.dataset.st==="all"));render();}
+  else if(d.st){st.status=d.st;st.page=1;document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on",b===t0));render();}
+  else if(d.sort){const k=d.sort;if(st.sort===k)st.dir=st.dir==="asc"?"desc":"asc";else{st.sort=k;st.dir="asc"}render();}
+  else if(d.page){st.page=+d.page;render();$("card").scrollIntoView({block:"start"});}
+  else if(t0.id==="range-toggle"){$("range").hidden=!$("range").hidden;}
+  else if(t0.id==="btn-cols"){const p=$("colpanel");p.hidden=!p.hidden;t0.setAttribute("aria-expanded",String(!p.hidden));if(!p.hidden)renderColPanel();}
+  else if(t0.id==="cols-done"){$("colpanel").hidden=true;$("btn-cols").setAttribute("aria-expanded","false");}
+  else if(d.presetCols){st.cols=[...PRESETS[d.presetCols]];store.set("cols",st.cols);renderColPanel();render();}
+  else if(d.open!=null){openDrawer(R[+d.open]);}
+  else if(t0.id==="dr-close"){$("drawer").hidden=true;}
+  else if(t0.id==="btn-pdf"){openPdfDlg();}
+  else if(t0.id==="btn-csv"){exportCSV(t0);}
 });
 document.addEventListener("change",e=>{
-  const t=e.target;
-  if(t.dataset.col){const k=t.dataset.col;st.cols=t.checked?[...new Set([...st.cols,k])]:st.cols.filter(x=>x!==k);store.set("cols",st.cols);render();}
-  else if(t.id==="month-sel"&&t.value){setMonth(t.value);$("range").hidden=true;render();}
-  else if(t.id==="d-from"||t.id==="d-to"){st.mode="range";st.from=$("d-from").value||st.from;st.to=$("d-to").value||st.to;if(st.from>st.to){const x=st.from;st.from=st.to;st.to=x;}st.page=1;render();}
-  else if(t.id==="pg-size"){st.size=+t.value;st.page=1;store.set("size",st.size);render();}
+  const x=e.target;
+  if(x.dataset.col){const k=x.dataset.col;st.cols=x.checked?[...new Set([...st.cols,k])]:st.cols.filter(v=>v!==k);store.set("cols",st.cols);render();}
+  else if(x.id==="month-sel"&&x.value){setMonth(x.value);$("range").hidden=true;render();}
+  else if(x.id==="d-from"||x.id==="d-to"){st.mode="range";st.from=$("d-from").value||st.from;st.to=$("d-to").value||st.to;if(st.from>st.to){const s=st.from;st.from=st.to;st.to=s;}st.page=1;render();}
+  else if(x.id==="pg-size"){st.size=+x.value;st.page=1;store.set("size",st.size);render();}
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("drawer").hidden=true;$("colpanel").hidden=true;$("pdfdlg").hidden=true;}});
 $("drawer").addEventListener("click",e=>{if(e.target.id==="drawer")$("drawer").hidden=true});
 $("q").addEventListener("input",e=>{st.q=e.target.value;st.page=1;render();});
 document.addEventListener("click",e=>{const p=$("colpanel");if(!p.hidden&&!p.contains(e.target)&&!e.target.closest("#btn-cols"))p.hidden=true;},true);
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(LANGS[h]&&h!==LANG)setLang(h);});
 
 function openDrawer(r){
-  const L=[["סניף",whName(r.wh)],["קופאי",uName(r.user)],["סטטוס",r.status==="open"?"פתוחה":"סגורה"],["תאריך",ddmmyyyy(r.day)],["שעת פתיחה",r.opened],["שעת סגירה",r.closed||"—"],...COLS.filter(c=>c.n).map(c=>[c.t,fmt(r[c.k])])];
-  $("dr-body").innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="z">Z ${r.z}</span><button type="button" class="btn" id="dr-close">✕ סגור</button></div><h3 id="dr-title">${esc(whName(r.wh))} · ${esc(uName(r.user))}</h3><div class="kv">${L.map(([k,v])=>`<span>${esc(k)}</span><b>${esc(v)}</b>`).join("")}</div>`;
+  const Lr=[[t("dBranch"),whName(r.wh)],[t("dCashier"),uName(r.user)],[t("status"),statusT(r.status)],[t("date"),ddmmyyyy(r.day)],[t("dOpen"),r.opened],[t("dClose"),r.closed||"—"],...COLS.filter(c=>c.n).map(c=>[colT(c),fmt(r[c.k])])];
+  $("dr-body").innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span class="z">Z ${r.z}</span><button type="button" class="btn" id="dr-close">✕ ${t("close")}</button></div><h3 id="dr-title">${esc(whName(r.wh))} · <bdi>${esc(uName(r.user))}</bdi></h3><div class="kv">${Lr.map(([k,v])=>`<span>${esc(k)}</span><b><bdi>${esc(v)}</bdi></b>`).join("")}</div>`;
   $("drawer").hidden=false;$("dr-close").focus();
 }
 
 /* ---------- Exports ---------- */
 const nowStr=()=>{const d=new Date();return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`};
 $("hdr-date").textContent=nowStr().split(" ")[0];
-const fileBase=()=>`קופות-${periodLabel().replace(/[\s/]+/g,"-").replace(/–/g,"עד")}`;
+const fileBase=()=>`${t("filePrefix")}-${periodLabel().replace(/[\s/]+/g,"-").replace(/–/g,"-")}`.replace(/-+/g,"-");
 function msg(s,bad){const m=$("exp-msg");m.textContent=s;m.style.color=bad?"var(--bad)":"var(--ink-2)";}
-function plainCell(r,c){switch(c.k){case "net":return r.total;case "opened":return `${ddmmyyyy(r.day)} ${r.opened}`;case "closed":return r.closed?`${ddmmyyyy(r.day)} ${r.closed}`:"-";case "wh":return whName(r.wh);case "user":return uName(r.user);case "status":return r.status==="open"?"פתוחה":"סגורה";case "day":return ddmmyyyy(r.day);default:return r[c.k];}}
+function plainCell(r,c){switch(c.k){case "net":return r.total;case "opened":return `${ddmmyyyy(r.day)} ${r.opened}`;case "closed":return r.closed?`${ddmmyyyy(r.day)} ${r.closed}`:"-";case "wh":return whName(r.wh);case "user":return uName(r.user);case "status":return statusT(r.status);case "day":return ddmmyyyy(r.day);default:return r[c.k];}}
 async function save(filename,data,btn,label){
   btn.disabled=true;
   try{
@@ -525,94 +697,102 @@ async function save(filename,data,btn,label){
     if(!dl){ // regular website: normal browser download
       const blob=data instanceof Blob?data:new Blob([data],{type:filename.endsWith(".csv")?"text/csv;charset=utf-8":"application/octet-stream"});
       const u=URL.createObjectURL(blob),lnk=document.createElement("a");lnk.href=u;lnk.download=filename;document.body.appendChild(lnk);lnk.click();lnk.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
-      msg(`✓ ${label} ירד למחשב`);return;}
-    await dl.save({filename,data});msg(`✓ ${label} נשמר`);
-  }catch(err){const c=err&&err.code;msg(c==="declined"?"ההורדה בוטלה.":c==="rate_limited"?"חלון הורדה כבר פתוח. אשרו אותו או נסו שוב בעוד רגע.":"לא ניתן להוריד את הקובץ כאן.",c!=="declined");}
+      msg(t("downloaded",{f:label}));return;}
+    await dl.save({filename,data});msg(t("saved",{f:label}));
+  }catch(err){const c=err&&err.code;msg(c==="declined"?t("declined"):c==="rate_limited"?t("rateLimited"):t("cantDl"),c!=="declined");}
   finally{btn.disabled=false;}
 }
 function exportCSV(btn){
   const a=rows(), cols=visCols();
-  if(!a.length){msg("אין שורות לייצוא. שנו את הסינון.",true);return;}
+  if(!a.length){msg(t("noRows"),true);return;}
   const q=v=>{v=String(v??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v};
-  const lines=[`${q(COMPANY)} – דוח קופות`,`תקופה,${q(periodLabel())}`,`סניף,${q(st.wh?whName(st.wh):"כל הסניפים")}`,`קופאי,${q(st.user?uName(st.user):"כל הקופאים")}`,`הופק,${q(nowStr())}`,"",
-    cols.map(c=>q(c.t)).join(","),...a.map(r=>cols.map(c=>q(plainCell(r,c))).join(",")),
-    cols.map((c,i)=>c.n&&!c.nosum?+sum(a,c.k).toFixed(2):(i===0?"סה״כ":"")).join(",")];
-  save(fileBase()+".csv","﻿"+lines.join("\r\n"),btn,"קובץ CSV");
+  const lines=[`${q(t("company"))} – ${t("csvReport")}`,`${t("period")},${q(periodLabel())}`,`${t("dBranch")},${q(st.wh?whName(st.wh):t("allBranches"))}`,`${t("dCashier")},${q(st.user?uName(st.user):t("allCashiers"))}`,`${t("generated")},${q(nowStr())}`,"",
+    cols.map(c=>q(colT(c))).join(","),...a.map(r=>cols.map(c=>q(plainCell(r,c))).join(",")),
+    cols.map((c,i)=>c.n&&!c.nosum?+sum(a,c.k).toFixed(2):(i===0?t("total"):"")).join(",")];
+  save(fileBase()+".csv","﻿"+lines.join("\r\n"),btn,t("fileCsv"));
 }
 
-/* Hebrew in jsPDF: convert each string to visual order ourselves (RTL runs reversed, numbers/Latin kept) */
-const HEB=/[֐-׿]/, LTRC=/[A-Za-z0-9À-ɏ]/, MIR={"(":")",")":"(","[":"]","]":"[","<":">",">":"<"};
-function vis(s){
-  s=String(s??"");if(!HEB.test(s))return s;
-  const ch=[...s],t=ch.map(c=>HEB.test(c)?"R":LTRC.test(c)?"L":"N");
-  ch.forEach((c,i)=>{if(/[₪%]/.test(c)&&(/\d/.test(ch[i-1]||"")||/\d/.test(ch[i+1]||"")))t[i]="L";});
-  for(let i=0;i<t.length;i++)if(t[i]==="N"){let j=i;while(j<t.length&&t[j]==="N")j++;const v=(i>0&&t[i-1]==="L"&&j<t.length&&t[j]==="L")?"L":"R";for(let k=i;k<j;k++)t[k]=v;i=j-1;}
-  const runs=[];ch.forEach((c,i)=>{const L=runs[runs.length-1];if(L&&L.t===t[i])L.s.push(c);else runs.push({t:t[i],s:[c]})});
-  return runs.reverse().map(r=>r.t==="R"?r.s.reverse().map(c=>MIR[c]||c).join(""):r.s.join("")).join("");
+/* ---------- Bidi for jsPDF: Arabic is shaped, then every string is put in visual order ---------- */
+const RTLC=/[֐-׿؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/, ARAB=/[؀-ۿ]/, LTRC=/[A-Za-z0-9À-ɏ]/, MIR={"(":")",")":"(","[":"]","]":"[","<":">",">":"<"};
+function shape(s){try{const f=window.jspdf&&window.jspdf.jsPDF.API.processArabic;return f?f(s):s}catch(e){return s}}
+function vis(s,baseRtl){
+  s=String(s??"");if(ARAB.test(s))s=shape(s);
+  if(!RTLC.test(s))return s;
+  const ch=[...s],ty=ch.map(c=>RTLC.test(c)?"R":LTRC.test(c)?"L":"N");
+  ch.forEach((c,i)=>{if(/[₪%]/.test(c)&&(/\d/.test(ch[i-1]||"")||/\d/.test(ch[i+1]||"")))ty[i]="L";});
+  const b=baseRtl?"R":"L";
+  for(let i=0;i<ty.length;i++)if(ty[i]==="N"){let j=i;while(j<ty.length&&ty[j]==="N")j++;const p=i>0?ty[i-1]:b,n=j<ty.length?ty[j]:b;const v=p===n?p:b;for(let k=i;k<j;k++)ty[k]=v;i=j-1;}
+  const runs=[];ch.forEach((c,i)=>{const x=runs[runs.length-1];if(x&&x.t===ty[i])x.s.push(c);else runs.push({t:ty[i],s:[c]})});
+  const out=runs.map(r=>r.t==="R"?r.s.reverse().map(c=>MIR[c]||c).join(""):r.s.join(""));
+  return (baseRtl?out.reverse():out).join("");
 }
-/* ================= PDF summary report ================= */
+/* ================= PDF: consolidated Z report (he / ar = right-to-left, en = left-to-right) ================= */
 const NAVY=[28,37,64],ACC=[79,86,224],GREY=[86,97,125],LINE=[210,216,230],SOFT=[246,247,251],OKC=[23,128,77],OKS=[227,245,236],WARNC=[168,90,7],WARNS=[255,241,222],REDC=[194,53,43],WHITE=[255,255,255];
-const DAYS=["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
 const f2=n=>(Math.round(+n*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 const sh=n=>"₪"+Math.round(+n).toLocaleString("en-US");
-const pct=(v,t)=>t?(Math.round(v/t*1000)/10).toFixed(1)+"%":"0%";
-/* Columns for the summary tables (each table has its own choice) */
+const pct=(v,T)=>T?(Math.round(v/T*1000)/10).toFixed(1)+"%":"0%";
 const GCOLS=[
- {k:"n",t:"דוחות Z",v:g=>String(g.length)},
- {k:"charges",t:"חיובים",v:g=>f2(sum(g,"charges"))},
- {k:"credits",t:"זיכויים",v:g=>f2(-sum(g,"credits"))},
- {k:"net",t:"מכירות נטו",v:g=>f2(sum(g,"total"))},
- {k:"cash",t:"מזומן",v:g=>f2(sum(g,"cash"))},
- {k:"credit",t:"אשראי",v:g=>f2(sum(g,"credit"))},
- {k:"cheque",t:"שיקים",v:g=>f2(sum(g,"cheque"))},
- {k:"other",t:"אחרים",v:g=>f2(sum(g,"other"))},
- {k:"taxable",t:"חייב במע״מ",v:g=>f2(sum(g,"taxable"))},
- {k:"vat",t:"מע״מ",v:g=>f2(sum(g,"vat"))},
- {k:"exempt",t:"פטור ממע״מ",v:g=>f2(sum(g,"exempt"))},
- {k:"avg",t:"ממוצע לדוח Z",v:g=>f2(sum(g,"total")/(g.length||1))},
- {k:"share",t:"חלק מהמכירות",v:(g,T)=>pct(sum(g,"total"),T)}];
-const DCOLS=[{k:"dow",t:"יום",v:(g,T,d)=>DAYS[new Date(d+"T12:00:00").getDay()]},...GCOLS];
+ {k:"n",tk:"gN",v:g=>String(g.length)},
+ {k:"charges",tk:"gCh",v:g=>f2(sum(g,"charges"))},
+ {k:"credits",tk:"gCr",v:g=>f2(-sum(g,"credits"))},
+ {k:"net",tk:"gNet",v:g=>f2(sum(g,"total"))},
+ {k:"cash",tk:"gCash",v:g=>f2(sum(g,"cash"))},
+ {k:"credit",tk:"gCard",v:g=>f2(sum(g,"credit"))},
+ {k:"cheque",tk:"gChq",v:g=>f2(sum(g,"cheque"))},
+ {k:"other",tk:"gOther",v:g=>f2(sum(g,"other"))},
+ {k:"taxable",tk:"gTaxable",v:g=>f2(sum(g,"taxable"))},
+ {k:"vat",tk:"gVat",v:g=>f2(sum(g,"vat"))},
+ {k:"exempt",tk:"gExempt",v:g=>f2(sum(g,"exempt"))},
+ {k:"avg",tk:"gAvg",v:g=>f2(sum(g,"total")/(g.length||1))},
+ {k:"share",tk:"gShare",v:(g,T)=>pct(sum(g,"total"),T)}];
+const DCOLS=[{k:"dow",tk:"gDow",v:(g,T,d)=>DAYS_L[L()][new Date(d+"T12:00:00").getDay()]},...GCOLS];
 const PDF_DEF=()=>({sec:{wh:true,user:true,daily:true,detail:true},whcols:["n","charges","credits","net","vat","share"],usercols:["n","charges","credits","net","share"],dcols:["dow","n","charges","credits","net","cash","credit","other","vat"]});
 
 function buildPDF(a,opt){
-  const {jsPDF}=window.jspdf;
+  const {jsPDF}=window.jspdf, RTL=rtl();
   try{const ev=jsPDF.API.events;if(Array.isArray(ev))for(let i=ev.length-1;i>=0;i--)if(ev[i]&&ev[i][0]==="postProcessText"&&/doBidiReorder|isInputVisual|setOptions/.test(String(ev[i][1])))ev.splice(i,1);}catch(e){}
   const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
-  doc.addFileToVFS("FreeSans.ttf",FONT_R);doc.addFont("FreeSans.ttf","FreeSans","normal");
-  doc.addFileToVFS("FreeSansBold.ttf",FONT_B);doc.addFont("FreeSansBold.ttf","FreeSans","bold");
-  doc.setFont("FreeSans","normal");
-  doc.setProperties({title:`דוח קופות – ${periodLabel()}`,subject:"סיכום קופות רושמות",author:COMPANY,keywords:"Z, קופות, מע״מ, "+periodLabel(),creator:"AURA ERP"});
+  doc.addFileToVFS("AuraSans.ttf",FONT_R);doc.addFont("AuraSans.ttf","AuraSans","normal");
+  doc.addFileToVFS("AuraSansBold.ttf",FONT_B);doc.addFont("AuraSansBold.ttf","AuraSans","bold");
+  doc.setFont("AuraSans","normal");
+  doc.setProperties({title:t("pTitle",{p:periodLabel()}),subject:t("csvReport"),author:t("company"),keywords:"Z, "+periodLabel(),creator:"AURA ERP"});
   const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=12,RX=W-M,TOP=31,BOT=15;
-  const setF=(b,size,c)=>{doc.setFont("FreeSans",b?"bold":"normal");doc.setFontSize(size);doc.setTextColor(...c);};
-  const T=(s,x,y,o={})=>{setF(o.b,o.size||9.5,o.c||NAVY);doc.text(vis(s),x,y,{align:o.align||"right"});};
-  // wrap in logical order first, then convert each line to visual order
-  const P=(s,x,y,maxW,o={})=>{setF(o.b,o.size||10,o.c||NAVY);const lines=doc.splitTextToSize(String(s),maxW);const lh=(o.size||10)*0.45;lines.forEach((l,i)=>doc.text(vis(l),x,y+i*lh,{align:"right"}));return y+lines.length*lh;};
-  const sec=(num,title,y,x=RX,note)=>{doc.setFillColor(...NAVY);doc.circle(x-3,y-1.6,3,"F");T(String(num),x-3,y-0.3,{b:1,size:9,c:WHITE,align:"center"});T(title,x-8,y,{b:1,size:13});
-    if(note){const tw=doc.getTextWidth(vis(title));T(note,x-11-tw,y,{size:9,c:GREY});}return y+4;};
+  // Layout is written for right-to-left; X() and AL() mirror it for English.
+  const X=x=>RTL?x:W-x, AL=al=>RTL?al:(al==="right"?"left":al==="left"?"right":al);
+  const V=s=>vis(s,RTL);
+  const setF=(b,size,c)=>{doc.setFont("AuraSans",b?"bold":"normal");doc.setFontSize(size);doc.setTextColor(...c);};
+  const T=(s,x,y,o={})=>{setF(o.b,o.size||9.5,o.c||NAVY);doc.text(V(s),X(x),y,{align:AL(o.align||"right")});};
+  const P=(s,x,y,maxW,o={})=>{setF(o.b,o.size||10,o.c||NAVY);const lines=doc.splitTextToSize(String(s),maxW);const lh=(o.size||10)*0.45;lines.forEach((l,i)=>doc.text(V(l),X(x),y+i*lh,{align:AL("right")}));return y+lines.length*lh;};
+  const dot=(x,y,r,c)=>{doc.setFillColor(...c);doc.circle(X(x),y,r,"F");};
+  const sec=(num,title,y,x=RX,note)=>{dot(x-3,y-1.6,3,NAVY);T(String(num),x-3,y-0.3,{b:1,size:9,c:WHITE,align:"center"});T(title,x-8,y,{b:1,size:13});
+    if(note){setF(1,13,NAVY);const tw=doc.getTextWidth(V(title));T(note,x-11-tw,y,{size:9,c:GREY});}return y+4;};
   const newPage=()=>{doc.addPage();return TOP+6;};
-  // RTL table: columns are given right-to-left; jsPDF draws left-to-right, so reverse
+  const box=(x,y,w,h,fill,border)=>{doc.setFillColor(...fill);doc.setDrawColor(...(border||LINE));doc.setLineWidth(.3);doc.roundedRect(RTL?x:W-x-w,y,w,h,1.5,1.5,border?"FD":"F");};
+  const NUM=/^[-\d.,%₪\s]+$/;
+  // Tables: columns are given in reading order; for right-to-left they are reversed so the first column sits on the right.
   const tbl=(o)=>{
-    const n=o.head.length,rev=r=>[...r].reverse(),cv=v=>typeof v==="string"?vis(v):String(v);
-    const colStyles={};o.head.forEach((_,i)=>{colStyles[n-1-i]={halign:"right",...(o.widths&&o.widths[i]?{cellWidth:o.widths[i]}:{}),...(i===0?{fontStyle:"bold"}:{})}});
-    doc.autoTable({startY:o.y,pageBreak:o.keep?"avoid":"auto",margin:{left:o.left??M,right:o.right??M,top:TOP,bottom:BOT},tableWidth:o.width||"auto",theme:"grid",rowPageBreak:"avoid",showHead:"everyPage",showFoot:"lastPage",
-      styles:{font:"FreeSans",fontSize:o.fs||9.5,cellPadding:o.pad??{top:1.5,bottom:1.5,left:2,right:2},textColor:NAVY,lineColor:LINE,lineWidth:.2,halign:"right",valign:"middle"},
+    const n=o.head.length,ord=r=>RTL?[...r].reverse():r,cv=v=>typeof v==="string"?V(v):String(v),phys=i=>RTL?n-1-i:i,logi=i=>RTL?n-1-i:i;
+    const colStyles={};o.head.forEach((_,i)=>{colStyles[phys(i)]={...(o.widths&&o.widths[i]?{cellWidth:o.widths[i]}:{}),...(i===0?{fontStyle:"bold"}:{})}});
+    const left=o.left??M,right=o.right??M;
+    doc.autoTable({startY:o.y,pageBreak:o.keep?"avoid":"auto",margin:{left:RTL?left:right,right:RTL?right:left,top:TOP,bottom:BOT},tableWidth:o.width||"auto",theme:"grid",rowPageBreak:"avoid",showHead:"everyPage",showFoot:"lastPage",
+      styles:{font:"AuraSans",fontSize:o.fs||9.5,cellPadding:o.pad??{top:1.5,bottom:1.5,left:2,right:2},textColor:NAVY,lineColor:LINE,lineWidth:.2,halign:RTL?"right":"left",valign:"middle"},
       headStyles:{fillColor:NAVY,textColor:255,fontStyle:"bold",overflow:"linebreak"},bodyStyles:o.ellipsize?{overflow:"ellipsize"}:{},footStyles:{fillColor:[228,232,242],textColor:NAVY,fontStyle:"bold"},alternateRowStyles:{fillColor:[249,250,253]},
-      head:[rev(o.head).map(cv)],body:o.body.map(r=>rev(r).map(cv)),foot:o.foot?[rev(o.foot).map(cv)]:undefined,columnStyles:colStyles,
-      didParseCell:d=>{if(d.section==="body"&&o.rowStyle){const s=o.rowStyle(d.row.index,n-1-d.column.index);if(s)Object.assign(d.cell.styles,s);}
+      head:[ord(o.head).map(cv)],body:o.body.map(r=>ord(r).map(cv)),foot:o.foot?[ord(o.foot).map(cv)]:undefined,columnStyles:colStyles,
+      didParseCell:d=>{
+        if(!RTL&&typeof d.cell.raw==="string"&&d.cell.raw&&NUM.test(d.cell.raw))d.cell.styles.halign="right";
+        if(d.section==="body"&&o.rowStyle){const s=o.rowStyle(d.row.index,logi(d.column.index));if(s)Object.assign(d.cell.styles,s);}
         if(d.section==="body"&&typeof d.cell.raw==="string"&&/^-\d/.test(d.cell.raw))d.cell.styles.textColor=REDC;}});
     return doc.lastAutoTable.finalY;};
-  const box=(x,y,w,h,fill,border)=>{doc.setFillColor(...fill);doc.setDrawColor(...(border||LINE));doc.setLineWidth(.3);doc.roundedRect(x,y,w,h,1.5,1.5,border?"FD":"F");};
 
   /* ----- numbers (Z report terms) ----- */
-  const S=k=>sum(a,k), SS=ks=>ks.reduce((t,k)=>t+S(k),0);
+  const S=k=>sum(a,k), SS=ks=>ks.reduce((x,k)=>x+S(k),0);
   const charges=S("charges"), credits=S("credits"), netSales=S("total"), vat=S("vat"), exempt=S("exempt"), taxable=S("taxable");
   const tips=S("tipCash")+S("tipCard")+S("tipCibus");
-  // payment methods as in a Z report: charges / credits / net per method
-  const METHODS=[["מזומן",["cash"],["cashRet"]],["כרטיסי אשראי",["credit"],["cardRet"]],["המחאות (שיקים)",["cheque"],[]],
-    ["אמצעי תשלום אחרים",["bit","cibus","wolt","gift","coupon","deposit","points","creditInv"],["invRet"]],["מכירות ללא תשלום (ת. משלוח / חשבוניות)",["noPaySce","noPayTi"],[]]];
-  const mRows=METHODS.map(([t,ch,cr])=>{const c=SS(ch),z=-SS(cr);return [t,c,z,c-z]}).filter(r=>Math.abs(r[1])+Math.abs(r[2])>0.004);
-  const mNet=mRows.reduce((t,r)=>t+r[3],0), balanced=Math.abs(mNet-netSales)<1;
-  const OTHER=[["סה״כ ביט","bit","bitCnt"],["סה״כ סיבוס","cibus","cibusCnt"],["סה״כ וולט","wolt","woltCnt"],["סך הכל כרטיסי מתנה","gift","giftCnt"],["סך הכל קופונים","coupon","couponCnt"],["סך הכל הפקדות","deposit","depositCnt"],["סך נקודות","points","pointsCnt"],["סה״כ תשלומים לחשבונית זיכוי","creditInv","creditInvCnt"],["החזרה בשובר זיכוי","invRet",""]].filter(([,k])=>Math.abs(S(k))>0.004);
+  const METHODS=[["mCash",["cash"],["cashRet"]],["mCard",["credit"],["cardRet"]],["mChq",["cheque"],[]],
+    ["mOther",["bit","cibus","wolt","gift","coupon","deposit","points","creditInv"],["invRet"]],["mNoPay",["noPaySce","noPayTi"],[]]];
+  const mRows=METHODS.map(([k,ch,cr])=>{const c=SS(ch),z=-SS(cr);return [t(k),c,z,c-z]}).filter(r=>Math.abs(r[1])+Math.abs(r[2])>0.004);
+  const mNet=mRows.reduce((x,r)=>x+r[3],0), balanced=Math.abs(mNet-netSales)<1;
+  const OTHER=[["bit","bitCnt"],["cibus","cibusCnt"],["wolt","woltCnt"],["gift","giftCnt"],["coupon","couponCnt"],["deposit","depositCnt"],["points","pointsCnt"],["creditInv","creditInvCnt"],["invRet",""]].filter(([k])=>Math.abs(S(k))>0.004);
   const dayMap=new Map();a.forEach(r=>{const g=dayMap.get(r.day)||[];g.push(r);dayMap.set(r.day,g)});
   const days=[...dayMap.keys()].sort(), nDays=days.length, open=a.filter(r=>r.status==="open");
   const ins=insights(a), warns=ins.filter(i=>i.warn), notes=ins.filter(i=>!i.warn);
@@ -620,150 +800,148 @@ function buildPDF(a,opt){
 
   /* ===== Page 1: consolidated Z report ===== */
   let y=TOP+8;
-  T(`דוח Z מרוכז – ${periodLabel()}`,RX,y,{b:1,size:18});
-  y=P(`הדוח מרכז ${a.length} דוחות Z (סגירות קופה) מ-${nDays} ימי עבודה${open.length?`, מתוכם ${open.length} קופות שעדיין לא נסגרו`:""}. מכירות נטו = סך החיובים פחות סך הזיכויים.`,RX,y+7,W-2*M,{size:11,c:GREY})+2;
-  const K=[["סך החיובים","כל המכירות לפני החזרים",sh(charges)],["סך הזיכויים","החזרים וזיכויים ללקוחות",sh(credits)],["מכירות נטו","כולל מע״מ",sh(netSales)],["מע״מ שנגבה","18% מהסכום החייב",sh(vat)]];
+  T(t("pTitle",{p:periodLabel()}),RX,y,{b:1,size:18});
+  y=P(t("pIntro",{n:a.length,d:nDays,open:open.length?t("pIntroOpen",{o:open.length}):""}),RX,y+7,W-2*M,{size:11,c:GREY})+2;
+  const K=[[t("kCh"),t("kChS"),sh(charges)],[t("kCr"),t("kCrS"),sh(credits)],[t("kNet"),t("kNetS"),sh(netSales)],[t("kVat"),t("kVatS"),sh(vat)]];
   const gap=4,bw=(W-2*M-3*gap)/4;
   K.forEach(([k,s,v],i)=>{const x=RX-(i+1)*bw-i*gap,hi=i===2;box(x,y,bw,22,hi?NAVY:SOFT,hi?null:LINE);const c=hi?WHITE:NAVY,c2=hi?[190,198,225]:GREY;
-    T(k,x+bw-4,y+6.5,{b:1,size:10,c});T(s,x+bw-4,y+11,{size:8,c:c2});T(v,x+bw-4,y+19,{b:1,size:17,c:i===1&&!hi?REDC:c});});
+    T(k,x+bw-4,y+6.5,{b:1,size:10,c});T(s,x+bw-4,y+11,{size:8,c:c2});T(v,x+bw-4,y+19,{b:1,size:17,c:i===1?REDC:c});});
   y+=30;
-  // control box
-  const attn=warns.length?warns.map(w=>w.text):["כל הקופות סגורות ומספרי ה-Z רציפים."];
-  setF(0,10,NAVY);const attnLines=attn.reduce((t,s)=>t+doc.splitTextToSize(s,W-2*M-14).length,0);
+  const attn=warns.length?warns.map(w=>w.text):[t("ctrlOk")];
+  setF(0,10,NAVY);const attnLines=attn.reduce((x,s)=>x+doc.splitTextToSize(s,W-2*M-14).length,0);
   const ah=10+attnLines*4.6+2;
   box(M,y,W-2*M,ah,warns.length?WARNS:OKS,warns.length?[240,200,150]:[170,220,195]);
-  T(warns.length?`בקרה: ${warns.length} נושאים לבדיקה`:"בקרה: תקין",RX-4,y+6.5,{b:1,size:12,c:warns.length?WARNC:OKC});
-  let ya=y+12;attn.forEach(s=>{doc.setFillColor(...(warns.length?WARNC:OKC));doc.circle(RX-5,ya-1.3,.9,"F");ya=P(s,RX-8,ya,W-2*M-14,{size:10,c:NAVY})+0.6;});
+  T(warns.length?t("ctrlWarn",{n:warns.length}):t("ctrlGood"),RX-4,y+6.5,{b:1,size:12,c:warns.length?WARNC:OKC});
+  let ya=y+12;attn.forEach(s=>{dot(RX-5,ya-1.3,.9,warns.length?WARNC:OKC);ya=P(s,RX-8,ya,W-2*M-14,{size:10,c:NAVY})+0.6;});
   y+=ah+8;
   const half=(W-2*M-8)/2, leftX=M, rightL=M+half+8;
-  let yr=sec(1,"פירוט לפי אמצעי תשלום",y,RX);
-  yr=tbl({y:yr+1,left:rightL,right:M,width:half,fs:9,pad:{top:1,bottom:1,left:2,right:2},head:["אמצעי תשלום","חיובים","זיכויים","נטו"],widths:[46],
-    body:mRows.map(r=>[r[0],f2(r[1]),r[2]?f2(-r[2]):"0.00",f2(r[3])]),
-    foot:["סה״כ",f2(charges),f2(-credits),f2(mNet)]});
+  let yr=sec(1,t("secPay"),y,RX);
+  yr=tbl({y:yr+1,left:rightL,right:M,width:half,fs:9,pad:{top:1,bottom:1,left:2,right:2},head:[t("hMethod"),t("hCh"),t("hCr"),t("hNet")],widths:[46],
+    body:mRows.map(r=>[r[0],f2(r[1]),r[2]?f2(-r[2]):"0.00",f2(r[3])]),foot:[t("total"),f2(charges),f2(-credits),f2(mNet)]});
   box(rightL,yr+2,half,8,balanced?OKS:WARNS);
-  T(balanced?"תקין: סה״כ נטו שווה למכירות נטו בדוחות ה-Z":`לבדיקה: הפרש של ${f2(mNet-netSales)} ₪ מול דוחות ה-Z`,RX-3,yr+7.3,{b:1,size:9.5,c:balanced?OKC:WARNC});
+  T(balanced?t("balOk"):t("balBad",{x:f2(mNet-netSales)}),RX-3,yr+7.3,{b:1,size:9.5,c:balanced?OKC:WARNC});
   yr+=12;
-  let yl=sec(2,"פירוט מע״מ",y,leftX+half);
-  yl=tbl({y:yl+1,left:leftX,right:W-leftX-half,width:half,fs:9,pad:{top:1.2,bottom:1.2,left:2,right:2},head:["שורה","סכום (₪)"],widths:[half-42],
-    body:[["סכום חייב במע״מ (לפני מע״מ)",f2(taxable)],["סכום המע״מ שנגבה",f2(vat)],["סכום שאינו חייב במע״מ",f2(exempt)]],
-    foot:["סה״כ מכירות נטו",f2(taxable+vat+exempt)],rowStyle:(ri)=>ri===1?{fontStyle:"bold",fillColor:[236,237,255]}:null});
-  yl=P(`טיפים (${f2(tips)} ₪) אינם חלק מהמכירות ואינם בדוח המע״מ. דוחות Z בדוח: ${zFrom}–${zTo}.`,leftX+half,yl+5,half,{size:8.5,c:GREY});
+  let yl=sec(2,t("secVat"),y,leftX+half);
+  yl=tbl({y:yl+1,left:leftX,right:W-leftX-half,width:half,fs:9,pad:{top:1.2,bottom:1.2,left:2,right:2},head:[t("hLine"),t("hAmt")],widths:[half-42],
+    body:[[t("vLiable"),f2(taxable)],[t("vCollected"),f2(vat)],[t("vExempt"),f2(exempt)]],
+    foot:[t("vTotal"),f2(taxable+vat+exempt)],rowStyle:(ri)=>ri===1?{fontStyle:"bold",fillColor:[236,237,255]}:null});
+  yl=P(t("tipsNote",{t:f2(tips),a:zFrom,b:zTo}),leftX+half,yl+5,half,{size:8.5,c:GREY});
   y=Math.max(yr,yl)+5;
-  if(y<H-BOT-8){T("מילון: דוח Z = סגירת קופה אחת  ·  חיובים = מכירות  ·  זיכויים = החזרים ללקוח  ·  נטו = חיובים פחות זיכויים",RX,Math.min(y+2,H-BOT-3),{size:8.5,c:GREY});}
+  if(y<H-BOT-8){T(t("glossary"),RX,Math.min(y+2,H-BOT-3),{size:8.5,c:GREY});}
 
   /* ===== Optional sections ===== */
-  let num=2; const toc=["1-2 סיכום"];
+  let num=2; const toc=[t("toc1")];
   const grp=(key,name)=>{const m=new Map();a.forEach(r=>{const g=m.get(r[key])||[];g.push(r);m.set(r[key],g)});
     return [...m.entries()].map(([id,g])=>({name:name(id),g})).sort((p,q)=>sum(q.g,"total")-sum(p.g,"total"));};
-  const groupTable=(label,key,name,y,keys)=>{const gc=GCOLS.filter(c=>keys.includes(c.k));return tbl({y:y+1,keep:1,fs:9,pad:{top:1,bottom:1,left:2,right:2},head:[label,...gc.map(c=>c.t)],
-    body:grp(key,name).map(r=>[r.name,...gc.map(c=>c.v(r.g,netSales))]),foot:["סה״כ",...gc.map(c=>c.v(a,netSales))]})+10;};
+  const groupTable=(label,key,name,yy,keys)=>{const gc=GCOLS.filter(c=>keys.includes(c.k));return tbl({y:yy+1,keep:1,fs:9,pad:{top:1,bottom:1,left:2,right:2},head:[label,...gc.map(c=>t(c.tk))],
+    body:grp(key,name).map(r=>[r.name,...gc.map(c=>c.v(r.g,netSales))]),foot:[t("total"),...gc.map(c=>c.v(a,netSales))]})+10;};
   {
     y=newPage();const first=num+1;
-    if(OTHER.length){y=sec(++num,"פירוט אמצעי תשלום אחרים",y,RX,"מה נכלל בשורה \"אמצעי תשלום אחרים\"");
-      y=tbl({y:y+1,keep:1,fs:9,pad:{top:.8,bottom:.8,left:2,right:2},width:W*0.55,left:RX-W*0.55,right:M,head:["אמצעי תשלום","עסקאות","סכום (₪)"],
-        body:OTHER.map(([t,k,ck])=>[t,ck?String(S(ck)):"",f2(S(k))]),foot:["סה״כ","",f2(OTHER.reduce((t,[,k])=>t+S(k),0))]})+9;}
-    if(notes.length){y=sec(++num,"נקודות מעניינות",y,RX)+3;
-      notes.forEach(i=>{doc.setFillColor(...ACC);doc.circle(RX-2,y-1.3,.9,"F");y=P(i.text,RX-5,y,W-2*M-6,{size:10.5})+1.5;});y+=6;}
-    if(opt.sec.wh){y=sec(++num,"לפי מחסן / סניף",y,RX,"מהגבוה לנמוך");y=groupTable("מחסן","wh",whName,y,opt.whcols);}
-    if(opt.sec.user){y=sec(++num,"לפי משתמש (קופאי)",y,RX,"מהגבוה לנמוך");y=groupTable("משתמש","user",uName,y,opt.usercols);}
-    if(num>=first)toc.push(`${first===num?num:first+"-"+num} פירוטים`);
+    if(OTHER.length){y=sec(++num,t("secOther"),y,RX,t("secOtherN"));
+      y=tbl({y:y+1,keep:1,fs:9,pad:{top:.8,bottom:.8,left:2,right:2},width:W*0.55,left:RX-W*0.55,right:M,head:[t("hMethod"),t("hTx"),t("hAmt")],
+        body:OTHER.map(([k,ck])=>[COLT[k][L()],ck?String(S(ck)):"",f2(S(k))]),foot:[t("total"),"",f2(OTHER.reduce((x,[k])=>x+S(k),0))]})+9;}
+    if(notes.length){y=sec(++num,t("secNotes"),y,RX)+3;
+      notes.forEach(i=>{dot(RX-2,y-1.3,.9,ACC);y=P(i.text,RX-5,y,W-2*M-6,{size:10.5})+1.5;});y+=6;}
+    if(opt.sec.wh){y=sec(++num,t("secWh"),y,RX,t("hiLo"));y=groupTable(COLT.wh[L()],"wh",whName,y,opt.whcols);}
+    if(opt.sec.user){y=sec(++num,t("secUser"),y,RX,t("hiLo"));y=groupTable(COLT.user[L()],"user",uName,y,opt.usercols);}
+    if(num>=first)toc.push(`${first===num?num:first+"-"+num} ${t("tocDet")}`);
   }
   if(opt.sec.daily){
     y=newPage();
     const best=days.reduce((b,d)=>sum(dayMap.get(d),"total")>(b?sum(dayMap.get(b),"total"):-1)?d:b,null);
-    y=sec(++num,"סיכום יומי",y,RX,best?`היום החזק ביותר מסומן בירוק: ${ddmmyyyy(best)}`:"");toc.push(`${num} סיכום יומי`);
-    const dc=DCOLS.filter(c=>opt.dcols.includes(c.k)), total=netSales;
-    tbl({y:y+1,fs:8.5,pad:{top:.5,bottom:.5,left:2,right:2},head:["תאריך",...dc.map(c=>c.t)],
-      body:days.map(d=>[ddmmyyyy(d),...dc.map(c=>c.v(dayMap.get(d),total,d))]),
-      foot:["סה״כ",...dc.map(c=>c.k==="dow"?`${nDays} ימים`:c.v(a,total))],
+    y=sec(++num,t("secDaily"),y,RX,best?t("bestNote",{d:ddmmyyyy(best)}):"");toc.push(`${num} ${t("tocDaily")}`);
+    const dc=DCOLS.filter(c=>opt.dcols.includes(c.k));
+    tbl({y:y+1,fs:8.5,pad:{top:.5,bottom:.5,left:2,right:2},head:[COLT.day[L()],...dc.map(c=>t(c.tk))],
+      body:days.map(d=>[ddmmyyyy(d),...dc.map(c=>c.v(dayMap.get(d),netSales,d))]),
+      foot:[t("total"),...dc.map(c=>c.k==="dow"?t("nDaysT",{n:nDays}):c.v(a,netSales))],
       rowStyle:(ri)=>days[ri]===best?{fillColor:OKS,fontStyle:"bold"}:(new Date(days[ri]+"T12:00:00").getDay()===6?{textColor:GREY}:null)});
   }
   if(opt.sec.detail){
     y=newPage();
     const cols=opt.cols, sc=COLS.find(c=>c.k===st.sort);
-    y=sec(++num,"רשימת דוחות Z",y,RX,`${a.length} דוחות · ${cols.length} עמודות · ממוין לפי ${sc.t} ${st.dir==="asc"?"מהקטן לגדול":"מהגדול לקטן"}`);toc.push(`${num} רשימת דוחות Z`);
+    y=sec(++num,t("secList"),y,RX,t("listNote",{n:a.length,c:cols.length,s:colT(sc),dir:t(st.dir==="asc"?"ascW":"descW")}));toc.push(`${num} ${t("tocList")}`);
     const ids=cols.filter(c=>c.k==="z"||c.k==="day"), rest=cols.filter(c=>!ids.includes(c)), per=16-ids.length, parts=[];
     for(let i=0;i<rest.length;i+=per) parts.push([...ids,...rest.slice(i,i+per)]);
     if(!parts.length) parts.push(ids);
     parts.forEach((pc,pi)=>{
-      if(pi>0){y=newPage();y=sec(num,`רשימת דוחות Z – חלק ${pi+1} מתוך ${parts.length}`,y,RX,"מספר Z ותאריך חוזרים בכל חלק");}
-      else if(parts.length>1){T(`העמודות מחולקות ל-${parts.length} חלקים כדי שיהיו קריאות. זה חלק 1.`,RX,y+2,{size:9,c:WARNC,b:1});y+=5;}
+      if(pi>0){y=newPage();y=sec(num,t("partTitle",{i:pi+1,n:parts.length}),y,RX,t("partNote"));}
+      else if(parts.length>1){T(t("partsWarn",{n:parts.length}),RX,y+2,{size:9,c:WARNC,b:1});y+=5;}
       const n=pc.length, fs=n>13?6.6:n>11?7.2:n>9?7.8:8.2;
-      tbl({y:y+1,fs,pad:{top:.5,bottom:.5,left:1.2,right:1.2},ellipsize:1,head:pc.map(c=>c.t),
+      tbl({y:y+1,fs,pad:{top:.5,bottom:.5,left:1.2,right:1.2},ellipsize:1,head:pc.map(colT),
         body:a.map(r=>pc.map(c=>{const v=plainCell(r,c);return c.k==="z"?`Z ${v}`:c.n?(c.int?String(v):f2(v)):String(v)})),
-        foot:pc.map((c,i)=>c.n&&!c.nosum?(c.int?String(sum(a,c.k)):f2(sum(a,c.k))):(i===0?"סה״כ":"")),
+        foot:pc.map((c,i)=>c.n&&!c.nosum?(c.int?String(sum(a,c.k)):f2(sum(a,c.k))):(i===0?t("total"):"")),
         rowStyle:(ri,ci)=>a[ri].status==="open"&&pc[ci]&&pc[ci].k==="status"?{textColor:OKC,fontStyle:"bold"}:null});
     });
   }
   const tocText=toc.filter(Boolean).join(" · ");
   /* ===== Header + footer on every page ===== */
   const N=doc.getNumberOfPages();
-  const filt=`תקופה: ${ddmmyyyy(st.from)} – ${ddmmyyyy(st.to)}    סניף: ${st.wh?whName(st.wh):"כל הסניפים"}    קופאי: ${st.user?uName(st.user):"כל הקופאים"}    סטטוס: ${{all:"הכל",open:"פתוחות",closed:"סגורות"}[st.status]}`;
+  const filt=`${t("fPeriod")}: ${ddmmyyyy(st.from)} – ${ddmmyyyy(st.to)}    ${t("fBranch")}: ${st.wh?whName(st.wh):t("allBranches")}    ${t("fCashier")}: ${st.user?uName(st.user):t("allCashiers")}    ${t("fStatus")}: ${t({all:"all",open:"openPl",closed:"closedPl"}[st.status])}`;
   for(let p=1;p<=N;p++){
     doc.setPage(p);
     doc.setFillColor(...NAVY);doc.rect(0,0,W,18,"F");doc.setFillColor(...ACC);doc.rect(0,18,W,.9,"F");
-    doc.setDrawColor(...WHITE);doc.setLineWidth(.5);doc.rect(RX-10,4,10,10);
-    T("פז",RX-5,10.7,{b:1,size:10.5,c:WHITE,align:"center"});
-    T(COMPANY,RX-13,8.8,{b:1,size:12.5,c:WHITE});T("AURA ERP",RX-13,13.8,{size:8,c:[174,182,208]});
-    T(`דוח Z מרוכז – ${periodLabel()}`,W/2,11,{b:1,size:13,c:WHITE,align:"center"});
-    T(`הופק: ${nowStr()}`,M,8.8,{size:8.5,c:[174,182,208],align:"left"});T("משתמש: pecanzaman",M,13.8,{size:8.5,c:[174,182,208],align:"left"});
+    doc.setDrawColor(...WHITE);doc.setLineWidth(.5);doc.rect(RTL?RX-10:M,4,10,10);
+    T(t("logo"),RX-5,10.7,{b:1,size:10,c:WHITE,align:"center"});
+    T(t("company"),RX-13,8.8,{b:1,size:12.5,c:WHITE});T("AURA ERP",RX-13,13.8,{size:8,c:[174,182,208]});
+    T(t("pTitle",{p:periodLabel()}),W/2,11,{b:1,size:13,c:WHITE,align:"center"});
+    T(`${t("generated")}: ${nowStr()}`,M,8.8,{size:8.5,c:[174,182,208],align:"left"});T(`${t("user")}: pecanzaman`,M,13.8,{size:8.5,c:[174,182,208],align:"left"});
     T(filt,RX,25,{size:8.5,c:GREY});
     doc.setDrawColor(...LINE);doc.setLineWidth(.3);doc.line(M,H-10,W-M,H-10);
-    T(`עמוד ${p} מתוך ${N}`,W/2,H-5.5,{size:8.5,c:GREY,align:"center"});
-    T(`${COMPANY} · מסמך פנימי`,RX,H-5.5,{size:8,c:GREY});
+    T(t("pageXY",{p,n:N}),W/2,H-5.5,{size:8.5,c:GREY,align:"center"});
+    T(t("internal",{c:t("company")}),RX,H-5.5,{size:8,c:GREY});
     T(tocText,M,H-5.5,{size:8,c:GREY,align:"left"});
   }
   return doc;
 }
 let pdfOpt=null;
 function pdfOptions(){if(!pdfOpt){const d=PDF_DEF(),sv=store.get("pdf2",null);pdfOpt=sv&&sv.sec?{...d,...sv,sec:{...d.sec,...sv.sec}}:d;}return pdfOpt;}
-function colChip(scope,c,on,lock){return `<label class="pc ${lock?"lock":""}" for="pc-${scope}-${c.k}"><input type="checkbox" id="pc-${scope}-${c.k}" data-pcol="${scope}" value="${c.k}" ${on||lock?"checked":""} ${lock?"disabled":""}>${esc(c.t)}</label>`}
+function colChip(scope,k,label,on,lock){return `<label class="pc ${lock?"lock":""}" for="pc-${scope}-${k}"><input type="checkbox" id="pc-${scope}-${k}" data-pcol="${scope}" value="${k}" ${on||lock?"checked":""} ${lock?"disabled":""}>${esc(label)}</label>`}
 function renderPdfDlg(){
   const o=pdfOptions();
+  $("pdf-secs").previousElementSibling.textContent=t("pdfSub");
   const secBox=(key,title,desc,inner,quick)=>`<fieldset class="psec ${o.sec[key]?"":"off"}"><legend><label for="ps-${key}"><input type="checkbox" id="ps-${key}" data-psec="${key}" ${o.sec[key]?"checked":""}> ${title}</label></legend><div class="pdesc">${desc}</div><div class="pcols">${inner}</div><div class="pquick">${quick}</div></fieldset>`;
-  const q=scope=>`<button type="button" class="linkbtn" data-pall="${scope}">סמן הכל</button><button type="button" class="linkbtn" data-pdef="${scope}">ברירת מחדל</button>`;
-  const g=scope=>`<span class="pc lock">${scope==="whcols"?"סניף":"קופאי"} (תמיד)</span>`+GCOLS.map(c=>colChip(scope,c,o[scope].includes(c.k))).join("");
+  const q=scope=>`<button type="button" class="linkbtn" data-pall="${scope}">${t("markAll")}</button><button type="button" class="linkbtn" data-pdef="${scope}">${t("defaults")}</button>`;
+  const g=scope=>`<span class="pc lock">${t(scope==="whcols"?"branchAlways":"cashierAlways")}</span>`+GCOLS.map(c=>colChip(scope,c.k,t(c.tk),o[scope].includes(c.k))).join("");
   $("pdf-secs").innerHTML=
-    secBox("wh","מכירות לפי סניף","שורה לכל סניף, מהגבוה לנמוך.",g("whcols"),q("whcols"))+
-    secBox("user","מכירות לפי קופאי","שורה לכל קופאי, מהגבוה לנמוך.",g("usercols"),q("usercols"))+
-    secBox("daily","סיכום יומי","שורה לכל יום בחודש.",`<span class="pc lock">תאריך (תמיד)</span>`+DCOLS.map(c=>colChip("dcols",c,o.dcols.includes(c.k))).join(""),q("dcols"))+
-    secBox("detail","רשימת דוחות Z (פירוט כל הקופות)","שורה לכל דוח Z, לפחות 31 שורות בעמוד. <b>העמודות כאן הן אותן עמודות של הטבלה במסך</b> – שינוי כאן משנה גם את המסך.",Object.entries(GROUPS).map(([gk,gt])=>`<div class="pgroup"><b>${gt}</b>${COLS.filter(c=>c.g===gk).map(c=>colChip("cols",c,st.cols.includes(c.k),c.lock)).join("")}</div>`).join(""),
-      `<button type="button" class="linkbtn" data-pset="accountant">עמודות לרואה חשבון</button><button type="button" class="linkbtn" data-pset="simple">תצוגה פשוטה</button><button type="button" class="linkbtn" data-pset="all">כל העמודות</button>`)+
-    `<div class="pdesc" id="pdf-colcount">בפירוט ייכנסו ${visCols().length} עמודות.</div>`;
+    secBox("wh",t("secBranch"),t("secBranchD"),g("whcols"),q("whcols"))+
+    secBox("user",t("secCashier"),t("secCashierD"),g("usercols"),q("usercols"))+
+    secBox("daily",t("secDaily"),t("secDailyD"),`<span class="pc lock">${t("dateAlways")}</span>`+DCOLS.map(c=>colChip("dcols",c.k,t(c.tk),o.dcols.includes(c.k))).join(""),q("dcols"))+
+    secBox("detail",t("secDetail"),t("secDetailD"),GROUP_KEYS.map(gk=>`<div class="pgroup"><b>${groupT(gk)}</b>${COLS.filter(c=>c.g===gk).map(c=>colChip("cols",c.k,colT(c),st.cols.includes(c.k),c.lock)).join("")}</div>`).join(""),
+      `<button type="button" class="linkbtn" data-pset="accountant">${t("accCols")}</button><button type="button" class="linkbtn" data-pset="simple">${t("pSimple")}</button><button type="button" class="linkbtn" data-pset="all">${t("pAll")}</button>`)+
+    `<div class="pdesc" id="pdf-colcount">${t("colCount",{n:visCols().length})}</div>`;
 }
 function openPdfDlg(){renderPdfDlg();$("pdfdlg").hidden=false;$("pdf-go").focus();}
 function closePdfDlg(){$("pdfdlg").hidden=true;}
 function savePdfOpt(){const {cols,...rest}=pdfOpt;store.set("pdf2",rest);}
 $("pdfdlg").addEventListener("click",e=>{
-  const t=e.target.closest("button")||e.target; const o=pdfOptions();
-  if(e.target.id==="pdfdlg"||t.id==="pdf-cancel"||t.id==="pdf-x"){closePdfDlg();return;}
-  if(t.dataset&&t.dataset.pset){st.cols=[...PRESETS[t.dataset.pset]];store.set("cols",st.cols);render();renderPdfDlg();}
-  else if(t.dataset&&t.dataset.pall){const sc=t.dataset.pall;o[sc]=(sc==="dcols"?DCOLS:GCOLS).map(c=>c.k);savePdfOpt();renderPdfDlg();}
-  else if(t.dataset&&t.dataset.pdef){const sc=t.dataset.pdef;o[sc]=PDF_DEF()[sc];savePdfOpt();renderPdfDlg();}
-  else if(t.id==="pdf-reset"){pdfOpt=PDF_DEF();savePdfOpt();renderPdfDlg();}
-  else if(t.id==="pdf-go"){runPDF($("btn-pdf"));}
+  const b=e.target.closest("button")||e.target; const o=pdfOptions(); const d=b.dataset||{};
+  if(e.target.id==="pdfdlg"||b.id==="pdf-cancel"||b.id==="pdf-x"){closePdfDlg();return;}
+  if(d.pset){st.cols=[...PRESETS[d.pset]];store.set("cols",st.cols);render();renderPdfDlg();}
+  else if(d.pall){const sc=d.pall;o[sc]=(sc==="dcols"?DCOLS:GCOLS).map(c=>c.k);savePdfOpt();renderPdfDlg();}
+  else if(d.pdef){const sc=d.pdef;o[sc]=PDF_DEF()[sc];savePdfOpt();renderPdfDlg();}
+  else if(b.id==="pdf-reset"){pdfOpt=PDF_DEF();savePdfOpt();renderPdfDlg();}
+  else if(b.id==="pdf-go"){runPDF($("btn-pdf"));}
 });
 $("pdfdlg").addEventListener("change",e=>{
-  const t=e.target,o=pdfOptions();
-  if(t.dataset.psec){o.sec[t.dataset.psec]=t.checked;t.closest(".psec").classList.toggle("off",!t.checked);}
-  else if(t.dataset.pcol==="cols"){const set=new Set(st.cols);t.checked?set.add(t.value):set.delete(t.value);st.cols=COLS.map(c=>c.k).filter(k=>set.has(k));store.set("cols",st.cols);render();const cc=$("pdf-colcount");if(cc)cc.textContent=`בפירוט ייכנסו ${visCols().length} עמודות.`;}
-  else if(t.dataset.pcol){const sc=t.dataset.pcol,src=sc==="dcols"?DCOLS:GCOLS;const set=new Set(o[sc]);t.checked?set.add(t.value):set.delete(t.value);o[sc]=src.map(c=>c.k).filter(k=>set.has(k));}
+  const x=e.target,o=pdfOptions();
+  if(x.dataset.psec){o.sec[x.dataset.psec]=x.checked;x.closest(".psec").classList.toggle("off",!x.checked);}
+  else if(x.dataset.pcol==="cols"){const set=new Set(st.cols);x.checked?set.add(x.value):set.delete(x.value);st.cols=COLS.map(c=>c.k).filter(k=>set.has(k));store.set("cols",st.cols);render();const cc=$("pdf-colcount");if(cc)cc.textContent=t("colCount",{n:visCols().length});}
+  else if(x.dataset.pcol){const sc=x.dataset.pcol,src=sc==="dcols"?DCOLS:GCOLS;const set=new Set(o[sc]);x.checked?set.add(x.value):set.delete(x.value);o[sc]=src.map(c=>c.k).filter(k=>set.has(k));}
   savePdfOpt();
 });
-function exportPDF(){openPdfDlg();}
 async function runPDF(btn){
   const a=rows(), o=pdfOptions();
-  if(!FONT_R){closePdfDlg();msg("טוען גופן עברי…");try{const get=async u=>{const r=await fetch(u);if(!r.ok)throw 0;const b=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};[FONT_R,FONT_B]=await Promise.all([get(FONT_URLS[0]),get(FONT_URLS[1])]);}catch(e){msg("לא הצלחתי לטעון את הגופן. בדקו חיבור לאינטרנט ונסו שוב.",true);return;}}
-  if(!a.length){closePdfDlg();msg("אין שורות לייצוא. שנו את הסינון.",true);return;}
-  if(!window.jspdf){closePdfDlg();msg("רכיב ה-PDF לא נטען. רעננו את העמוד ונסו שוב.",true);return;}
-  closePdfDlg();msg("מכין PDF…");
-  const opt={...o,cols:visCols()};
-  let doc;try{doc=buildPDF(a,opt);}catch(e){console.error(e);msg("לא הצלחתי ליצור את ה-PDF. נסו שוב.",true);return;}
-  save(fileBase()+".pdf",doc.output("blob"),btn,"קובץ PDF");
+  if(!a.length){closePdfDlg();msg(t("noRows"),true);return;}
+  if(!window.jspdf){closePdfDlg();msg(t("pdfLib"),true);return;}
+  closePdfDlg();
+  if(!FONT_R){msg(t("fontLoading"));try{const get=async u=>{const r=await fetch(u);if(!r.ok)throw 0;const b=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};[FONT_R,FONT_B]=await Promise.all([get(FONT_URLS[0]),get(FONT_URLS[1])]);}catch(e){msg(t("fontFail"),true);return;}}
+  msg(t("preparing"));
+  let doc;try{doc=buildPDF(a,{...o,cols:visCols()});}catch(e){console.error(e);msg(t("pdfFail"),true);return;}
+  save(fileBase()+".pdf",doc.output("blob"),btn,t("filePdf"));
 }
-window.__auraTest={buildPDF:()=>buildPDF(rows(),{...pdfOptions(),cols:visCols()}),openPdfDlg};
-render();
+
+window.__auraTest={buildPDF:()=>buildPDF(rows(),{...pdfOptions(),cols:visCols()}),openPdfDlg,setLang};
+applyLang();render();
 })();
 </script>
-
 </body></html>

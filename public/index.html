@@ -1,7 +1,33 @@
 <!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AURA ERP – הדגמות</title>
-<style>body{margin:0;font-family:system-ui,sans-serif;background:#eef1f6;color:#1c2540}main{max-width:720px;margin:0 auto;padding:40px 16px}h1{margin:0 0 6px}p{color:#56617d}a.card{display:block;background:#fff;border:1px solid #d9deea;border-radius:10px;padding:18px 20px;margin-top:16px;color:inherit;text-decoration:none}a.card:hover{border-color:#4f56e0}a.card b{font-size:18px}</style></head>
-<body><main><h1>AURA ERP – הדגמות</h1><p>מסכים לדוגמה עם נתוני הדגמה בלבד.</p>
-<a class="card" href="cash-register/"><b>רשימת קופות ודוח Z מרוכז</b><p>סינון לפי חודש, מחסן ומשתמש, בחירת עמודות, הורדת PDF לרואה חשבון ו-CSV.</p></a>
-</main></body></html>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap">
+<style>
+:root{--bg:#eef1f6;--card:#fff;--ink:#1c2540;--ink2:#56617d;--line:#d9deea;--acc:#4f56e0}
+@media (prefers-color-scheme:dark){:root{--bg:#11152a;--card:#1a1f36;--ink:#eef0f8;--ink2:#b0b7cf;--line:#323a58;--acc:#8a8dff}}
+body{margin:0;font-family:Rubik,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+:lang(ar) body,body:lang(ar){font-family:"IBM Plex Sans Arabic",Rubik,system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:32px 16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-size:28px}p{color:var(--ink2)}
+.langs{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.langs button{border:0;background:var(--card);color:var(--ink2);padding:8px 12px;font:inherit;font-weight:700;cursor:pointer}
+.langs button.on{background:var(--ink);color:var(--bg)}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-top:16px;color:inherit;text-decoration:none}
+a.card:hover{border-color:var(--acc)}a.card b{font-size:19px}
+</style></head>
+<body><main>
+<div class="top"><h1 data-t="title"></h1>
+<div class="langs" role="group" aria-label="Language"><button type="button" data-lang="he">עברית</button><button type="button" data-lang="ar">العربية</button><button type="button" data-lang="en">English</button></div></div>
+<p data-t="sub"></p>
+<a class="card" id="cr" href="cash-register/"><b data-t="crT"></b><p data-t="crD"></p></a>
+</main>
+<script>
+const T={he:{title:"AURA ERP – הדגמות",sub:"מסכים לדוגמה עם נתוני הדגמה בלבד.",crT:"רשימת קופות ודוח Z מרוכז",crD:"סינון לפי חודש, מחסן ומשתמש, בחירת עמודות, הורדת PDF לרואה חשבון ו-CSV."},
+ar:{title:"AURA ERP – عروض تجريبية",sub:"شاشات تجريبية ببيانات تجريبية فقط.",crT:"قائمة الصناديق وتقرير Z مجمّع",crD:"تصفية حسب الشهر والمستودع والمستخدم، اختيار الأعمدة، تنزيل PDF للمحاسب وملف CSV."},
+en:{title:"AURA ERP – Demos",sub:"Example screens with sample data only.",crT:"Cash registers and consolidated Z report",crD:"Filter by month, warehouse and user, choose columns, download an accountant PDF and CSV."}};
+function set(l){if(!T[l])l="he";try{localStorage.setItem("aura-lang",l)}catch(e){}document.documentElement.lang=l;document.documentElement.dir=l==="en"?"ltr":"rtl";document.title=T[l].title;
+document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[l][e.dataset.t]);document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===l));document.getElementById("cr").href="cash-register/#"+l;}
+let l="he";try{l=localStorage.getItem("aura-lang")||(location.hash||"").slice(1)||"he"}catch(e){}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-lang]");if(b)set(b.dataset.lang)});set(l);
+</script></body></html>
