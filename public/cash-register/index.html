@@ -728,7 +728,7 @@ function vis(s,baseRtl){
 }
 /* ================= PDF: consolidated Z report (he / ar = right-to-left, en = left-to-right) ================= */
 const NAVY=[28,37,64],ACC=[79,86,224],GREY=[86,97,125],LINE=[210,216,230],SOFT=[246,247,251],OKC=[23,128,77],OKS=[227,245,236],WARNC=[168,90,7],WARNS=[255,241,222],REDC=[194,53,43],WHITE=[255,255,255];
-const f2=n=>(Math.round(+n*100)/100).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const f2=n=>{const v=Math.round(+n*100)/100;return (v===0?0:v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});};
 const sh=n=>"₪"+Math.round(+n).toLocaleString("en-US");
 const pct=(v,T)=>T?(Math.round(v/T*1000)/10).toFixed(1)+"%":"0%";
 const GCOLS=[
@@ -837,13 +837,14 @@ function buildPDF(a,opt){
     body:grp(key,name).map(r=>[r.name,...gc.map(c=>c.v(r.g,netSales))]),foot:[t("total"),...gc.map(c=>c.v(a,netSales))]})+10;};
   {
     y=newPage();const first=num+1;
-    if(OTHER.length){y=sec(++num,t("secOther"),y,RX,t("secOtherN"));
+    const need=rowsN=>{if(y+10+(rowsN+2)*5.8>H-BOT)y=newPage();}; // keep a heading with its table
+    if(OTHER.length){need(OTHER.length);y=sec(++num,t("secOther"),y,RX,t("secOtherN"));
       y=tbl({y:y+1,keep:1,fs:9,pad:{top:.8,bottom:.8,left:2,right:2},width:W*0.55,left:RX-W*0.55,right:M,head:[t("hMethod"),t("hTx"),t("hAmt")],
         body:OTHER.map(([k,ck])=>[COLT[k][L()],ck?String(S(ck)):"",f2(S(k))]),foot:[t("total"),"",f2(OTHER.reduce((x,[k])=>x+S(k),0))]})+9;}
     if(notes.length){y=sec(++num,t("secNotes"),y,RX)+3;
       notes.forEach(i=>{dot(RX-2,y-1.3,.9,ACC);y=P(i.text,RX-5,y,W-2*M-6,{size:10.5})+1.5;});y+=6;}
-    if(opt.sec.wh){y=sec(++num,t("secWh"),y,RX,t("hiLo"));y=groupTable(COLT.wh[L()],"wh",whName,y,opt.whcols);}
-    if(opt.sec.user){y=sec(++num,t("secUser"),y,RX,t("hiLo"));y=groupTable(COLT.user[L()],"user",uName,y,opt.usercols);}
+    if(opt.sec.wh){need(new Set(a.map(r=>r.wh)).size);y=sec(++num,t("secWh"),y,RX,t("hiLo"));y=groupTable(COLT.wh[L()],"wh",whName,y,opt.whcols);}
+    if(opt.sec.user){need(new Set(a.map(r=>r.user)).size);y=sec(++num,t("secUser"),y,RX,t("hiLo"));y=groupTable(COLT.user[L()],"user",uName,y,opt.usercols);}
     if(num>=first)toc.push(`${first===num?num:first+"-"+num} ${t("tocDet")}`);
   }
   if(opt.sec.daily){
