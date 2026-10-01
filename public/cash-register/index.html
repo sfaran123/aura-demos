@@ -721,7 +721,7 @@ function vis(s,baseRtl){
   if(!RTLC.test(s))return s;
   const ch=[...s],n=ch.length,ty=ch.map(c=>RTLC.test(c)?"R":LTRC.test(c)?"L":DIG.test(c)?"D":"N");
   // number parts: separators between digits, currency/percent next to digits
-  for(let i=1;i<n-1;i++)if(ty[i]==="N"&&/[.,:/]/.test(ch[i])&&ty[i-1]==="D"&&ty[i+1]==="D")ty[i]="D";
+  for(let i=1;i<n-1;i++)if(ty[i]==="N"&&/[.,:/+-]/.test(ch[i])&&ty[i-1]==="D"&&ty[i+1]==="D")ty[i]="D";
   for(let i=0;i<n;i++)if(ty[i]==="N"&&/[₪%$€]/.test(ch[i])&&((i>0&&ty[i-1]==="D")||(i<n-1&&ty[i+1]==="D")))ty[i]="D";
   // digits after Latin text behave as Latin (rule W7)
   let last=baseRtl?"R":"L";for(let i=0;i<n;i++){if(ty[i]==="R"||ty[i]==="L")last=ty[i];else if(ty[i]==="D"&&last==="L")ty[i]="L";}
