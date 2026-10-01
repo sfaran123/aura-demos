@@ -778,6 +778,8 @@ function buildPDF(a,opt){
       styles:{font:"AuraSans",fontSize:o.fs||9.5,cellPadding:o.pad??{top:1.5,bottom:1.5,left:2,right:2},textColor:NAVY,lineColor:LINE,lineWidth:.2,halign:RTL?"right":"left",valign:"middle"},
       headStyles:{fillColor:NAVY,textColor:255,fontStyle:"bold",overflow:"linebreak"},bodyStyles:o.ellipsize?{overflow:"ellipsize"}:{},footStyles:{fillColor:[228,232,242],textColor:NAVY,fontStyle:"bold"},alternateRowStyles:{fillColor:[249,250,253]},
       head:[ord(o.head).map(cv)],body:o.body.map(r=>ord(r).map(cv)),foot:o.foot?[ord(o.foot).map(cv)]:undefined,columnStyles:colStyles,
+      // a wrapped right-to-left cell is split from its visual string, so its lines come out bottom-up: flip them
+      willDrawCell:d=>{if(RTL&&Array.isArray(d.cell.text)&&d.cell.text.length>1)d.cell.text=[...d.cell.text].reverse();},
       didParseCell:d=>{
         if(!RTL&&typeof d.cell.raw==="string"&&d.cell.raw&&NUM.test(d.cell.raw))d.cell.styles.halign="right";
         if(d.section==="body"&&o.rowStyle){const s=o.rowStyle(d.row.index,logi(d.column.index));if(s)Object.assign(d.cell.styles,s);}
