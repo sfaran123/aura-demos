@@ -20,14 +20,15 @@ a.card:hover{border-color:var(--acc)}a.card b{font-size:19px}
 <div class="top"><h1 data-t="title"></h1>
 <div class="langs" role="group" aria-label="Language"><button type="button" data-lang="he">עברית</button><button type="button" data-lang="ar">العربية</button><button type="button" data-lang="en">English</button></div></div>
 <p data-t="sub"></p>
+<a class="card" id="sd" href="smart-dashboard/"><b data-t="sdT"></b><p data-t="sdD"></p></a>
 <a class="card" id="cr" href="cash-register/"><b data-t="crT"></b><p data-t="crD"></p></a>
 </main>
 <script>
-const T={he:{title:"AURA ERP – הדגמות",sub:"מסכים לדוגמה עם נתוני הדגמה בלבד.",crT:"רשימת קופות ודוח Z מרוכז",crD:"סינון לפי חודש, מחסן ומשתמש, בחירת עמודות, הורדת PDF לרואה חשבון ו-CSV."},
-ar:{title:"AURA ERP – عروض تجريبية",sub:"شاشات تجريبية ببيانات تجريبية فقط.",crT:"قائمة الصناديق وتقرير Z مجمّع",crD:"تصفية حسب الشهر والمستودع والمستخدم، اختيار الأعمدة، تنزيل PDF للمحاسب وملف CSV."},
-en:{title:"AURA ERP – Demos",sub:"Example screens with sample data only.",crT:"Cash registers and consolidated Z report",crD:"Filter by month, warehouse and user, choose columns, download an accountant PDF and CSV."}};
+const T={he:{title:"AURA ERP – הדגמות",sub:"מסכים לדוגמה עם נתוני הדגמה בלבד.",crT:"רשימת קופות ודוח Z מרוכז",crD:"סינון לפי חודש, מחסן ומשתמש, בחירת עמודות, הורדת PDF לרואה חשבון ו-CSV.",sdT:"לוח בקרה חכם",sdD:"ווידג׳טים לפי סוג עסק, צוות מכירות, גבייה וצ׳קים, תפריט צד, תפריט משתמש ולוח נעול עם עריכה במקום."},
+ar:{title:"AURA ERP – عروض تجريبية",sub:"شاشات تجريبية ببيانات تجريبية فقط.",crT:"قائمة الصناديق وتقرير Z مجمّع",crD:"تصفية حسب الشهر والمستودع والمستخدم، اختيار الأعمدة، تنزيل PDF للمحاسب وملف CSV.",sdT:"لوحة تحكم ذكية",sdD:"عناصر حسب نوع النشاط، فريق المبيعات، التحصيل والشيكات، قائمة جانبية، قائمة المستخدم ولوحة مقفلة مع تعديل مباشر."},
+en:{title:"AURA ERP – Demos",sub:"Example screens with sample data only.",crT:"Cash registers and consolidated Z report",crD:"Filter by month, warehouse and user, choose columns, download an accountant PDF and CSV.",sdT:"Smart dashboard",sdD:"Widgets per business type, sales team, collections and cheques, side menu, user menu and a locked board with in-place editing."}};
 function set(l){if(!T[l])l="he";try{localStorage.setItem("aura-lang",l)}catch(e){}document.documentElement.lang=l;document.documentElement.dir=l==="en"?"ltr":"rtl";document.title=T[l].title;
-document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[l][e.dataset.t]);document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===l));document.getElementById("cr").href="cash-register/#"+l;}
+document.querySelectorAll("[data-t]").forEach(e=>e.textContent=T[l][e.dataset.t]);document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===l));document.getElementById("cr").href="cash-register/#"+l;document.getElementById("sd").href="smart-dashboard/#owner-"+l;}
 let l="he";try{l=localStorage.getItem("aura-lang")||(location.hash||"").slice(1)||"he"}catch(e){}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-lang]");if(b)set(b.dataset.lang)});set(l);
 </script></body></html>
