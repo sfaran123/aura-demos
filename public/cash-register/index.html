@@ -780,14 +780,20 @@ function buildPDF(a,opt){
   // Tables: columns are given in reading order; for right-to-left they are reversed so the first column sits on the right.
   const tbl=(o)=>{
     const n=o.head.length,ord=r=>RTL?[...r].reverse():r,cv=v=>typeof v==="string"?V(v):String(v),phys=i=>RTL?n-1-i:i,logi=i=>RTL?n-1-i:i;
-    const colStyles={};o.head.forEach((_,i)=>{colStyles[phys(i)]={...(o.widths&&o.widths[i]?{cellWidth:o.widths[i]}:{}),...(i===0?{fontStyle:"bold"}:{})}});
+    const colStyles={};o.head.forEach((_,i)=>{colStyles[phys(i)]={...(o.widths&&o.widths[i]?{cellWidth:o.widths[i]}:{}),...(o.wrap&&o.wrap[i]?{cellWidth:"wrap"}:{}),...(i===0?{fontStyle:"bold"}:{})}});
     const left=o.left??M,right=o.right??M;
     doc.autoTable({startY:o.y,pageBreak:o.keep?"avoid":"auto",margin:{left:RTL?left:right,right:RTL?right:left,top:TOP,bottom:BOT},tableWidth:o.width||"auto",theme:"grid",rowPageBreak:"avoid",showHead:"everyPage",showFoot:"lastPage",
       styles:{font:"AuraSans",fontSize:o.fs||9.5,cellPadding:o.pad??{top:1.5,bottom:1.5,left:2,right:2},textColor:NAVY,lineColor:LINE,lineWidth:.2,halign:RTL?"right":"left",valign:"middle"},
       headStyles:{fillColor:NAVY,textColor:255,fontStyle:"bold",overflow:"linebreak"},bodyStyles:o.ellipsize?{overflow:"ellipsize"}:{},footStyles:{fillColor:[228,232,242],textColor:NAVY,fontStyle:"bold"},alternateRowStyles:{fillColor:[249,250,253]},
       head:[ord(o.head).map(cv)],body:o.body.map(r=>ord(r).map(cv)),foot:o.foot?[ord(o.foot).map(cv)]:undefined,columnStyles:colStyles,
       // a wrapped right-to-left cell is split from its visual string, so its lines come out bottom-up: flip them
-      willDrawCell:d=>{if(RTL&&Array.isArray(d.cell.text)&&d.cell.text.length>1)d.cell.text=[...d.cell.text].reverse();},
+      willDrawCell:d=>{
+        if(RTL&&Array.isArray(d.cell.text)&&d.cell.text.length>1)d.cell.text=[...d.cell.text].reverse();
+        // a shortened right-to-left text must lose its end (the left side), not its beginning
+        const tx=d.cell.text,raw=d.cell.raw;
+        if(RTL&&Array.isArray(tx)&&tx.length===1&&typeof raw==="string"&&RTLC.test(raw)&&tx[0]!==raw&&/\.\.\.$|…$/.test(tx[0])){
+          const avail=d.cell.width-d.cell.padding("horizontal");let v=raw;while(v.length>1&&doc.getTextWidth("..."+v)>avail)v=v.slice(1);d.cell.text=["..."+v];}
+      },
       didParseCell:d=>{
         if(!RTL&&typeof d.cell.raw==="string"&&d.cell.raw&&NUM.test(d.cell.raw))d.cell.styles.halign="right";
         if(d.section==="body"&&o.rowStyle){const s=o.rowStyle(d.row.index,logi(d.column.index));if(s)Object.assign(d.cell.styles,s);}
@@ -878,7 +884,7 @@ function buildPDF(a,opt){
       if(pi>0){y=newPage();y=sec(num,t("partTitle",{i:pi+1,n:parts.length}),y,RX,t("partNote"));}
       else if(parts.length>1){T(t("partsWarn",{n:parts.length}),RX,y+2,{size:9,c:WARNC,b:1});y+=5;}
       const n=pc.length, fs=n>13?6.6:n>11?7.2:n>9?7.8:8.2;
-      tbl({y:y+1,fs,pad:{top:.5,bottom:.5,left:1.2,right:1.2},ellipsize:1,head:pc.map(colT),
+      tbl({y:y+1,fs,pad:{top:.5,bottom:.5,left:1.2,right:1.2},ellipsize:1,wrap:pc.map(c=>c.k!=="wh"&&c.k!=="user"),head:pc.map(colT),
         body:a.map(r=>pc.map(c=>{const v=plainCell(r,c);return c.k==="z"?`Z ${v}`:c.n?(c.int?String(v):f2(v)):String(v)})),
         foot:pc.map((c,i)=>c.n&&!c.nosum?(c.int?String(sum(a,c.k)):f2(sum(a,c.k))):(i===0?t("total"):"")),
         rowStyle:(ri,ci)=>a[ri].status==="open"&&pc[ci]&&pc[ci].k==="status"?{textColor:OKC,fontStyle:"bold"}:null});
