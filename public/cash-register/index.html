@@ -713,18 +713,26 @@ function exportCSV(btn){
 }
 
 /* ---------- Bidi for jsPDF: Arabic is shaped, then every string is put in visual order ---------- */
-const RTLC=/[֐-׿؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/, ARAB=/[؀-ۿ]/, LTRC=/[A-Za-z0-9À-ɏ]/, MIR={"(":")",")":"(","[":"]","]":"[","<":">",">":"<"};
+const RTLC=/[֐-׿؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/, LTRC=/[A-Za-zÀ-ɏ]/, DIG=/[0-9]/, MIR={"(":")",")":"(","[":"]","]":"[","<":">",">":"<"};
 function shape(s){try{const f=window.jspdf&&window.jspdf.jsPDF.API.processArabic;return f?f(s):s}catch(e){return s}}
+/* Puts text in visual order for jsPDF using the Unicode bidi rules that matter here (W7, N1/N2, I1/I2, L2). */
 function vis(s,baseRtl){
-  s=String(s??"");if(ARAB.test(s))s=shape(s);
+  s=String(s??"");if(/[؀-ۿ]/.test(s))s=shape(s);
   if(!RTLC.test(s))return s;
-  const ch=[...s],ty=ch.map(c=>RTLC.test(c)?"R":LTRC.test(c)?"L":"N");
-  ch.forEach((c,i)=>{if(/[₪%]/.test(c)&&(/\d/.test(ch[i-1]||"")||/\d/.test(ch[i+1]||"")))ty[i]="L";});
-  const b=baseRtl?"R":"L";
-  for(let i=0;i<ty.length;i++)if(ty[i]==="N"){let j=i;while(j<ty.length&&ty[j]==="N")j++;const p=i>0?ty[i-1]:b,n=j<ty.length?ty[j]:b;const v=p===n?p:b;for(let k=i;k<j;k++)ty[k]=v;i=j-1;}
-  const runs=[];ch.forEach((c,i)=>{const x=runs[runs.length-1];if(x&&x.t===ty[i])x.s.push(c);else runs.push({t:ty[i],s:[c]})});
-  const out=runs.map(r=>r.t==="R"?r.s.reverse().map(c=>MIR[c]||c).join(""):r.s.join(""));
-  return (baseRtl?out.reverse():out).join("");
+  const ch=[...s],n=ch.length,ty=ch.map(c=>RTLC.test(c)?"R":LTRC.test(c)?"L":DIG.test(c)?"D":"N");
+  // number parts: separators between digits, currency/percent next to digits
+  for(let i=1;i<n-1;i++)if(ty[i]==="N"&&/[.,:/]/.test(ch[i])&&ty[i-1]==="D"&&ty[i+1]==="D")ty[i]="D";
+  for(let i=0;i<n;i++)if(ty[i]==="N"&&/[₪%$€]/.test(ch[i])&&((i>0&&ty[i-1]==="D")||(i<n-1&&ty[i+1]==="D")))ty[i]="D";
+  // digits after Latin text behave as Latin (rule W7)
+  let last=baseRtl?"R":"L";for(let i=0;i<n;i++){if(ty[i]==="R"||ty[i]==="L")last=ty[i];else if(ty[i]==="D"&&last==="L")ty[i]="L";}
+  // neutrals take the direction of their neighbours (numbers count as right-to-left), else the base (N1/N2)
+  const B=baseRtl?"R":"L",sd=x=>x==="D"?"R":x;
+  for(let i=0;i<n;i++)if(ty[i]==="N"){let j=i;while(j<n&&ty[j]==="N")j++;const p=i>0?sd(ty[i-1]):B,q=j<n?sd(ty[j]):B,v=p===q?p:B;for(let k=i;k<j;k++)ty[k]=v;i=j-1;}
+  // embedding levels (I1/I2), then reverse from the highest level down (L2)
+  const lv=ty.map(x=>baseRtl?(x==="R"?1:2):(x==="L"?0:x==="R"?1:2));
+  const idx=[...Array(n).keys()];const max=Math.max(...lv);
+  for(let k=max;k>=1;k--){let i=0;while(i<n){if(lv[idx[i]]>=k){let j=i;while(j<n&&lv[idx[j]]>=k)j++;const seg=idx.slice(i,j).reverse();idx.splice(i,j-i,...seg);i=j;}else i++;}}
+  return idx.map(i=>lv[i]%2?(MIR[ch[i]]||ch[i]):ch[i]).join("");
 }
 /* ================= PDF: consolidated Z report (he / ar = right-to-left, en = left-to-right) ================= */
 const NAVY=[28,37,64],ACC=[79,86,224],GREY=[86,97,125],LINE=[210,216,230],SOFT=[246,247,251],OKC=[23,128,77],OKS=[227,245,236],WARNC=[168,90,7],WARNS=[255,241,222],REDC=[194,53,43],WHITE=[255,255,255];
