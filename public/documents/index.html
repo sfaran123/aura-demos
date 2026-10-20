@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AURA הפקת מסמכים</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=Suez+One&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one calm working column + a paper document that is always in view on tablets and desktops; a sticky bar keeps the total and the next step under the thumb. */
+:root{
+  --bg:#EBEFEC; --surface:#FFFFFF; --sunk:#F4F6F4; --ink:#14211D; --muted:#5A6A64; --line:#D3DBD6;
+  --accent:#0D6A5B; --accent-soft:#DCEDE8; --on-accent:#FFFFFF; --mark:#E7B02A; --mark-soft:#FBF0D2;
+  --danger:#B23A2F; --danger-soft:#F7E1DE; --ok:#1E7A4C;
+  --paper:#FFFFFF; --paper-ink:#1B2420; --paper-muted:#68746F; --paper-line:#DCE2DE; --paper-band:#F3F6F4;
+  --shadow:0 1px 2px rgba(20,33,29,.06),0 8px 24px rgba(20,33,29,.07);
+  --f-body:"IBM Plex Sans Hebrew","Noto Sans Hebrew","Arial Hebrew",Arial,sans-serif;
+  --f-disp:"Suez One","IBM Plex Sans Hebrew",Georgia,serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:14px; --tap:48px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1614; --surface:#16211E; --sunk:#111B18; --ink:#E4ECE8; --muted:#93A49D; --line:#2A3833;
+  --accent:#3DB39C; --accent-soft:#173A33; --on-accent:#062520; --mark:#E7B02A; --mark-soft:#3A3016;
+  --danger:#E36B5F; --danger-soft:#3D1D1A; --ok:#4FC28A;
+  --paper:#FBFCFB; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1614; --surface:#16211E; --sunk:#111B18; --ink:#E4ECE8; --muted:#93A49D; --line:#2A3833;
+  --accent:#3DB39C; --accent-soft:#173A33; --on-accent:#062520; --mark:#E7B02A; --mark-soft:#3A3016;
+  --danger:#E36B5F; --danger-soft:#3D1D1A; --ok:#4FC28A;
+  --paper:#FBFCFB; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35); color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.mono{font-family:var(--f-mono);font-size:.86em;direction:ltr;unicode-bidi:isolate}
+
+/* top */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1320px;margin:0 auto;padding-block:10px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.brandrow{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-family:var(--f-disp);font-size:18px;flex:none}
+.brandtxt{min-width:0;flex:1}
+.brandtxt b{display:block;font-size:15px;line-height:1.2}
+.brandtxt span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-demo{font-size:11.5px;font-weight:600;background:var(--mark-soft);color:var(--ink);border:1px solid var(--mark);border-radius:99px;padding:2px 9px;white-space:nowrap}
+.iconbtn{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);display:grid;place-items:center;flex:none}
+.iconbtn svg{width:20px;height:20px}
+.steps{display:flex;gap:4px;margin-top:10px;overflow-x:auto;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.step{flex:1 0 auto;min-width:64px;border:0;background:none;padding:8px 6px 10px;border-bottom:3px solid transparent;color:var(--muted);font-size:13.5px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.step i{font-style:normal;width:20px;height:20px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:11px;font-weight:700}
+.step.done{color:var(--ink)}
+.step.done i{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.step.cur{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.step:disabled{cursor:default;opacity:.55}
+
+/* layout */
+.layout{max-width:1320px;margin:0 auto;padding-block:18px 130px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:24px;grid-template-columns:minmax(0,1fr)}
+.side{display:none}
+@media (min-width:1000px){
+  .layout{grid-template-columns:minmax(0,1fr) minmax(400px,44%)}
+  .side{display:block}
+  .sidestick{position:sticky;top:calc(env(safe-area-inset-top,0px) + 118px)}
+  .only-narrow{display:none!important}
+}
+.work{min-width:0;display:flex;flex-direction:column;gap:18px}
+.h1{font-family:var(--f-disp);font-weight:400;font-size:clamp(26px,5vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:60ch}
+.h2{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px}
+.h2 small{font-weight:500;color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+
+/* mode switch */
+.seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{border:0;background:none;border-radius:9px;padding:9px 14px;font-weight:600;font-size:14px;color:var(--muted);min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* type tiles */
+.types{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.type{text-align:start;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px 14px 13px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;min-height:84px;transition:border-color .15s,transform .15s}
+.type:hover{border-color:var(--accent)}
+.type:active{transform:scale(.985)}
+.type .ti{grid-row:span 2;width:40px;height:40px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.type .ti svg{width:22px;height:22px}
+.type b{font-size:16px}
+.type span{font-size:13px;color:var(--muted);line-height:1.35}
+.type[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.type[aria-pressed="true"] .ti{background:var(--accent);color:var(--on-accent)}
+
+/* inputs */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.inp{width:100%;min-height:var(--tap);border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;font-size:16px}
+.inp:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.inp.bad{border-color:var(--danger)}
+textarea.inp{min-height:84px;resize:vertical}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint.bad{color:var(--danger)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.search{position:relative}
+.search svg{position:absolute;inset-inline-start:13px;top:50%;translate:0 -50%;width:20px;height:20px;color:var(--muted);pointer-events:none}
+.search .inp{padding-inline-start:42px}
+
+.btn{min-height:var(--tap);border-radius:12px;border:1.5px solid var(--line);background:var(--surface);padding:10px 16px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn svg{width:18px;height:18px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{border-color:transparent;background:none;color:var(--accent)}
+.btn.soft{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.sm{min-height:38px;padding:6px 12px;font-size:14px}
+
+/* customers */
+.clist{display:flex;flex-direction:column;gap:8px}
+.cust{display:flex;gap:12px;align-items:center;text-align:start;width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px;min-height:64px}
+.cust:hover{border-color:var(--accent)}
+.cust[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.av{width:42px;height:42px;border-radius:50%;background:var(--sunk);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;color:var(--accent);flex:none}
+.cust .ci{min-width:0;flex:1}
+.cust .ci b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cust .ci span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cust .tag{font-size:12px;color:var(--muted);white-space:nowrap}
+.walkin .av{color:var(--muted)}
+
+/* products */
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:7px 14px;font-size:14px;font-weight:600;min-height:40px}
+.cat[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.prod{position:relative;text-align:start;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px;min-height:104px;display:flex;flex-direction:column;gap:4px;transition:transform .12s,border-color .12s}
+.prod:active{transform:scale(.97)}
+.prod.in{border-color:var(--accent)}
+.prod b{font-size:14.5px;line-height:1.3}
+.prod .pp{margin-top:auto;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.prod .pp strong{font-size:15px}
+.prod .pp small{font-size:12px;color:var(--muted)}
+.prod .sku{font-size:11.5px;color:var(--muted)}
+.badge{position:absolute;top:-8px;inset-inline-end:-6px;min-width:26px;height:26px;border-radius:13px;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:13px;display:grid;place-items:center;padding:0 7px;box-shadow:var(--shadow)}
+
+/* cart lines */
+.lines{display:flex;flex-direction:column;gap:8px}
+.line{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:center}
+.line .ln{min-width:0}
+.line .ln input{border:0;background:none;padding:0;font-weight:600;font-size:15.5px;width:100%;min-height:28px}
+.line .ln input:focus{outline:none;box-shadow:0 2px 0 var(--accent)}
+.line .ln small{display:block;font-size:12.5px;color:var(--muted)}
+.line .lt{text-align:end;font-weight:700;font-size:16px}
+.line .lc{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stepper{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:var(--sunk)}
+.stepper button{width:46px;height:46px;border:0;background:none;font-size:22px;font-weight:600;color:var(--accent);display:grid;place-items:center}
+.stepper input{width:58px;height:46px;border:0;border-inline:1.5px solid var(--line);background:var(--surface);text-align:center;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.mini{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.mini input{width:92px;min-height:40px;border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;text-align:center;font-size:15px;background:var(--surface);font-variant-numeric:tabular-nums}
+.mini input.pct{width:62px}
+.x{margin-inline-start:auto;width:40px;height:40px;border-radius:10px;border:0;background:none;color:var(--muted);display:grid;place-items:center}
+.x:hover{color:var(--danger);background:var(--danger-soft)}
+.x svg{width:19px;height:19px}
+.empty{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px 16px;text-align:center;color:var(--muted);font-size:14.5px}
+
+/* payments */
+.methods{display:flex;gap:6px;flex-wrap:wrap}
+.pay{border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.payhead{display:flex;align-items:center;gap:10px}
+.payhead b{flex:1}
+.remain{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--mark-soft);font-weight:600}
+.remain.ok{background:var(--accent-soft);color:var(--ink)}
+.alloc{border:1px solid var(--mark);background:var(--mark-soft);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.toggle{display:flex;align-items:center;gap:12px;min-height:var(--tap);cursor:pointer}
+.toggle input{width:22px;height:22px;accent-color:var(--accent)}
+
+/* review */
+.checks{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.checks li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.checks li::before{content:"";flex:none;width:20px;height:20px;margin-top:1px;border-radius:50%;background:var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.checks li.warn::before{background:var(--mark) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M10 5v6M10 14.5v.5' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/18px no-repeat}
+.sigwrap{border:1.5px dashed var(--line);border-radius:var(--r);background:var(--sunk);position:relative;touch-action:none}
+.sigwrap canvas{display:block;width:100%;height:170px}
+.sigwrap .ph{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);pointer-events:none;font-size:14px}
+.sigline{position:absolute;inset-inline:22px;bottom:34px;border-bottom:1px solid var(--line);pointer-events:none}
+
+/* document paper */
+.docwrap{border-radius:6px;box-shadow:var(--shadow);overflow:hidden}
+.doc{background:var(--paper);color:var(--paper-ink);padding:26px 24px 20px;font-size:12.5px;line-height:1.45;position:relative}
+.doc .dh{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid var(--paper-ink)}
+.doc .biz b{font-family:var(--f-disp);font-weight:400;font-size:19px;display:block;line-height:1.15}
+.doc .biz span{display:block;color:var(--paper-muted);font-size:11.5px}
+.doc .dt{text-align:end}
+.doc .dt b{display:block;font-size:17px;font-weight:700}
+.doc .dt .no{font-family:var(--f-mono);font-size:12.5px;direction:ltr;unicode-bidi:isolate}
+.doc .dt .draft{display:inline-block;margin-top:3px;font-size:11px;font-weight:700;color:#8a5a00;background:#fbefcf;border-radius:4px;padding:1px 7px}
+.doc .meta{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin:14px 0}
+.doc .box{background:var(--paper-band);border-radius:6px;padding:9px 11px}
+.doc .box small{display:block;color:var(--paper-muted);font-size:10.5px;font-weight:600;letter-spacing:.02em}
+.doc .box b{font-size:13.5px}
+.doc .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px}
+.doc .kv span:nth-child(odd){color:var(--paper-muted)}
+.doc table{width:100%;border-collapse:collapse;font-size:12px}
+.doc th{font-size:10.5px;color:var(--paper-muted);font-weight:700;text-align:start;padding:6px 4px;border-bottom:1px solid var(--paper-line)}
+.doc td{padding:7px 4px;border-bottom:1px solid var(--paper-line);vertical-align:top}
+.doc td.n,.doc th.n{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
+.doc td.i{color:var(--paper-muted);width:22px}
+.doc .tot{margin-top:12px;margin-inline-start:auto;width:min(270px,100%);display:grid;grid-template-columns:1fr auto;gap:4px 14px}
+.doc .tot span:nth-child(even){text-align:end;font-variant-numeric:tabular-nums}
+.doc .tot .grand{font-weight:700;font-size:15px;border-top:2px solid var(--paper-ink);padding-top:6px;margin-top:2px}
+.doc .sect{margin-top:14px}
+.doc .sect h4{margin:0 0 5px;font-size:11px;color:var(--paper-muted);letter-spacing:.02em}
+.doc .sig{margin-top:14px;display:flex;justify-content:flex-end}
+.doc .sig div{width:180px;border-top:1px solid var(--paper-ink);padding-top:3px;text-align:center;font-size:10.5px;color:var(--paper-muted)}
+.doc .sig img{display:block;width:180px;height:70px;object-fit:contain;margin-bottom:-4px}
+.doc .foot{margin-top:18px;padding-top:8px;border-top:1px solid var(--paper-line);color:var(--paper-muted);font-size:10px;display:flex;justify-content:space-between;gap:10px}
+.doc .stamp{position:absolute;top:84px;inset-inline-start:46%;transform:rotate(-9deg);border:2.5px solid #0D6A5B;color:#0D6A5B;border-radius:6px;padding:2px 12px;font-family:var(--f-disp);font-size:20px;opacity:.85}
+.doc .ph{color:var(--paper-muted);font-style:italic}
+.dochead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;color:var(--muted)}
+
+/* bottom bar */
+.bar{position:fixed;inset:auto 0 0;z-index:9;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bar-in{max-width:1320px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px}
+.bar .sum{flex:1;min-width:0}
+.bar .sum small{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .sum b{font-family:var(--f-disp);font-weight:400;font-size:24px;line-height:1.1}
+.bar .next{min-width:132px;min-height:52px;font-size:16px}
+.bar .back{width:52px;min-height:52px;padding:0}
+.why{font-size:12.5px;color:var(--danger)}
+
+/* sheet + toast */
+.scrim{position:fixed;inset:0;background:rgba(10,18,16,.45);z-index:20;display:grid;align-items:end;justify-items:center}
+@media (min-width:700px){.scrim{align-items:center}}
+.sheet{background:var(--surface);width:min(560px,100%);max-height:90vh;overflow:auto;border-radius:20px 20px 0 0;padding:20px max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;animation:up .22s ease-out}
+@media (min-width:700px){.sheet{border-radius:20px}}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.sheet .big{font-family:var(--f-disp);font-size:28px;line-height:1.15}
+.okmark{width:58px;height:58px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.okmark svg{width:30px;height:30px}
+.toast{position:fixed;inset-inline:0;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:30;display:flex;justify-content:center;pointer-events:none;padding-inline:16px}
+.toast div{background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 16px;font-weight:600;font-size:14px;box-shadow:var(--shadow)}
+
+/* small handheld terminals */
+@media (max-width:380px){
+  body{font-size:15px}
+  .layout{padding-block:12px 120px;gap:16px}
+  .card{padding:12px;gap:12px}
+  .types{grid-template-columns:1fr}
+  .type{min-height:70px;padding:11px}
+  .prods{grid-template-columns:1fr 1fr}
+  .step span{display:none}
+  .step{min-width:40px}
+  .bar .next{min-width:108px}
+  .doc{padding:18px 14px;font-size:11.5px}
+  .doc .meta{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head><body>
+
+
+<div id="app" dir="rtl" lang="he">
+  <header class="top">
+    <div class="top-in">
+      <div class="brandrow">
+        <div class="logo" aria-hidden="true">A</div>
+        <div class="brandtxt"><b id="bizName">—</b><span id="bizSub">—</span></div>
+        <span class="chip-demo">נתוני דוגמה</span>
+        <button class="iconbtn" id="btnBiz" aria-label="פרטי העסק">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </button>
+      </div>
+      <nav class="steps" id="steps" aria-label="שלבים"></nav>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="work" id="work" aria-live="polite"></section>
+    <aside class="side" aria-label="תצוגה מקדימה">
+      <div class="sidestick">
+        <div class="dochead"><span>כך המסמך ייראה</span><span id="docState">טיוטה נשמרת אוטומטית</span></div>
+        <div class="docwrap"><div class="doc" id="doc"></div></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="bar">
+    <div class="bar-in">
+      <button class="btn back" id="btnBack" aria-label="חזרה">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <div class="sum"><small id="sumLbl">—</small><b class="num" id="sumVal">₪0.00</b><div class="why" id="why" hidden></div></div>
+      <button class="btn primary next" id="btnNext">המשך</button>
+    </div>
+  </footer>
+
+  <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+  <div class="toast" id="toast" hidden><div id="toastTxt"></div></div>
+</div>
+
+<script>
+(function(){
+document.documentElement.lang="he";document.documentElement.dir="rtl";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const r2=n=>Math.round((Number(n)+Number.EPSILON)*100)/100;
+const NF=new Intl.NumberFormat("he-IL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=n=>"₪"+NF.format(r2(n||0));
+const qtyf=n=>(Math.round(n*1000)/1000).toLocaleString("he-IL");
+const VAT=0.18, ALLOC_MIN=5000;
+const store={get(k,d){try{const v=localStorage.getItem("aura-doc-"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("aura-doc-"+k,JSON.stringify(v))}catch(e){}}};
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const dfmt=s=>{if(!s)return"";const [y,m,d]=s.split("-");return d+"/"+m+"/"+y};
+const addDays=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const endOfMonthPlus=(s,n)=>{const d=new Date(s+"T12:00:00");const e=new Date(d.getFullYear(),d.getMonth()+1,0,12);e.setDate(e.getDate()+n);return e.toISOString().slice(0,10)};
+
+/* Israeli company / ID number check digit */
+function validId(v){v=String(v||"").replace(/\D/g,"");if(v.length<5||v.length>9)return false;v=v.padStart(9,"0");let t=0;for(let i=0;i<9;i++){let x=+v[i]*(i%2?2:1);t+=x>9?x-9:x}return t%10===0}
+
+const IC={
+ tax:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h4"/>',
+ taxrc:'<path d="M7 3h10v18l-2.5-1.5L12 21l-2.5-1.5L7 21z"/><path d="M10 8h4M10 12h4"/>',
+ receipt:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/>',
+ order:'<path d="M4 5h2l2 10h10l2-7H7"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/>',
+ quote:'<path d="M5 4h14v12H9l-4 4z"/><path d="M9 9h6M9 12h3"/>',
+ delivery:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ credit:'<path d="M9 14l-4-4 4-4"/><path d="M5 10h9a5 5 0 010 10h-2"/>',
+ deal:'<path d="M7 3h10v18H7z"/><path d="M10 8h4M10 12h4M10 16h2"/>'
+};
+const TYPES={
+ tax:{name:"חשבונית מס",hint:"מכירה לעסק שישלם בהמשך",vat:1,items:1,pay:0,modes:"m",terms:1},
+ taxrc:{name:"חשבונית מס / קבלה",hint:"מכירה ששולמה במקום",vat:1,items:1,pay:1,modes:"m"},
+ receipt:{name:"קבלה",hint:"אישור על כסף שהתקבל",vat:0,items:0,pay:1,modes:"mp"},
+ order:{name:"הזמנה",hint:"לקוח מזמין, אתם מספקים",vat:1,items:1,pay:0,modes:"mp",sign:1,supply:1},
+ quote:{name:"הצעת מחיר",hint:"הצעה עם תוקף, אפשר להמיר להזמנה",vat:1,items:1,pay:0,modes:"mp",valid:1},
+ delivery:{name:"תעודת משלוח",hint:"מלווה את הסחורה, הלקוח חותם",vat:1,items:1,pay:0,modes:"mp",sign:1,prices:1},
+ credit:{name:"חשבונית זיכוי",hint:"החזרה או תיקון לחשבונית קודמת",vat:1,items:1,pay:0,modes:"m",ref:1},
+ deal:{name:"חשבונית עסקה",hint:"דרישת תשלום של עוסק פטור",vat:0,items:1,pay:0,modes:"p",terms:1}
+};
+const CONVERT={quote:["order","tax"],order:["delivery","tax"],delivery:["tax"],tax:["receipt"],deal:["receipt"]};
+
+/* ---- sample data (example only) ---- */
+const BIZ0={name:"פיצוחי הגליל בע״מ",id:"515633907",mode:"m",addr:"רח׳ התעשייה 12, כרמיאל",phone:"04-9981234",agent:"סאמר ח׳ (סוכן שטח)"};
+const CUST0=[
+ {id:"c1",name:"מרכולית השכונה בע״מ",tax:"514827369",city:"נצרת",addr:"פאולוס השישי 41, נצרת",phone:"04-6551020",last:"לפני 6 ימים",terms:"eom30"},
+ {id:"c2",name:"קפה רחבה – אחים סלים",tax:"031845225",city:"שפרעם",addr:"הכיכר 3, שפרעם",phone:"052-7781190",last:"לפני 13 יום",terms:"now"},
+ {id:"c3",name:"סופר דליה שיווק בע״מ",tax:"516219078",city:"עכו",addr:"דרך הארבעה 88, עכו",phone:"04-9910456",last:"לפני חודש",terms:"eom60"},
+ {id:"c4",name:"מאפיית אום כולתום",tax:"201458734",city:"כפר כנא",addr:"השוק 7, כפר כנא",phone:"050-4432189",last:"חדש",terms:"eom30"}
+];
+const PRODS=[
+ {sku:"1001",bc:"7290011000011",name:"פקאן קלוי",unit:"ק״ג",price:84,cat:"אגוזים"},
+ {sku:"1002",bc:"7290011000028",name:"שקדים טבעיים",unit:"ק״ג",price:52,cat:"אגוזים"},
+ {sku:"1003",bc:"7290011000035",name:"קשיו קלוי מלוח",unit:"ק״ג",price:68,cat:"אגוזים"},
+ {sku:"1004",bc:"7290011000042",name:"פיסטוק חלבי",unit:"ק״ג",price:96,cat:"אגוזים"},
+ {sku:"1101",bc:"7290011000103",name:"גרעיני חמנייה",unit:"ק״ג",price:22,cat:"גרעינים"},
+ {sku:"1102",bc:"7290011000110",name:"גרעינים לבנים",unit:"ק״ג",price:26,cat:"גרעינים"},
+ {sku:"1201",bc:"7290011000202",name:"תמר מג׳הול גדול",unit:"ק״ג",price:44,cat:"פירות יבשים"},
+ {sku:"1202",bc:"7290011000219",name:"משמש מיובש",unit:"ק״ג",price:39,cat:"פירות יבשים"},
+ {sku:"1301",bc:"7290011000301",name:"קפה טורקי עם הל 500 גר׳",unit:"יח׳",price:24.5,cat:"קפה"},
+ {sku:"1302",bc:"7290011000318",name:"קפה שחור 1 ק״ג",unit:"יח׳",price:46,cat:"קפה"},
+ {sku:"1401",bc:"7290011000400",name:"מארז מעורב 12×200 גר׳",unit:"קרטון",price:138,cat:"מארזים"},
+ {sku:"1402",bc:"7290011000417",name:"מארז מתנה לחג",unit:"יח׳",price:89,cat:"מארזים"}
+];
+const METHODS={cash:"מזומן",credit:"כרטיס אשראי",transfer:"העברה בנקאית",cheque:"צ׳ק",app:"ביט / פייבוקס"};
+const TERMS={now:"מיידי",eom30:"שוטף + 30",eom60:"שוטף + 60",eom90:"שוטף + 90",days14:"14 יום"};
+const termDate=(t,d)=>t==="now"?d:t==="days14"?addDays(d,14):endOfMonthPlus(d,{eom30:30,eom60:60,eom90:90}[t]||0);
+
+let biz=store.get("biz",BIZ0);
+let customers=store.get("customers",CUST0);
+let series=store.get("series",{tax:10241,taxrc:5873,receipt:3302,order:880,quote:412,delivery:2210,credit:118,deal:77});
+const freshDoc=(type)=>({type:type||(biz.mode==="p"?"deal":"tax"),cust:null,lines:[],date:today(),terms:"eom30",valid:addDays(today(),14),supply:addDays(today(),2),notes:"",disc:0,showPrices:true,pays:[],alloc:"",ref:"",sig:"",no:null,issued:false});
+let doc=store.get("draft",null)||freshDoc();
+let step=store.get("step",0);
+let ui={q:"",cat:"הכול",scan:"",newCust:false,custErr:{}};
+const save=()=>{store.set("draft",doc);store.set("step",step)};
+
+/* ---- math ---- */
+const T=()=>TYPES[doc.type];
+const vatOn=()=>biz.mode==="m"&&!!T().vat;
+const lineNet=l=>r2((+l.qty||0)*(+l.price||0)*(1-(+l.disc||0)/100));
+function totals(){
+  const t=T();
+  if(!t.items){const paid=r2(doc.pays.reduce((a,p)=>a+(+p.amount||0),0));return{sub:paid,disc:0,net:paid,vat:0,total:paid,paid,remain:0,count:0}}
+  const sub=r2(doc.lines.reduce((a,l)=>a+lineNet(l),0));
+  const disc=r2(sub*(+doc.disc||0)/100), net=r2(sub-disc);
+  const vat=vatOn()?r2(net*VAT):0, total=r2(net+vat);
+  const paid=r2(doc.pays.reduce((a,p)=>a+(+p.amount||0),0));
+  return{sub,disc,net,vat,total,paid,remain:r2(total-paid),count:doc.lines.reduce((a,l)=>a+(+l.qty||0),0)};
+}
+const cust=()=>doc.cust==="walkin"?{id:"walkin",name:"לקוח מזדמן",tax:"",addr:"",phone:""}:customers.find(c=>c.id===doc.cust)||null;
+const needAlloc=()=>{const c=cust();return biz.mode==="m"&&(doc.type==="tax"||doc.type==="taxrc")&&c&&c.tax&&totals().net>=ALLOC_MIN};
+
+/* ---- steps ---- */
+function steps(){const t=T();const s=[{k:"type",l:"סוג מסמך"},{k:"cust",l:"לקוח"}];if(t.items)s.push({k:"items",l:"פריטים"});s.push({k:"details",l:t.pay?"תשלום":"פרטים"});s.push({k:"review",l:"סיכום והפקה"});return s}
+function blocker(k){
+  const t=T(),tt=totals();
+  if(k==="cust"&&!doc.cust)return"בחרו לקוח, או ׳לקוח מזדמן׳";
+  if(k==="items"&&!doc.lines.length)return"הוסיפו לפחות פריט אחד";
+  if(k==="items"&&doc.lines.some(l=>!(+l.qty>0)))return"יש שורה בלי כמות";
+  if(k==="details"&&t.pay){
+    if(!doc.pays.length)return"הוסיפו אמצעי תשלום";
+    if(doc.pays.some(p=>!(+p.amount>0)))return"יש תשלום בלי סכום";
+    if(t.items&&Math.abs(tt.remain)>0.009)return tt.remain>0?"חסר "+money(tt.remain)+" לתשלום":"התשלום גבוה ב-"+money(-tt.remain);
+  }
+  if(k==="details"&&t.ref&&!doc.ref.trim())return"רשמו את מספר החשבונית המקורית";
+  return"";
+}
+function go(i){const s=steps();step=Math.max(0,Math.min(i,s.length-1));save();render();window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"})}
+
+/* ---- render ---- */
+function render(){
+  $("#bizName").textContent=biz.name;
+  $("#bizSub").textContent=(biz.mode==="m"?"עוסק מורשה":"עוסק פטור")+" · "+biz.agent;
+  const s=steps(); if(step>=s.length)step=s.length-1; if(doc.issued)step=s.length-1;
+  let firstBlock=s.findIndex(x=>blocker(x.k));
+  $("#steps").innerHTML=s.map((x,i)=>{const reach=!doc.issued&&(firstBlock<0||i<=firstBlock);return `<button class="step ${i<step?"done":""} ${i===step?"cur":""}" data-go="${i}" ${reach?"":"disabled"} ${i===step?'aria-current="step"':""}><i>${i<step?"✓":i+1}</i><span>${x.l}</span></button>`}).join("");
+  const k=s[step].k;
+  ({type:rType,cust:rCust,items:rItems,details:rDetails,review:rReview})[k]();
+  refresh();
+}
+function refresh(){
+  const t=T(),tt=totals(),s=steps(),k=s[step].k;
+  const html=docHTML();
+  $("#doc").innerHTML=html; const inl=$("#docInline"); if(inl)inl.innerHTML=html;
+  $("#sumLbl").textContent=t.items?(doc.lines.length?doc.lines.length+" שורות · "+(vatOn()?"כולל מע״מ":"ללא מע״מ"):t.name):"סכום הקבלה";
+  $("#sumVal").textContent=money(tt.total);
+  const b=blocker(k); const why=$("#why"); why.hidden=!b||k==="type"; why.textContent=b;
+  const nb=$("#btnNext");
+  if(k==="review"){nb.textContent=doc.issued?"מסמך חדש":"הפק "+t.name;nb.disabled=false}
+  else{nb.textContent=k==="details"?"לסיכום":"המשך";nb.disabled=!!b}
+  $("#btnBack").style.visibility=step===0||doc.issued?"hidden":"visible";
+  $("#docState").textContent=doc.issued?"הופק · מספר "+doc.no:"טיוטה נשמרת אוטומטית";
+  document.querySelectorAll("[data-tt]").forEach(el=>{el.textContent=money(tt[el.dataset.tt])});
+  const rem=$("#remain");
+  if(rem){const ok=Math.abs(tt.remain)<0.01;rem.className="remain"+(ok?" ok":"");rem.innerHTML=ok?`<span>הסכום מלא</span><span class="num">${money(tt.paid)}</span>`:`<span>${tt.remain>0?"נשאר לשלם":"שולם ביותר"}</span><span class="num">${money(Math.abs(tt.remain))}</span>`}
+  const al=$("#allocBox"); if(al) al.hidden=!needAlloc();
+  save();
+}
+
+function rType(){
+  const list=Object.entries(TYPES).filter(([k,v])=>v.modes.includes(biz.mode));
+  $("#work").innerHTML=`
+  <div><h1 class="h1">מה מפיקים היום?</h1><p class="sub">בוחרים סוג מסמך, לקוח ופריטים. המסמך נבנה מול העיניים, ואפשר לחזור לכל שלב.</p></div>
+  <div class="card">
+    <div class="row"><span class="h2 grow">סוג העסק</span>
+      <div class="seg" role="group" aria-label="סוג העסק">
+        <button data-mode="m" aria-pressed="${biz.mode==="m"}">עוסק מורשה</button>
+        <button data-mode="p" aria-pressed="${biz.mode==="p"}">עוסק פטור</button>
+      </div></div>
+    <p class="hint">${biz.mode==="m"?"מע״מ 18% מחושב אוטומטית בכל מסמך מכירה.":"עוסק פטור לא גובה מע״מ. המסמכים יוצאים בלי שורת מע״מ."}</p>
+  </div>
+  <div class="types" role="list">${list.map(([k,v])=>`
+    <button class="type" role="listitem" data-type="${k}" aria-pressed="${doc.type===k}">
+      <span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg></span>
+      <b>${v.name}</b><span>${v.hint}</span>
+    </button>`).join("")}</div>`;
+}
+
+function custCard(c,sel){
+  const ini=c.name.replace(/[״"׳'\-–]/g,"").trim().slice(0,1);
+  return `<button class="cust" data-cust="${c.id}" aria-pressed="${sel}"><span class="av">${esc(ini)}</span>
+  <span class="ci"><b>${esc(c.name)}</b><span>${c.tax?"ח.פ / ע.מ "+'<span class="mono">'+esc(c.tax)+"</span> · ":""}${esc(c.city||c.addr||"")}</span></span>
+  <span class="tag">${esc(c.last||"")}</span></button>`;
+}
+function rCust(){
+  const q=ui.q.trim();
+  const list=customers.filter(c=>!q||(c.name+c.tax+c.city+c.phone).includes(q));
+  const sel=cust();
+  $("#work").innerHTML=`
+  <div><h1 class="h1">למי המסמך?</h1><p class="sub">חיפוש לפי שם, ח.פ, עיר או טלפון. לקוח חדש נוסף תוך כמה שניות.</p></div>
+  ${sel&&!ui.newCust?`<div class="card"><span class="h2">נבחר</span>${custCard(sel,true)}
+    ${sel.addr||sel.phone?`<div class="hint">${esc(sel.addr||"")}${sel.phone?' · <span class="num">'+esc(sel.phone)+"</span>":""}</div>`:""}</div>`:""}
+  ${ui.newCust?newCustForm():`
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+    <input class="inp" id="custQ" type="search" placeholder="חיפוש לקוח" value="${esc(ui.q)}" autocomplete="off"></div>
+  <div class="clist" id="clist">
+    ${list.map(c=>custCard(c,doc.cust===c.id)).join("")||'<div class="empty">לא נמצא לקוח בשם הזה. אפשר להוסיף אותו עכשיו.</div>'}
+    <button class="cust walkin" data-cust="walkin" aria-pressed="${doc.cust==="walkin"}"><span class="av">?</span><span class="ci"><b>לקוח מזדמן</b><span>בלי פרטים, למכירה מהירה</span></span></button>
+  </div>
+  <button class="btn soft" id="addCust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>לקוח חדש${q?" בשם ״"+esc(q)+"״":""}</button>`}`;
+}
+function newCustForm(){
+  const e=ui.custErr;
+  return `<form class="card" id="custForm" novalidate>
+    <span class="h2">לקוח חדש</span>
+    <div class="field"><label for="nc_name">שם העסק או הלקוח *</label><input class="inp ${e.name?"bad":""}" id="nc_name" value="${esc(ui.q)}" autocomplete="organization"></div>
+    <div class="grid2">
+      <div class="field"><label for="nc_tax">ח.פ / ע.מ / ת.ז</label><input class="inp ${e.tax?"bad":""}" id="nc_tax" inputmode="numeric" maxlength="9" placeholder="9 ספרות"><span class="hint ${e.tax?"bad":""}" id="nc_taxh">${e.tax?"המספר לא תקין. בדקו את הספרות.":"נבדק לפי ספרת הביקורת"}</span></div>
+      <div class="field"><label for="nc_phone">טלפון</label><input class="inp" id="nc_phone" inputmode="tel" autocomplete="tel"></div>
+    </div>
+    <div class="field"><label for="nc_addr">כתובת</label><input class="inp" id="nc_addr" autocomplete="street-address"></div>
+    <div class="row"><button class="btn primary grow" type="submit">שמירה ובחירה</button><button class="btn" type="button" id="cancelCust">ביטול</button></div>
+  </form>`;
+}
+
+function rItems(){
+  const cats=["הכול",...new Set(PRODS.map(p=>p.cat))];
+  $("#work").innerHTML=`
+  <div><h1 class="h1">מה נכנס למסמך?</h1><p class="sub">נגיעה במוצר מוסיפה אותו. אפשר גם לסרוק ברקוד או להקליד מק״ט ולהקיש Enter.${biz.mode==="m"?" המחירים לפני מע״מ.":""}</p></div>
+  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6v12M7 6v12M11 6v12M14 6v12M18 6v12M20 6v12"/></svg>
+    <input class="inp" id="scan" type="search" placeholder="סריקה, מק״ט או שם מוצר" value="${esc(ui.scan)}" autocomplete="off" enterkeyhint="done"></div>
+  <div class="cats" role="group" aria-label="קטגוריות">${cats.map(c=>`<button class="cat" data-cat="${esc(c)}" aria-pressed="${ui.cat===c}">${esc(c)}</button>`).join("")}</div>
+  <div class="prods" id="prods"></div>
+  <div class="card">
+    <div class="row"><span class="h2 grow">בתוך המסמך <small id="lcount"></small></span>
+      <button class="btn sm soft" id="freeLine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>שורה חופשית</button></div>
+    <div class="lines" id="lines"></div>
+  </div>`;
+  rProds(); rLines();
+}
+function rProds(){
+  const q=ui.scan.trim();
+  const list=PRODS.filter(p=>(ui.cat==="הכול"||p.cat===ui.cat)&&(!q||(p.name+p.sku+p.bc).includes(q)));
+  const inCart=sku=>doc.lines.filter(l=>l.sku===sku).reduce((a,l)=>a+(+l.qty||0),0);
+  $("#prods").innerHTML=list.map(p=>{const n=inCart(p.sku);return `<button class="prod ${n?"in":""}" data-add="${p.sku}" aria-label="הוספת ${esc(p.name)}">
+    ${n?`<span class="badge num">${qtyf(n)}</span>`:""}
+    <span class="sku mono">${p.sku}</span><b>${esc(p.name)}</b>
+    <span class="pp"><strong class="num">${money(p.price)}</strong><small>ל${esc(p.unit)}</small></span></button>`}).join("")||'<div class="empty" style="grid-column:1/-1">אין מוצר כזה בקטלוג. הוסיפו אותו כשורה חופשית.</div>';
+}
+function rLines(){
+  $("#lcount").textContent=doc.lines.length?"· "+doc.lines.length+" שורות":"";
+  $("#lines").innerHTML=doc.lines.length?doc.lines.map((l,i)=>`
+   <div class="line" data-i="${i}">
+     <div class="ln"><input data-f="name" value="${esc(l.name)}" aria-label="תיאור" placeholder="תיאור הפריט או השירות"><small>${l.sku?'מק״ט <span class="mono">'+l.sku+"</span> · ":""}${esc(l.unit||"יח׳")}</small></div>
+     <div class="lt num" data-lt="${i}">${money(lineNet(l))}</div>
+     <div class="lc">
+       <div class="stepper"><button data-q="1" aria-label="עוד אחד">+</button><input data-f="qty" inputmode="decimal" value="${l.qty}" aria-label="כמות"><button data-q="-1" aria-label="אחד פחות">−</button></div>
+       <label class="mini">מחיר<input data-f="price" inputmode="decimal" value="${l.price}"></label>
+       <label class="mini">הנחה %<input class="pct" data-f="disc" inputmode="decimal" value="${l.disc||""}" placeholder="0"></label>
+       <button class="x" data-del="${i}" aria-label="הסרת השורה"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg></button>
+     </div>
+   </div>`).join(""):'<div class="empty">עוד אין פריטים. נגעו במוצר למעלה, או הוסיפו שורה חופשית לשירות או לעבודה.</div>';
+}
+function addProduct(p){
+  const ex=doc.lines.find(l=>l.sku===p.sku);
+  if(ex)ex.qty=r2((+ex.qty||0)+1); else doc.lines.push({sku:p.sku,name:p.name,unit:p.unit,qty:1,price:p.price,disc:0});
+  rProds();rLines();refresh();ping("נוסף: "+p.name);
+}
+
+function rDetails(){
+  const t=T(),tt=totals(),c=cust();
+  if(t.pay&&!doc.pays.length&&tt.total>0)doc.pays.push({m:"cash",amount:t.items?tt.total:""});
+  $("#work").innerHTML=`
+  <div><h1 class="h1">${t.pay?"איך שילמו?":"עוד כמה פרטים"}</h1><p class="sub">${t.pay?"אפשר לפצל בין כמה אמצעי תשלום. הסכום מתמלא לבד.":"תאריכים, תנאי תשלום והערה ללקוח. הכול אופציונלי חוץ מהמסומן."}</p></div>
+  <div class="card">
+    <div class="grid2">
+      <div class="field"><label for="d_date">תאריך המסמך</label><input class="inp" type="date" id="d_date" value="${doc.date}"></div>
+      ${t.terms?`<div class="field"><label for="d_terms">תנאי תשלום</label><select class="inp" id="d_terms">${Object.entries(TERMS).map(([k,v])=>`<option value="${k}" ${doc.terms===k?"selected":""}>${v}</option>`).join("")}</select><span class="hint" id="dueH">לתשלום עד ${dfmt(termDate(doc.terms,doc.date))}</span></div>`:""}
+      ${t.valid?`<div class="field"><label for="d_valid">ההצעה בתוקף עד</label><input class="inp" type="date" id="d_valid" value="${doc.valid}"></div>`:""}
+      ${t.supply?`<div class="field"><label for="d_supply">תאריך אספקה</label><input class="inp" type="date" id="d_supply" value="${doc.supply}"></div>`:""}
+      ${t.ref?`<div class="field"><label for="d_ref">מספר החשבונית המקורית *</label><input class="inp" id="d_ref" inputmode="numeric" value="${esc(doc.ref)}"></div>`:""}
+      ${t.items?`<div class="field"><label for="d_disc">הנחה על כל המסמך (%)</label><input class="inp" id="d_disc" inputmode="decimal" value="${doc.disc||""}" placeholder="0"></div>`:""}
+    </div>
+    ${t.prices?`<label class="toggle"><input type="checkbox" id="d_prices" ${doc.showPrices?"checked":""}> <span>להציג מחירים בתעודה</span></label>`:""}
+  </div>
+  ${(doc.type==="tax"||doc.type==="taxrc")&&biz.mode==="m"?`<div class="alloc" id="allocBox" ${needAlloc()?"":"hidden"}>
+     <b>נדרש מספר הקצאה</b>
+     <span class="hint">חשבונית ללקוח עוסק מעל ${NF.format(ALLOC_MIN)} ₪ לפני מע״מ צריכה מספר הקצאה מרשות המסים. בלעדיו הלקוח לא יוכל לקזז את המע״מ.</span>
+     <div class="field"><label for="d_alloc">מספר הקצאה</label><input class="inp" id="d_alloc" inputmode="numeric" value="${esc(doc.alloc)}" placeholder="יתקבל ממערכת חשבוניות ישראל"></div>
+   </div>`:""}
+  ${t.pay?`<div class="card"><span class="h2">תקבולים</span>
+     <div id="pays" style="display:flex;flex-direction:column;gap:10px"></div>
+     <div class="methods">${Object.entries(METHODS).map(([k,v])=>`<button class="btn sm" data-addpay="${k}">+ ${v}</button>`).join("")}</div>
+     ${t.items?`<div class="remain" id="remain"></div>`:""}
+   </div>`:""}
+  <div class="card"><div class="field"><label for="d_notes">הערה ללקוח</label><textarea class="inp" id="d_notes" placeholder="למשל: הסחורה נמסרה למחסן האחורי">${esc(doc.notes)}</textarea></div></div>`;
+  if(t.pay)rPays();
+}
+function rPays(){
+  const t=T();
+  $("#pays").innerHTML=doc.pays.map((p,i)=>`
+   <div class="pay" data-p="${i}">
+     <div class="payhead"><b>${METHODS[p.m]}</b>${doc.pays.length>1||!t.items?`<button class="x" data-delpay="${i}" aria-label="הסרת התשלום"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`:""}</div>
+     <div class="grid2">
+       <div class="field"><label for="pa${i}">סכום</label><input class="inp num" id="pa${i}" data-pf="amount" inputmode="decimal" value="${p.amount}" style="text-align:start"></div>
+       ${p.m==="credit"?`<div class="field"><label for="pb${i}">4 ספרות אחרונות</label><input class="inp" id="pb${i}" data-pf="last4" inputmode="numeric" maxlength="4" value="${esc(p.last4||"")}"></div>
+         <div class="field"><label for="pc${i}">מספר תשלומים</label><select class="inp" id="pc${i}" data-pf="inst">${[1,2,3,4,5,6,10,12].map(n=>`<option ${+p.inst===n?"selected":""}>${n}</option>`).join("")}</select></div>`:""}
+       ${p.m==="cheque"?`<div class="field"><label for="pb${i}">מספר צ׳ק</label><input class="inp" id="pb${i}" data-pf="chq" inputmode="numeric" value="${esc(p.chq||"")}"></div>
+         <div class="field"><label for="pc${i}">בנק / סניף / חשבון</label><input class="inp" id="pc${i}" data-pf="bank" value="${esc(p.bank||"")}" placeholder="12-645-112233"></div>
+         <div class="field"><label for="pd${i}">תאריך פירעון</label><input class="inp" type="date" id="pd${i}" data-pf="due" value="${p.due||doc.date}"></div>`:""}
+       ${p.m==="transfer"||p.m==="app"?`<div class="field"><label for="pb${i}">אסמכתא</label><input class="inp" id="pb${i}" data-pf="refno" value="${esc(p.refno||"")}"></div>`:""}
+     </div>
+     ${t.items?`<button class="btn sm ghost" data-fill="${i}" style="align-self:flex-start">מלא את היתרה</button>`:""}
+   </div>`).join("")||'<div class="empty">בחרו אמצעי תשלום למטה.</div>';
+}
+
+let pad=null;
+function rReview(){
+  const t=T(),tt=totals(),c=cust();
+  const checks=[];
+  checks.push({ok:1,t:`${t.name} ל${c?c.name:"—"}`});
+  if(t.items)checks.push({ok:1,t:`${doc.lines.length} שורות, סה״כ ${money(tt.total)}${vatOn()?" כולל מע״מ "+money(tt.vat):""}`});
+  if(t.pay)checks.push({ok:1,t:`שולם ${money(tt.paid)} ב${doc.pays.map(p=>METHODS[p.m]).join(" + ")}`});
+  if(t.terms)checks.push({ok:1,t:`לתשלום עד ${dfmt(termDate(doc.terms,doc.date))} (${TERMS[doc.terms]})`});
+  if(needAlloc())checks.push({ok:!!doc.alloc.trim(),t:doc.alloc.trim()?"מספר הקצאה "+doc.alloc:"חסר מספר הקצאה. אפשר להפיק, אבל הלקוח לא יוכל לקזז מע״מ."});
+  if(c&&c.id!=="walkin"&&!c.tax&&(doc.type==="tax"||doc.type==="taxrc"))checks.push({ok:0,t:"ללקוח אין ח.פ. לקוח עסקי צריך אותו לקיזוז המע״מ."});
+  const conv=(CONVERT[doc.type]||[]).filter(k=>TYPES[k].modes.includes(biz.mode));
+  $("#work").innerHTML=`
+  <div><h1 class="h1">${doc.issued?t.name+" "+doc.no+" הופקה":"הכול נראה טוב?"}</h1><p class="sub">${doc.issued?"המסמך נעול. אפשר להעתיק סיכום ללקוח או להמשיך ממנו למסמך הבא.":"בודקים מול התצוגה, ומפיקים. אחרי ההפקה המסמך מקבל מספר ונעול לעריכה."}</p></div>
+  <div class="card"><ul class="checks">${checks.map(x=>`<li class="${x.ok?"":"warn"}">${esc(x.t)}</li>`).join("")}</ul></div>
+  ${t.sign?`<div class="card"><div class="row"><span class="h2 grow">חתימת הלקוח <small>${t.supply?"מאשר את ההזמנה":"מאשר קבלת הסחורה"}</small></span>${doc.issued?"":'<button class="btn sm ghost" id="sigClear">ניקוי</button>'}</div>
+    <div class="sigwrap">${doc.issued&&doc.sig?`<img src="${doc.sig}" alt="חתימת הלקוח" style="display:block;width:100%;height:170px;object-fit:contain">`:`<canvas id="sig" aria-label="חתמו כאן באצבע"></canvas><div class="sigline"></div><div class="ph" id="sigph" ${doc.sig?"hidden":""}>חתמו כאן באצבע</div>`}</div></div>`:""}
+  ${doc.issued?`<div class="card"><span class="h2">מה הלאה</span><div class="row">
+     <button class="btn soft grow" id="copySum"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/></svg>העתקת סיכום לוואטסאפ</button>
+     ${conv.map(k=>`<button class="btn grow" data-conv="${k}">המשך ל${TYPES[k].name}</button>`).join("")}
+     <button class="btn grow" id="dup">שכפול ללקוח אחר</button></div></div>`:""}
+  <div class="only-narrow"><div class="dochead"><span>כך המסמך ייראה</span></div><div class="docwrap"><div class="doc" id="docInline"></div></div></div>`;
+  if(t.sign&&!doc.issued)initPad();
+}
+function initPad(){
+  const cv=$("#sig");if(!cv)return;
+  const dpr=Math.max(1,window.devicePixelRatio||1);const rc=cv.getBoundingClientRect();
+  cv.width=rc.width*dpr;cv.height=rc.height*dpr;const g=cv.getContext("2d");g.scale(dpr,dpr);
+  g.lineWidth=2.4;g.lineCap="round";g.lineJoin="round";g.strokeStyle="#16231F";
+  if(doc.sig){const im=new Image();im.onload=()=>g.drawImage(im,0,0,rc.width,rc.height);im.src=doc.sig}
+  let down=false,last=null;
+  const pt=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+  cv.addEventListener("pointerdown",e=>{down=true;last=pt(e);cv.setPointerCapture(e.pointerId);$("#sigph").hidden=true});
+  cv.addEventListener("pointermove",e=>{if(!down)return;const p=pt(e);g.beginPath();g.moveTo(last[0],last[1]);g.lineTo(p[0],p[1]);g.stroke();last=p});
+  const up=()=>{if(!down)return;down=false;doc.sig=cv.toDataURL("image/png");refresh()};
+  cv.addEventListener("pointerup",up);cv.addEventListener("pointercancel",up);
+  pad={clear(){g.clearRect(0,0,cv.width,cv.height);doc.sig="";$("#sigph").hidden=false;refresh()}};
+}
+
+/* ---- the document itself ---- */
+function docHTML(){
+  const t=T(),tt=totals(),c=cust(),showP=!t.prices||doc.showPrices;
+  const no=doc.no?`<span class="no">${doc.no}</span>`:`<span class="draft">טיוטה</span>`;
+  const rows=doc.lines.map((l,i)=>`<tr><td class="i">${i+1}</td><td>${esc(l.name)||'<span class="ph">ללא תיאור</span>'}</td><td class="n">${qtyf(+l.qty||0)} ${esc(l.unit||"")}</td>${showP?`<td class="n">${NF.format(+l.price||0)}</td><td class="n">${+l.disc?l.disc+"%":""}</td><td class="n">${NF.format(lineNet(l))}</td>`:""}</tr>`).join("");
+  const anyDisc=doc.lines.some(l=>+l.disc);
+  const dates=[["תאריך",dfmt(doc.date)]];
+  if(t.terms)dates.push(["לתשלום עד",dfmt(termDate(doc.terms,doc.date))],["תנאים",TERMS[doc.terms]]);
+  if(t.valid)dates.push(["בתוקף עד",dfmt(doc.valid)]);
+  if(t.supply)dates.push(["אספקה",dfmt(doc.supply)]);
+  if(t.ref&&doc.ref)dates.push(["זיכוי לחשבונית",doc.ref]);
+  if(needAlloc()&&doc.alloc)dates.push(["מספר הקצאה",doc.alloc]);
+  return `
+  ${doc.issued?'<div class="stamp">מקור</div>':""}
+  <div class="dh">
+    <div class="biz"><b>${esc(biz.name)}</b><span>${biz.mode==="m"?"עוסק מורשה":"עוסק פטור"} <span class="num">${esc(biz.id)}</span></span><span>${esc(biz.addr)} · <span class="num">${esc(biz.phone)}</span></span></div>
+    <div class="dt"><b>${t.name}</b>${no}</div>
+  </div>
+  <div class="meta">
+    <div class="box"><small>לכבוד</small>${c?`<b>${esc(c.name)}</b>${c.tax?`<div>ח.פ <span class="num">${esc(c.tax)}</span></div>`:""}${c.addr?`<div>${esc(c.addr)}</div>`:""}`:'<span class="ph">טרם נבחר לקוח</span>'}</div>
+    <div class="box kv">${dates.map(([a,b])=>`<span>${a}</span><span class="num" style="text-align:start">${esc(b)}</span>`).join("")}</div>
+  </div>
+  ${t.items?`<table><thead><tr><th>#</th><th>תיאור</th><th class="n">כמות</th>${showP?`<th class="n">מחיר</th><th class="n">${anyDisc?"הנחה":""}</th><th class="n">סה״כ</th>`:""}</tr></thead>
+  <tbody>${rows||`<tr><td colspan="6" class="ph" style="text-align:center;padding:18px">הפריטים יופיעו כאן</td></tr>`}</tbody></table>
+  ${showP?`<div class="tot">
+    ${tt.disc?`<span>סכום ביניים</span><span>${money(tt.sub)}</span><span>הנחה ${doc.disc}%</span><span>−${money(tt.disc)}</span>`:""}
+    ${vatOn()?`<span>סה״כ לפני מע״מ</span><span>${money(tt.net)}</span><span>מע״מ 18%</span><span>${money(tt.vat)}</span>`:""}
+    <span class="grand">${doc.type==="credit"?"סה״כ זיכוי":t.pay||doc.type==="tax"||doc.type==="deal"?"סה״כ לתשלום":"סה״כ"}</span><span class="grand">${money(tt.total)}</span>
+  </div>`:`<div class="sect" style="color:var(--paper-muted)">סה״כ ${qtyf(tt.count)} יחידות</div>`}`:""}
+  ${t.pay?`<div class="sect"><h4>פירוט תקבולים</h4><table><tbody>${doc.pays.map(p=>`<tr><td>${METHODS[p.m]}${p.m==="credit"&&p.last4?` · <span class="num">****${esc(p.last4)}</span>${+p.inst>1?" · "+p.inst+" תשלומים":""}`:""}${p.m==="cheque"&&p.chq?` · צ׳ק <span class="num">${esc(p.chq)}</span> לפירעון ${dfmt(p.due||doc.date)}`:""}${p.refno?` · אסמכתא <span class="num">${esc(p.refno)}</span>`:""}</td><td class="n">${money(+p.amount||0)}</td></tr>`).join("")||'<tr><td class="ph">טרם נרשם תשלום</td><td></td></tr>'}
+    </tbody></table>${!t.items?`<div class="tot"><span class="grand">סה״כ התקבל</span><span class="grand">${money(tt.paid)}</span></div>`:""}</div>`:""}
+  ${doc.notes?`<div class="sect"><h4>הערות</h4><div>${esc(doc.notes).replace(/\n/g,"<br>")}</div></div>`:""}
+  ${t.sign?`<div class="sig"><div>${doc.sig?`<img src="${doc.sig}" alt="">`:""}חתימת הלקוח</div></div>`:""}
+  <div class="foot"><span>מסמך ממוחשב · הופק באמצעות AURA</span><span>${esc(biz.agent)}</span></div>`;
+}
+
+/* ---- actions ---- */
+function ping(s){const el=$("#toast");$("#toastTxt").textContent=s;el.hidden=false;clearTimeout(ping.t);ping.t=setTimeout(()=>el.hidden=true,1600)}
+function sheet(html){$("#sheet").innerHTML=html;$("#scrim").hidden=false;const f=$("#sheet").querySelector("button,input");f&&f.focus()}
+function closeSheet(){$("#scrim").hidden=true}
+function summaryText(){
+  const t=T(),tt=totals(),c=cust();
+  let s=`${t.name} ${doc.no||""} – ${biz.name}\nלכבוד: ${c?c.name:""}\nתאריך: ${dfmt(doc.date)}\n`;
+  if(t.items)s+=doc.lines.map(l=>`• ${l.name} × ${qtyf(+l.qty)} ${l.unit||""}${(!t.prices||doc.showPrices)?" = "+money(lineNet(l)):""}`).join("\n")+"\n";
+  if(vatOn()&&t.items)s+=`מע״מ 18%: ${money(tt.vat)}\n`;
+  s+=`סה״כ: ${money(tt.total)}`;
+  if(t.terms)s+=`\nלתשלום עד ${dfmt(termDate(doc.terms,doc.date))}`;
+  return s+`\nתודה!`;
+}
+function issue(){
+  if(doc.issued){doc=freshDoc(doc.type);step=0;save();render();return}
+  doc.no=series[doc.type]=(series[doc.type]||1)+1;store.set("series",series);
+  doc.issued=true;save();render();
+  const t=T();
+  sheet(`<div class="okmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <div class="big">${t.name} ${doc.no} הופקה</div>
+    <p class="muted" style="margin:0">${esc(cust()?.name||"")} · ${money(totals().total)}. בגרסת ההדגמה המסמך נשמר רק במכשיר הזה ולא נשלח לשום מקום.</p>
+    <div class="row"><button class="btn primary grow" data-close>לצפייה במסמך</button><button class="btn grow" id="newDoc2">מסמך חדש</button></div>`);
+}
+async function copyText(s){try{await navigator.clipboard.writeText(s);ping("הסיכום הועתק. אפשר להדביק בוואטסאפ")}catch(e){sheet(`<span class="h2">העתיקו את הטקסט</span><textarea class="inp" id="cpy" style="min-height:220px">${esc(s)}</textarea><button class="btn primary" data-close>סגירה</button>`);const ta=$("#cpy");ta.focus();ta.select()}}
+function bizSheet(){
+  sheet(`<span class="h2">פרטי העסק שלי</span>
+   <div class="field"><label for="b_name">שם העסק</label><input class="inp" id="b_name" value="${esc(biz.name)}"></div>
+   <div class="grid2"><div class="field"><label for="b_id">ח.פ / ע.מ</label><input class="inp" id="b_id" inputmode="numeric" value="${esc(biz.id)}"></div>
+   <div class="field"><label for="b_phone">טלפון</label><input class="inp" id="b_phone" value="${esc(biz.phone)}"></div></div>
+   <div class="field"><label for="b_addr">כתובת</label><input class="inp" id="b_addr" value="${esc(biz.addr)}"></div>
+   <div class="field"><label for="b_agent">שם המפיק (יופיע בתחתית)</label><input class="inp" id="b_agent" value="${esc(biz.agent)}"></div>
+   <div class="row"><button class="btn primary grow" id="bizSave">שמירה</button><button class="btn" data-close>ביטול</button></div>
+   <button class="btn ghost danger" id="resetAll">איפוס נתוני ההדגמה</button>`);
+}
+function setMode(m){
+  if(biz.mode===m)return;biz.mode=m;store.set("biz",biz);
+  if(!TYPES[doc.type].modes.includes(m))doc.type=m==="p"?"deal":"tax";
+  render();
+}
+
+/* ---- events ---- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  const d=b.dataset;
+  if(d.go!==undefined)return go(+d.go);
+  if(d.mode)return setMode(d.mode);
+  if(d.type){if(doc.issued)doc=freshDoc(d.type);doc.type=d.type;doc.pays=[];save();render();setTimeout(()=>go(1),140);return}
+  if(d.cust){doc.cust=d.cust;const c=cust();if(c&&c.terms)doc.terms=c.terms;ui.q="";save();render();setTimeout(()=>go(2),140);return}
+  if(d.cat){ui.cat=d.cat;document.querySelectorAll(".cat").forEach(x=>x.setAttribute("aria-pressed",x.dataset.cat===ui.cat));rProds();return}
+  if(d.add){const p=PRODS.find(x=>x.sku===d.add);if(p)addProduct(p);return}
+  if(d.q){const i=+b.closest(".line").dataset.i;const l=doc.lines[i];l.qty=Math.max(0,r2((+l.qty||0)+(+d.q)));if(l.qty===0){doc.lines.splice(i,1);ping("השורה הוסרה")}rProds();rLines();refresh();return}
+  if(d.del!==undefined){doc.lines.splice(+d.del,1);rProds();rLines();refresh();return}
+  if(d.addpay){const tt=totals();doc.pays.push({m:d.addpay,amount:T().items?Math.max(0,tt.remain):"",inst:1});rPays();refresh();return}
+  if(d.delpay!==undefined){doc.pays.splice(+d.delpay,1);rPays();refresh();return}
+  if(d.fill!==undefined){const p=doc.pays[+d.fill];p.amount=r2((+p.amount||0)+totals().remain);rPays();refresh();return}
+  if(d.conv){const o=JSON.parse(JSON.stringify(doc)),oTot=totals().total;doc=freshDoc(d.conv);doc.cust=o.cust;doc.terms=o.terms;doc.disc=o.disc;
+    if(TYPES[d.conv].items)doc.lines=o.lines;else doc.pays=[{m:"transfer",amount:oTot,inst:1}];
+    doc.notes=(o.notes?o.notes+"\n":"")+"בהמשך ל"+TYPES[o.type].name+" "+o.no;
+    step=steps().findIndex(x=>x.k==="details");save();render();ping("נפתחה "+TYPES[d.conv].name+" עם אותם פרטים");return}
+  if(d.close!==undefined){closeSheet();return}
+  switch(b.id){
+    case"btnNext":{const s=steps();if(s[step].k==="review")return issue();if(!blocker(s[step].k))go(step+1);return}
+    case"btnBack":return go(step-1);
+    case"addCust":ui.newCust=true;ui.custErr={};rCust();$("#nc_name").focus();return;
+    case"cancelCust":ui.newCust=false;rCust();return;
+    case"freeLine":doc.lines.push({sku:"",name:"",unit:"יח׳",qty:1,price:0,disc:0});rLines();refresh();{const ins=document.querySelectorAll('.line [data-f="name"]');ins[ins.length-1].focus()}return;
+    case"sigClear":pad&&pad.clear();return;
+    case"copySum":return copyText(summaryText());
+    case"dup":{const o=doc;doc=freshDoc(o.type);doc.lines=JSON.parse(JSON.stringify(o.lines));doc.disc=o.disc;step=1;save();render();ping("הפריטים הועתקו. בחרו לקוח");return}
+    case"newDoc2":closeSheet();doc=freshDoc(doc.type);step=0;save();render();return;
+    case"btnBiz":return bizSheet();
+    case"bizSave":biz={...biz,name:$("#b_name").value.trim()||biz.name,id:$("#b_id").value.trim(),phone:$("#b_phone").value.trim(),addr:$("#b_addr").value.trim(),agent:$("#b_agent").value.trim()};store.set("biz",biz);closeSheet();render();ping("פרטי העסק נשמרו");return;
+    case"resetAll":biz={...BIZ0};customers=CUST0.slice();doc=freshDoc();step=0;["biz","customers","draft","step","series"].forEach(k=>store.set(k,null));series={tax:10241,taxrc:5873,receipt:3302,order:880,quote:412,delivery:2210,credit:118,deal:77};closeSheet();render();ping("נתוני ההדגמה אופסו");return;
+  }
+});
+$("#scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#scrim").hidden)closeSheet()});
+
+document.addEventListener("input",e=>{
+  const el=e.target;
+  if(el.id==="custQ"){ui.q=el.value;const q=ui.q.trim();const list=customers.filter(c=>!q||(c.name+c.tax+c.city+c.phone).includes(q));
+    $("#clist").innerHTML=list.map(c=>custCard(c,doc.cust===c.id)).join("")+(list.length?"":'<div class="empty">לא נמצא לקוח בשם הזה. אפשר להוסיף אותו עכשיו.</div>')+`<button class="cust walkin" data-cust="walkin" aria-pressed="${doc.cust==="walkin"}"><span class="av">?</span><span class="ci"><b>לקוח מזדמן</b><span>בלי פרטים, למכירה מהירה</span></span></button>`;
+    $("#addCust").lastChild.textContent="לקוח חדש"+(q?" בשם ״"+q+"״":"");return}
+  if(el.id==="nc_tax"){const v=el.value.replace(/\D/g,"");el.value=v;const h=$("#nc_taxh");if(v.length>=8){const ok=validId(v);el.classList.toggle("bad",!ok);h.classList.toggle("bad",!ok);h.textContent=ok?"✓ מספר תקין":"המספר לא תקין. בדקו את הספרות."}else{el.classList.remove("bad");h.classList.remove("bad");h.textContent="נבדק לפי ספרת הביקורת"}return}
+  if(el.id==="scan"){ui.scan=el.value;rProds();return}
+  if(el.dataset.f){const i=+el.closest(".line").dataset.i,l=doc.lines[i],f=el.dataset.f;l[f]=f==="name"?el.value:el.value.replace(",",".");
+    const lt=document.querySelector(`[data-lt="${i}"]`);if(lt)lt.textContent=money(lineNet(l));if(f==="qty")rProds();refresh();return}
+  if(el.dataset.pf){const p=doc.pays[+el.closest(".pay").dataset.p];p[el.dataset.pf]=el.dataset.pf==="amount"?el.value.replace(",","."):el.value;refresh();return}
+  const map={d_date:"date",d_terms:"terms",d_valid:"valid",d_supply:"supply",d_ref:"ref",d_disc:"disc",d_notes:"notes",d_alloc:"alloc"};
+  if(map[el.id]){doc[map[el.id]]=el.id==="d_disc"?el.value.replace(",","."):el.value;const h=$("#dueH");if(h)h.textContent="לתשלום עד "+dfmt(termDate(doc.terms,doc.date));refresh();return}
+  if(el.id==="d_prices"){doc.showPrices=el.checked;refresh()}
+});
+document.addEventListener("change",e=>{if(e.target.id==="d_prices"){doc.showPrices=e.target.checked;refresh()}if(e.target.id==="d_terms"){doc.terms=e.target.value;refresh()}if(e.target.dataset&&e.target.dataset.pf==="inst"){doc.pays[+e.target.closest(".pay").dataset.p].inst=e.target.value;refresh()}});
+document.addEventListener("keydown",e=>{
+  if(e.target.id==="scan"&&e.key==="Enter"){e.preventDefault();const v=e.target.value.trim();if(!v)return;
+    const p=PRODS.find(x=>x.bc===v||x.sku===v)||(()=>{const m=PRODS.filter(x=>x.name.includes(v));return m.length===1?m[0]:null})();
+    if(p){addProduct(p);ui.scan="";e.target.value="";rProds()}else ping("לא נמצא מוצר: "+v);}
+});
+document.addEventListener("submit",e=>{
+  if(e.target.id!=="custForm")return;e.preventDefault();
+  const name=$("#nc_name").value.trim(),tax=$("#nc_tax").value.trim();
+  ui.custErr={name:!name,tax:tax&&!validId(tax)};
+  if(ui.custErr.name||ui.custErr.tax){const k=ui.custErr.name?"nc_name":"nc_tax";const vals={nc_name:name,nc_tax:tax,nc_phone:$("#nc_phone").value,nc_addr:$("#nc_addr").value};ui.q=name;rCust();Object.entries(vals).forEach(([id,v])=>{$("#"+id).value=v});$("#"+k).focus();return}
+  const c={id:"c"+Date.now(),name,tax,phone:$("#nc_phone").value.trim(),addr:$("#nc_addr").value.trim(),city:$("#nc_addr").value.split(",").pop().trim(),last:"חדש",terms:"eom30"};
+  customers.unshift(c);store.set("customers",customers);doc.cust=c.id;ui.newCust=false;ui.q="";save();ping("הלקוח נשמר");go(2);
+});
+render();
+})();
+</script>
+
+</body></html>
