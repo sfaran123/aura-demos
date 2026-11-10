@@ -8,6 +8,7 @@ import 'checkout/card_sheet.dart';
 import 'links_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 /// Owner side: create and send an open registration link.
 Future<void> showSignupLinkSheet(BuildContext context) {
@@ -42,13 +43,14 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('לינק הרשמה', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+        Text(t('לינק הרשמה'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Text(
-            'הלקוח בוחר מסלול, ממלא פרטים${store.settings.requireHealthDeclaration ? ', חותם על הצהרת בריאות' : ''} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.',
+            t('הלקוח בוחר מסלול, ממלא פרטים{0} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.',
+                [store.settings.requireHealthDeclaration ? t(', חותם על הצהרת בריאות') : '']),
             style: const TextStyle(color: Aura.muted, height: 1.45)),
         const SizedBox(height: 4),
-        Text('מסלולים בלינק: $shown', style: const TextStyle(color: Aura.muted, fontSize: 12.5)),
+        Text(t('מסלולים בלינק: {0}', [shown]), style: const TextStyle(color: Aura.muted, fontSize: 12.5)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -61,10 +63,10 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
             TextButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: 'https://$url'));
-                showDone(context, 'הלינק הועתק');
+                showDone(context, t('הלינק הועתק'));
               },
               icon: const Icon(Icons.copy, size: 18),
-              label: const Text('העתקה'),
+              label: Text(t('העתקה')),
             ),
           ]),
         ),
@@ -72,7 +74,7 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
         TextField(
           key: const Key('linkTo'),
           controller: to,
-          decoration: const InputDecoration(labelText: 'שם או טלפון של הלקוח (לא חובה)'),
+          decoration: InputDecoration(labelText: t('שם או טלפון של הלקוח (לא חובה)')),
         ),
         const SizedBox(height: 12),
         Row(children: [
@@ -82,11 +84,11 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
               onPressed: () {
                 final l = store.sendSignupLink(to.text);
                 Navigator.pop(context);
-                showDone(context, 'הלינק נשלח ל${l.sentTo}');
+                showDone(context, t('הלינק נשלח ל{0}', [l.sentTo]));
                 showLinkLive(context, l);
               },
               icon: const Icon(Icons.send, size: 18),
-              label: const Text('שליחה'),
+              label: Text(t('שליחה')),
             ),
           ),
           const SizedBox(width: 8),
@@ -98,7 +100,7 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
                 openCustomerPreview(context, l);
               },
               icon: const Icon(Icons.visibility_outlined, size: 18),
-              label: const Text('איך הלקוח רואה'),
+              label: Text(t('איך הלקוח רואה')),
             ),
           ),
         ]),
@@ -166,7 +168,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(color: Aura.blueBg, borderRadius: BorderRadius.circular(10)),
       child:
-          const Text('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו', style: TextStyle(color: Aura.blue, fontSize: 12.5)),
+          Text(t('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו'), style: TextStyle(color: Aura.blue, fontSize: 12.5)),
     );
 
     if (step == 3) {
@@ -179,12 +181,12 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
               child: CircleAvatar(
                   radius: 38, backgroundColor: Aura.okBg, child: Icon(Icons.check, size: 38, color: Aura.ok))),
           const SizedBox(height: 14),
-          const Text('המנוי שלך פעיל',
+          Text(t('המנוי שלך פעיל'),
               key: Key('linkDone'),
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text('קבלה וכרטיס מנוי נשלחו ב-${s.receiptChannels.map((c) => c.label).join(' / ')}. בכניסה מציגים את הקוד.',
+          Text(t('קבלה וכרטיס מנוי נשלחו ב-{0}. בכניסה מציגים את הקוד.', [s.receiptChannels.map((c) => c.label).join(' / ')]),
               textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
           const SizedBox(height: 18),
           Container(
@@ -193,7 +195,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             child: Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('${s.businessName} · כרטיס מנוי', style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
+                  Text(t('{0} · כרטיס מנוי', [s.businessName]), style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
                   Text(name.text,
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                   Text(plan!.name, style: const TextStyle(color: Colors.white70)),
@@ -206,7 +208,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
         bottomNavigationBar: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('חזרה לאפליקציית העסק')),
+            child: OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(t('חזרה לאפליקציית העסק'))),
           ),
         ),
       );
@@ -215,12 +217,12 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
     if (step == 0) {
       final plans = store.activePlans.where((p) => p.onlineSignup).toList();
       return FlowScaffold(
-        title: '${s.businessName} · הצטרפות',
+        title: t('{0} · הצטרפות', [s.businessName]),
         step: 0,
         steps: 3,
         children: [
           banner,
-          const Text('בחרו מסלול', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          Text(t('בחרו מסלול'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
           for (final p in plans)
             PlanCard(
               key: Key('linkPlan-${p.id}'),
@@ -244,7 +246,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
           (idn.text.isEmpty || isValidIsraeliId(idn.text));
       final p = plan!;
       return FlowScaffold(
-        title: 'הפרטים שלך',
+        title: t('הפרטים שלך'),
         step: 1,
         steps: 3,
         bottom: FilledButton(
@@ -256,21 +258,21 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
                   setState(() => step = 2);
                 }
               : null,
-          child: const Text('המשך לתשלום'),
+          child: Text(t('המשך לתשלום')),
         ),
         children: [
-          Text('${p.name} · ${money(p.price)}${p.isRecurring ? ' לחודש' : ''}',
+          Text('${p.name} · ${money(p.price)}${p.isRecurring ? t(' לחודש') : ''}',
               style: const TextStyle(color: Aura.muted)),
           TextField(
               key: const Key('lName'),
               controller: name,
-              decoration: const InputDecoration(labelText: 'שם מלא'),
+              decoration: InputDecoration(labelText: t('שם מלא')),
               onChanged: (_) => setState(() {})),
           TextField(
             key: const Key('lPhone'),
             controller: phone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'טלפון נייד', hintText: '05X-XXXXXXX'),
+            decoration: InputDecoration(labelText: t('טלפון נייד'), hintText: '05X-XXXXXXX'),
             onChanged: (_) => setState(() {}),
           ),
           TextField(
@@ -278,9 +280,9 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
             decoration: InputDecoration(
-              labelText: s.requireIdNumber ? 'תעודת זהות' : 'תעודת זהות (לא חובה)',
+              labelText: s.requireIdNumber ? t('תעודת זהות') : t('תעודת זהות (לא חובה)'),
               errorText:
-                  idn.text.isNotEmpty && idn.text.length >= 5 && !isValidIsraeliId(idn.text) ? 'מספר לא תקין' : null,
+                  idn.text.isNotEmpty && idn.text.length >= 5 && !isValidIsraeliId(idn.text) ? t('מספר לא תקין') : null,
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -291,7 +293,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
               controlAffinity: ListTileControlAffinity.leading,
               value: health,
               onChanged: (v) => setState(() => health = v ?? false),
-              title: const Text('אני מצהיר/ה שמצב בריאותי מאפשר פעילות גופנית (הצהרת בריאות)'),
+              title: Text(t('אני מצהיר/ה שמצב בריאותי מאפשר פעילות גופנית (הצהרת בריאות)')),
             ),
           CheckboxListTile(
             key: const Key('lTerms'),
@@ -301,9 +303,9 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             onChanged: (v) => setState(() => terms = v ?? false),
             title: Text(p.isRecurring
                 ? (p.commitMonths > 0
-                    ? 'קראתי ואני מסכים/ה לתקנון ולהתחייבות ל-${p.commitMonths} חודשים'
-                    : 'קראתי ואני מסכים/ה לתקנון ולחיוב חודשי עד ביטול (${p.cancelNoticeDays} יום הודעה מראש)')
-                : 'קראתי ואני מסכים/ה לתקנון'),
+                    ? t('קראתי ואני מסכים/ה לתקנון ולהתחייבות ל-{0} חודשים', [p.commitMonths])
+                    : t('קראתי ואני מסכים/ה לתקנון ולחיוב חודשי עד ביטול ({0} יום הודעה מראש)', [p.cancelNoticeDays]))
+                : t('קראתי ואני מסכים/ה לתקנון')),
           ),
         ],
       );
@@ -314,7 +316,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
     final maxI = p.isRecurring ? 1 : (p.maxInstallments < s.maxInstallments ? p.maxInstallments : s.maxInstallments);
     final needsDetails = name.text.trim().isEmpty || !isValidPhone(phone.text);
     return FlowScaffold(
-      title: 'תשלום',
+      title: t('תשלום'),
       step: 2,
       steps: 3,
       bottom: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -337,22 +339,25 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
                       installments: installments);
                   setState(() => step = 3);
                 },
-          child: Text('תשלום ${money(amountNow)}'),
+          child: Text(t('תשלום {0}', [money(amountNow)])),
         ),
       ]),
       children: [
         if (widget.link.planId != null) banner,
         SummaryBox(
           rows: [
-            (p.name, '${money(p.price)}${p.isRecurring ? ' / חודש' : ''}'),
-            if (p.registrationFee > 0 && widget.link.amount == null) ('דמי רישום (חד-פעמי)', money(p.registrationFee)),
+            (p.name, '${money(p.price)}${p.isRecurring ? t(' / חודש') : ''}'),
+            if (p.registrationFee > 0 && widget.link.amount == null)
+              (t('דמי רישום (חד-פעמי)'), money(p.registrationFee)),
           ],
-          total: ('לתשלום עכשיו', money(amountNow)),
+          total: (t('לתשלום עכשיו'), money(amountNow)),
         ),
         if (p.isRecurring)
           Note(p.commitMonths > 0
-              ? 'מהחודש הבא יחויבו ${money(p.price)} בכל חודש באותו כרטיס, בהתחייבות ל-${p.commitMonths} חודשים.'
-              : 'מהחודש הבא יחויבו ${money(p.price)} בכל חודש באותו כרטיס. אפשר לבטל בהודעה של ${p.cancelNoticeDays} יום.'),
+              ? t('מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס, בהתחייבות ל-{1} חודשים.',
+                  [money(p.price), p.commitMonths])
+              : t('מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס. אפשר לבטל בהודעה של {1} יום.',
+                  [money(p.price), p.cancelNoticeDays])),
         Panel(
           onTap: () async {
             final c = await showNewCardSheet(context);
@@ -362,7 +367,9 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
           child: Row(children: [
             const Icon(Icons.lock_outline),
             const SizedBox(width: 10),
-            Expanded(child: Text(card == null ? 'הזנת כרטיס אשראי' : 'כרטיס •••• $card', key: const Key('linkCard'))),
+            Expanded(
+                child: Text(card == null ? t('הזנת כרטיס אשראי') : t('כרטיס •••• {0}', [card]),
+                    key: const Key('linkCard'))),
             const ForwardChevron(),
           ]),
         ),
@@ -370,7 +377,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
           ChoiceRow<int>(
             values: [1, 2, 3, 6, 10, 12].where((x) => x <= maxI).toList(),
             selected: installments,
-            label: (x) => x == 1 ? 'תשלום אחד' : '$x תשלומים',
+            label: (x) => x == 1 ? t('תשלום אחד') : t('{0} תשלומים', [x]),
             onSelected: (x) => setState(() => installments = x),
           ),
       ],

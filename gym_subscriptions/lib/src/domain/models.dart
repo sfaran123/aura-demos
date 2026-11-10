@@ -1,3 +1,4 @@
+import 'l10n.dart';
 // Domain models for gym subscriptions. Pure Dart: no Flutter imports, so the
 // same classes can move into the existing AURA Flutter app or a backend.
 
@@ -5,15 +6,15 @@ enum PlanKind { recurring, term, punch }
 
 extension PlanKindLabel on PlanKind {
   String get label => switch (this) {
-        PlanKind.recurring => 'מתחדש כל חודש',
-        PlanKind.term => 'לתקופה',
-        PlanKind.punch => 'כרטיסייה',
+        PlanKind.recurring => t('מתחדש כל חודש'),
+        PlanKind.term => t('לתקופה'),
+        PlanKind.punch => t('כרטיסייה'),
       };
 
   String get short => switch (this) {
-        PlanKind.recurring => 'מתחדש',
-        PlanKind.term => 'לתקופה',
-        PlanKind.punch => 'כרטיסייה',
+        PlanKind.recurring => t('מתחדש'),
+        PlanKind.term => t('לתקופה'),
+        PlanKind.punch => t('כרטיסייה'),
       };
 }
 
@@ -114,29 +115,29 @@ class SubscriptionPlan {
     final f = <String>[];
     switch (kind) {
       case PlanKind.recurring:
-        f.add(commitMonths > 0 ? 'התחייבות $commitMonths ח׳' : 'בלי התחייבות');
-        if (prepayLastMonth) f.add('חודש אחרון משולם מראש');
+        f.add(commitMonths > 0 ? t('התחייבות {0} ח׳', [commitMonths]) : t('בלי התחייבות'));
+        if (prepayLastMonth) f.add(t('חודש אחרון משולם מראש'));
       case PlanKind.term:
-        f.add('$months חודשים');
+        f.add(t('{0} חודשים', [months]));
       case PlanKind.punch:
-        f.add('$entries כניסות · תוקף $validMonths ח׳');
+        f.add(t('{0} כניסות · תוקף {1} ח׳', [entries, validMonths]));
     }
-    f.add(weeklyLimit > 0 ? '$weeklyLimit כניסות בשבוע' : 'כניסות ללא הגבלה');
-    if (registrationFee > 0) f.add('דמי רישום ${money(registrationFee)}');
-    if (freezeDaysPerYear > 0) f.add('הקפאה עד $freezeDaysPerYear יום');
-    if (maxInstallments > 1) f.add('עד $maxInstallments תשלומים');
+    f.add(weeklyLimit > 0 ? t('{0} כניסות בשבוע', [weeklyLimit]) : t('כניסות ללא הגבלה'));
+    if (registrationFee > 0) f.add(t('דמי רישום {0}', [money(registrationFee)]));
+    if (freezeDaysPerYear > 0) f.add(t('הקפאה עד {0} יום', [freezeDaysPerYear]));
+    if (maxInstallments > 1) f.add(t('עד {0} תשלומים', [maxInstallments]));
     return f;
   }
 
   /// Checks the definition before saving. Returns a message, or null if valid.
   String? validate() {
-    if (name.trim().isEmpty) return 'צריך שם למסלול';
-    if (price <= 0) return 'צריך מחיר גדול מ-0';
-    if (kind == PlanKind.term && months <= 0) return 'צריך משך בחודשים';
-    if (kind == PlanKind.punch && entries <= 0) return 'צריך מספר כניסות';
-    if (kind == PlanKind.punch && validMonths <= 0) return 'צריך תוקף לכרטיסייה';
-    if (registrationFee < 0) return 'דמי רישום לא יכולים להיות שליליים';
-    if (maxInstallments < 1) return 'מספר תשלומים מינימלי הוא 1';
+    if (name.trim().isEmpty) return t('צריך שם למסלול');
+    if (price <= 0) return t('צריך מחיר גדול מ-0');
+    if (kind == PlanKind.term && months <= 0) return t('צריך משך בחודשים');
+    if (kind == PlanKind.punch && entries <= 0) return t('צריך מספר כניסות');
+    if (kind == PlanKind.punch && validMonths <= 0) return t('צריך תוקף לכרטיסייה');
+    if (registrationFee < 0) return t('דמי רישום לא יכולים להיות שליליים');
+    if (maxInstallments < 1) return t('מספר תשלומים מינימלי הוא 1');
     return null;
   }
 }
@@ -166,11 +167,11 @@ enum PayMethod { card, cash, cheque, bank, link }
 
 extension PayMethodLabel on PayMethod {
   String get label => switch (this) {
-        PayMethod.card => 'אשראי',
-        PayMethod.cash => 'מזומן',
-        PayMethod.cheque => 'שיקים',
-        PayMethod.bank => 'העברה',
-        PayMethod.link => 'לינק ללקוח',
+        PayMethod.card => t('אשראי'),
+        PayMethod.cash => t('מזומן'),
+        PayMethod.cheque => t('שיקים'),
+        PayMethod.bank => t('העברה'),
+        PayMethod.link => t('לינק ללקוח'),
       };
 
   /// Methods whose money is not confirmed at the counter.
@@ -201,10 +202,10 @@ enum RecurringMethod { savedCard, newCard, standingOrder, manual }
 
 extension RecurringMethodLabel on RecurringMethod {
   String get label => switch (this) {
-        RecurringMethod.savedCard => 'כרטיס שמור',
-        RecurringMethod.newCard => 'כרטיס חדש',
-        RecurringMethod.standingOrder => 'הוראת קבע בבנק',
-        RecurringMethod.manual => 'גבייה ידנית כל חודש',
+        RecurringMethod.savedCard => t('כרטיס שמור'),
+        RecurringMethod.newCard => t('כרטיס חדש'),
+        RecurringMethod.standingOrder => t('הוראת קבע בבנק'),
+        RecurringMethod.manual => t('גבייה ידנית כל חודש'),
       };
 
   /// Charged automatically, without staff action.
@@ -258,12 +259,12 @@ enum SubStatus { active, pendingPayment, frozen, paymentFailed, cancelled, expir
 
 extension SubStatusLabel on SubStatus {
   String get label => switch (this) {
-        SubStatus.active => 'פעיל',
-        SubStatus.pendingPayment => 'ממתין לתשלום',
-        SubStatus.frozen => 'מוקפא',
-        SubStatus.paymentFailed => 'חיוב נכשל',
-        SubStatus.cancelled => 'בוטל',
-        SubStatus.expired => 'הסתיים',
+        SubStatus.active => t('פעיל'),
+        SubStatus.pendingPayment => t('ממתין לתשלום'),
+        SubStatus.frozen => t('מוקפא'),
+        SubStatus.paymentFailed => t('חיוב נכשל'),
+        SubStatus.cancelled => t('בוטל'),
+        SubStatus.expired => t('הסתיים'),
       };
 }
 
@@ -327,7 +328,7 @@ class Receipt {
   final ReceiptKind kind;
 
   final int number;
-  final String customerName;
+  String customerName;
   final String description;
   final List<PaymentLine> lines;
   final DateTime date;
@@ -408,11 +409,11 @@ String money(double v) {
 
 extension LinkStageLabel on LinkStage {
   String get label => switch (this) {
-        LinkStage.sent => 'נשלח',
-        LinkStage.opened => 'נפתח',
-        LinkStage.details => 'מילא פרטים',
-        LinkStage.signed => 'חתם',
-        LinkStage.paid => 'שילם',
-        LinkStage.failed => 'התשלום נכשל',
+        LinkStage.sent => t('נשלח'),
+        LinkStage.opened => t('נפתח'),
+        LinkStage.details => t('מילא פרטים'),
+        LinkStage.signed => t('חתם'),
+        LinkStage.paid => t('שילם'),
+        LinkStage.failed => t('התשלום נכשל'),
       };
 }

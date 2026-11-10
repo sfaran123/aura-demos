@@ -5,6 +5,7 @@ import '../domain/models.dart';
 import 'checkout/checkout_screens.dart' show methodIcon;
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 /// Monthly charges that need staff action: manual collections (cash, cheque,
 /// transfer) and automatic card charges that failed.
@@ -18,33 +19,35 @@ class CollectScreen extends StatelessWidget {
     final s = store.settings;
     final overdueSum = store.openDebt;
     return Scaffold(
-      appBar: AppBar(title: const Text('לגבייה')),
+      appBar: AppBar(title: Text(t('לגבייה'))),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Panel(
           color: overdueSum > 0 ? Aura.warnBg : Aura.okBg,
           borderColor: overdueSum > 0 ? Aura.warnBg : Aura.okBg,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(overdueSum > 0 ? 'חוב פתוח עד היום' : 'אין חובות פתוחים',
+            Text(overdueSum > 0 ? t('חוב פתוח עד היום') : t('אין חובות פתוחים'),
                 style: TextStyle(color: overdueSum > 0 ? Aura.warn : Aura.ok, fontSize: 13)),
             Text(money(overdueSum),
                 style:
                     TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: overdueSum > 0 ? Aura.warn : Aura.ok)),
             const SizedBox(height: 4),
             Text(
-              'תזכורת ${s.manualReminderDaysBefore} ימים לפני מועד התשלום · '
-              '${s.blockEntryWhenOverdue ? 'חסימת כניסה אחרי ${s.graceDays} ימי איחור' : 'בלי חסימת כניסה'}',
+              t('תזכורת {0} ימים לפני מועד התשלום · {1}', [
+                s.manualReminderDaysBefore,
+                s.blockEntryWhenOverdue ? t('חסימת כניסה אחרי {0} ימי איחור', [s.graceDays]) : t('בלי חסימת כניסה')
+              ]),
               style: const TextStyle(fontSize: 12, color: Aura.muted, height: 1.4),
             ),
           ]),
         ),
         const SizedBox(height: 12),
         if (list.isEmpty)
-          const Note('כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.',
+          Note(t('כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.'),
               icon: Icons.check_circle_outline),
         for (final c in list) _ChargeCard(charge: c),
         const SizedBox(height: 8),
-        const Note(
-            'מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.'),
+        Note(t(
+            t('מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.'))),
       ]),
     );
   }
@@ -64,12 +67,12 @@ class _ChargeCard extends StatelessWidget {
     final late = c.daysOverdue(store.today);
     final blocked = late > store.settings.graceDays && store.settings.blockEntryWhenOverdue;
     final (tone, status) = c.status == ChargeStatus.failed
-        ? (PillTone.bad, 'חיוב נכשל · ${c.attempts} ניסיונות')
+        ? (PillTone.bad, t('חיוב נכשל · {0} ניסיונות', [c.attempts]))
         : late > 0
-            ? (PillTone.bad, 'באיחור $late ימים')
+            ? (PillTone.bad, t('באיחור {0} ימים', [late]))
             : c.dueDate == store.today
-                ? (PillTone.wait, 'היום')
-                : (PillTone.info, 'ב-${fmtDate(c.dueDate)}');
+                ? (PillTone.wait, t('היום'))
+                : (PillTone.info, t('ב-{0}', [fmtDate(c.dueDate)]));
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Panel(
@@ -80,7 +83,7 @@ class _ChargeCard extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(cust.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text('${plan.name} · ${c.manual ? 'גבייה ידנית' : 'אשראי'} · ${cust.phone}',
+                Text('${plan.name} · ${c.manual ? t('גבייה ידנית') : t('אשראי')} · ${cust.phone}',
                     style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
               ]),
             ),
@@ -89,8 +92,8 @@ class _ChargeCard extends StatelessWidget {
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
             Pill(status, tone: tone),
-            if (c.reminders > 0) Pill('נשלחו ${c.reminders} תזכורות'),
-            if (blocked) const Pill('כניסה חסומה', tone: PillTone.bad),
+            if (c.reminders > 0) Pill(t('נשלחו {0} תזכורות', [c.reminders])),
+            if (blocked) Pill(t('כניסה חסומה'), tone: PillTone.bad),
           ]),
           const SizedBox(height: 10),
           Row(children: [
@@ -101,7 +104,7 @@ class _ChargeCard extends StatelessWidget {
                     minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () => _collect(context),
                 icon: const Icon(Icons.check, size: 18),
-                label: const Text('התקבל'),
+                label: Text(t('התקבל')),
               ),
             ),
             const SizedBox(width: 8),
@@ -111,18 +114,18 @@ class _ChargeCard extends StatelessWidget {
                     minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () {
                   store.sendChargeLink(c);
-                  showDone(context, 'לינק לתשלום ${money(c.amount)} נשלח ל${cust.name}');
+                  showDone(context, t('לינק לתשלום {0} נשלח ל{1}', [money(c.amount), cust.name]));
                 },
                 icon: const Icon(Icons.link, size: 18),
-                label: const Text('לינק'),
+                label: Text(t('לינק')),
               ),
             ),
             const SizedBox(width: 8),
             IconButton.outlined(
-              tooltip: 'תזכורת',
+              tooltip: t('תזכורת'),
               onPressed: () {
                 store.remind(c);
-                showDone(context, 'תזכורת נשלחה ל${cust.name}');
+                showDone(context, t('תזכורת נשלחה ל{0}', [cust.name]));
               },
               icon: const Icon(Icons.notifications_none),
             ),
@@ -141,13 +144,13 @@ class _ChargeCard extends StatelessWidget {
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('איך שולמו ${money(charge.amount)}?', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          Text(t('איך שולמו {0}?', [money(charge.amount)]), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           for (final x in methods)
             ListTile(
               key: Key('collectWith-${x.name}'),
               leading: Icon(methodIcon(x)),
-              title: Text(x == PayMethod.card ? 'אשראי (כרטיס שמור או חדש)' : x.label),
+              title: Text(x == PayMethod.card ? t('אשראי (כרטיס שמור או חדש)') : x.label),
               onTap: () => Navigator.pop(ctx, x),
             ),
           const SizedBox(height: 8),
@@ -156,6 +159,6 @@ class _ChargeCard extends StatelessWidget {
     );
     if (m == null || !context.mounted) return;
     final r = store.collect(charge, m);
-    showDone(context, 'קבלה ${r.number} הופקה · ${money(r.total)} ב${m.label}');
+    showDone(context, t('קבלה {0} הופקה · {1} ב{2}', [r.number, money(r.total), m.label]));
   }
 }

@@ -111,13 +111,13 @@ class _ShellState extends State<_Shell> {
         selectedIndex: tab,
         onDestinationSelected: (i) => setState(() => tab = i),
         destinations: [
-          const NavigationDestination(
-              key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'ראשי'),
-          const NavigationDestination(
+          NavigationDestination(
+              key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: t('ראשי')),
+          NavigationDestination(
               key: Key('navMembers'),
               icon: Icon(Icons.people_outline),
               selectedIcon: Icon(Icons.people),
-              label: 'מנויים'),
+              label: t('מנויים')),
           NavigationDestination(
             key: const Key('navCollect'),
             icon: Badge(
@@ -125,18 +125,18 @@ class _ShellState extends State<_Shell> {
                 label: Text('$toCollect'),
                 child: const Icon(Icons.receipt_long_outlined)),
             selectedIcon: const Icon(Icons.receipt_long),
-            label: 'לגבייה',
+            label: t('לגבייה'),
           ),
-          const NavigationDestination(
+          NavigationDestination(
               key: Key('navReports'),
               icon: Icon(Icons.insert_chart_outlined),
               selectedIcon: Icon(Icons.insert_chart),
-              label: 'דוחות'),
-          const NavigationDestination(
+              label: t('דוחות')),
+          NavigationDestination(
               key: Key('navSettings'),
               icon: Icon(Icons.tune_outlined),
               selectedIcon: Icon(Icons.tune),
-              label: 'הגדרות'),
+              label: t('הגדרות')),
         ],
       ),
     );

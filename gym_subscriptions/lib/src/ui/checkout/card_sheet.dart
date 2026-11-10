@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../../domain/l10n.dart';
 
 /// Placeholder for the card processor's secure input (iframe / SDK).
 /// The app never sees the card number; the processor returns a token and the
@@ -39,21 +40,21 @@ class _CardSheetState extends State<_CardSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('כרטיס חדש', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+        Text(t('כרטיס חדש'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14), border: Border.all(color: Aura.goldLight, width: 1.5)),
           child: Column(children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.lock_outline, size: 16, color: Aura.muted),
               SizedBox(width: 6),
-              Expanded(child: Text('שדה מאובטח של חברת הסליקה', style: TextStyle(fontSize: 12, color: Aura.muted))),
+              Expanded(child: Text(t('שדה מאובטח של חברת הסליקה'), style: TextStyle(fontSize: 12, color: Aura.muted))),
               Text('PCI', style: TextStyle(fontSize: 12, color: Aura.muted)),
             ]),
             const SizedBox(height: 10),
-            _field('מספר כרטיס', '4580 •••• •••• 1111'),
+            _field(t('מספר כרטיס'), '4580 •••• •••• 1111'),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(child: _field('MM/YY', '09/28')),
@@ -64,20 +65,20 @@ class _CardSheetState extends State<_CardSheet> {
             OutlinedButton(
               key: const Key('fillTestCard'),
               onPressed: () => setState(() => filled = true),
-              child: const Text('גרסת בדיקה: מילוי כרטיס בדיקה'),
+              child: Text(t('גרסת בדיקה: מילוי כרטיס בדיקה')),
             ),
           ]),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'בחיבור לחברת הסליקה, ההקלדה נעשית ברכיב המאובטח שלה והמערכת מקבלת רק טוקן וארבע ספרות אחרונות.',
+        Text(
+          t('בחיבור לחברת הסליקה, ההקלדה נעשית ברכיב המאובטח שלה והמערכת מקבלת רק טוקן וארבע ספרות אחרונות.'),
           style: TextStyle(fontSize: 13, color: Aura.muted, height: 1.45),
         ),
         const SizedBox(height: 14),
         FilledButton(
           key: const Key('saveCard'),
           onPressed: filled ? () => Navigator.pop(context, '1111') : null,
-          child: const Text('שמירת הכרטיס'),
+          child: Text(t('שמירת הכרטיס')),
         ),
       ]),
     );

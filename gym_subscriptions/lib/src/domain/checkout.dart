@@ -2,6 +2,7 @@
 
 import 'models.dart';
 import 'settings.dart';
+import 'l10n.dart';
 
 enum CheckoutFlow { subscription, quickPay }
 
@@ -9,9 +10,9 @@ enum StartOption { today, tomorrow, nextMonth }
 
 extension StartOptionLabel on StartOption {
   String get label => switch (this) {
-        StartOption.today => 'היום',
-        StartOption.tomorrow => 'מחר',
-        StartOption.nextMonth => '1 לחודש הבא',
+        StartOption.today => t('היום'),
+        StartOption.tomorrow => t('מחר'),
+        StartOption.nextMonth => t('1 לחודש הבא'),
       };
 }
 
@@ -50,8 +51,9 @@ double planPriceAfterDiscount(SubscriptionPlan p, int discountPct) => round2(p.p
 /// plans) after discount, plus the registration fee unless waived.
 double subscriptionDueNow(SubscriptionPlan p,
         {int discountPct = 0, bool waiveRegistration = false, bool? prepayLastMonth}) =>
-    round2(planPriceAfterDiscount(p, discountPct) * ((prepayLastMonth ?? (p.isRecurring && p.prepayLastMonth)) ? 2 : 1) +
-        (waiveRegistration ? 0 : p.registrationFee));
+    round2(
+        planPriceAfterDiscount(p, discountPct) * ((prepayLastMonth ?? (p.isRecurring && p.prepayLastMonth)) ? 2 : 1) +
+            (waiveRegistration ? 0 : p.registrationFee));
 
 double cartTotal(Map<String, int> cart, List<ShopItem> items, double custom) {
   var t = custom;
@@ -116,21 +118,21 @@ String? paymentProblem({
   SubscriptionPlan? plan,
   RecurringMethod? recurring,
 }) {
-  if (due <= 0) return 'אין סכום לתשלום';
-  if (lines.isEmpty) return 'בחרו אמצעי תשלום';
+  if (due <= 0) return t('אין סכום לתשלום');
+  if (lines.isEmpty) return t('בחרו אמצעי תשלום');
   for (final l in lines) {
-    if (l.amount <= 0) return 'יש אמצעי תשלום בלי סכום';
+    if (l.amount <= 0) return t('יש אמצעי תשלום בלי סכום');
     if (l.method == PayMethod.card && l.cardSource == CardSource.newCard && !newCardReady) {
-      return 'צריך להזין את הכרטיס החדש';
+      return t('צריך להזין את הכרטיס החדש');
     }
   }
   final left = round2(due - linesTotal(lines));
-  if (left > 0) return 'נותרו ${money(left)} לשיוך';
-  if (left < 0) return 'הסכום גבוה ב-${money(-left)} מהנדרש';
+  if (left > 0) return t('נותרו {0} לשיוך', [money(left)]);
+  if (left < 0) return t('הסכום גבוה ב-{0} מהנדרש', [money(-left)]);
   if (plan != null && plan.isRecurring) {
-    if (recurring == null) return 'בחרו איך ייגבה התשלום החודשי';
+    if (recurring == null) return t('בחרו איך ייגבה התשלום החודשי');
     if (recurring == RecurringMethod.newCard && !newCardReady) {
-      return 'צריך להזין את הכרטיס לחיוב החודשי';
+      return t('צריך להזין את הכרטיס לחיוב החודשי');
     }
   }
   return null;

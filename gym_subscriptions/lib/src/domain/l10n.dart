@@ -31,3 +31,13 @@ String t(String he, [List<Object?> args = const []]) {
   }
   return s;
 }
+
+/// Re-translates a whole string that was produced by [t] in any language
+/// (a seeded name, say) into the current language. Unknown text is returned as is.
+String retranslate(String any) {
+  if (strings.containsKey(any)) return t(any);
+  for (final e in strings.entries) {
+    if (e.value.$1 == any || e.value.$2 == any) return t(e.key);
+  }
+  return any;
+}

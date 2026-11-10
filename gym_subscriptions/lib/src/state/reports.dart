@@ -4,15 +4,16 @@
 import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'gym_store.dart';
+import '../domain/l10n.dart';
 
 enum Period { today, week, month, lastMonth }
 
 extension PeriodLabel on Period {
   String get label => switch (this) {
-        Period.today => 'היום',
-        Period.week => '7 ימים',
-        Period.month => 'החודש',
-        Period.lastMonth => 'חודש קודם',
+        Period.today => t('היום'),
+        Period.week => t('7 ימים'),
+        Period.month => t('החודש'),
+        Period.lastMonth => t('חודש קודם'),
       };
 
   /// [from, to) for this period.
@@ -43,7 +44,7 @@ class ReportRow {
 }
 
 class ReportSection {
-  const ReportSection(this.title, this.rows, {this.empty = 'אין נתונים'});
+  ReportSection(this.title, this.rows, {String? empty}) : empty = empty ?? t('אין נתונים');
   final String title;
   final List<ReportRow> rows;
   final String empty;
@@ -77,10 +78,10 @@ enum ReportGroup { money, collection, members, links }
 
 extension ReportGroupLabel on ReportGroup {
   String get label => switch (this) {
-        ReportGroup.money => 'כספים',
-        ReportGroup.collection => 'גבייה וחובות',
-        ReportGroup.members => 'מנויים',
-        ReportGroup.links => 'לינקים',
+        ReportGroup.money => t('כספים'),
+        ReportGroup.collection => t('גבייה וחובות'),
+        ReportGroup.members => t('מנויים'),
+        ReportGroup.links => t('לינקים'),
       };
 }
 
@@ -104,10 +105,10 @@ String _name(GymStore s, String customerId) => s.customer(customerId)?.name ?? '
 String _plan(GymStore s, String planId) => s.plan(planId)?.name ?? '—';
 
 String _receiptKind(ReceiptKind k) => switch (k) {
-      ReceiptKind.subscription => 'מנויים חדשים',
-      ReceiptKind.collection => 'גבייה חודשית',
-      ReceiptKind.quickPay => 'תשלום מהיר',
-      ReceiptKind.link => 'תשלום בלינק',
+      ReceiptKind.subscription => t('מנויים חדשים'),
+      ReceiptKind.collection => t('גבייה חודשית'),
+      ReceiptKind.quickPay => t('תשלום מהיר'),
+      ReceiptKind.link => t('תשלום בלינק'),
     };
 
 // ------------------------------------------------------------------ money
@@ -125,19 +126,19 @@ ReportData revenueReport(GymStore s, Period p) {
     byKind[x.kind] = round2((byKind[x.kind] ?? 0) + x.collectedNow);
   }
   return ReportData(kpis: [
-    Kpi('נגבה', money(total), tone: Tone.ok),
-    Kpi('קבלות', '${list.length}'),
-    Kpi('ממוצע לקבלה', money(list.isEmpty ? 0 : total / list.length)),
+    Kpi(t('נגבה'), money(total), tone: Tone.ok),
+    Kpi(t('קבלות'), '${list.length}'),
+    Kpi(t('ממוצע לקבלה'), money(list.isEmpty ? 0 : total / list.length)),
   ], sections: [
-    ReportSection('לפי אמצעי תשלום', [
+    ReportSection(t('לפי אמצעי תשלום'), [
       for (final e in byMethod.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
         ReportRow(e.key.label, value: money(e.value), tag: total == 0 ? null : '${(e.value / total * 100).round()}%'),
     ]),
-    ReportSection('לפי מקור', [
+    ReportSection(t('לפי מקור'), [
       for (final e in byKind.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
         ReportRow(_receiptKind(e.key), value: money(e.value)),
     ]),
-    ReportSection('קבלות', [
+    ReportSection(t('קבלות'), [
       for (final x in list)
         ReportRow(x.customerName,
             subtitle: '${fmtDate(x.date)} · ${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
@@ -156,22 +157,22 @@ ReportData forecastReport(GymStore s, Period _) {
   final manual = _sum(due.where((c) => c.manual).map((c) => c.amount));
   final chq = _sum(cheques.map((c) => c.$3));
   return ReportData(kpis: [
-    Kpi('צפוי ב-30 יום', money(auto + manual + chq), tone: Tone.info),
-    Kpi('חיוב אוטומטי', money(auto)),
-    Kpi('גבייה ידנית', money(manual), tone: manual > 0 ? Tone.warn : Tone.plain),
-    Kpi('שיקים', money(chq)),
+    Kpi(t('צפוי ב-30 יום'), money(auto + manual + chq), tone: Tone.info),
+    Kpi(t('חיוב אוטומטי'), money(auto)),
+    Kpi(t('גבייה ידנית'), money(manual), tone: manual > 0 ? Tone.warn : Tone.plain),
+    Kpi(t('שיקים'), money(chq)),
   ], sections: [
-    ReportSection('חיובים חודשיים', [
+    ReportSection(t('חיובים חודשיים'), [
       for (final c in due)
         ReportRow(_name(s, c.customerId),
-            subtitle: '${fmtDate(c.dueDate)} · ${c.manual ? 'גבייה ידנית' : 'אשראי / הוראת קבע'}',
+            subtitle: '${fmtDate(c.dueDate)} · ${c.manual ? t('גבייה ידנית') : t('אשראי / הוראת קבע')}',
             value: money(c.amount),
             tone: c.manual ? Tone.warn : Tone.plain),
     ]),
-    ReportSection('שיקים לפירעון', [
+    ReportSection(t('שיקים לפירעון'), [
       for (final c in cheques) ReportRow(c.$2, subtitle: fmtDate(c.$1), value: money(c.$3)),
     ]),
-  ], note: 'לא כולל מנויים חדשים ותשלומים מהירים שעוד לא בוצעו.');
+  ], note: t('לא כולל מנויים חדשים ותשלומים מהירים שעוד לא בוצעו.'));
 }
 
 /// (date, customer, amount) for every post-dated cheque, from receipts.
@@ -194,19 +195,20 @@ ReportData chequesReport(GymStore s, Period _) {
   final future = all.where((c) => !c.$1.isBefore(s.today)).toList();
   final deposited = all.where((c) => c.$1.isBefore(s.today)).toList();
   return ReportData(kpis: [
-    Kpi('שיקים לפירעון', '${future.length}'),
-    Kpi('סכום עתידי', money(_sum(future.map((c) => c.$3))), tone: Tone.info),
-    Kpi('כבר נפרעו', money(_sum(deposited.map((c) => c.$3)))),
+    Kpi(t('שיקים לפירעון'), '${future.length}'),
+    Kpi(t('סכום עתידי'), money(_sum(future.map((c) => c.$3))), tone: Tone.info),
+    Kpi(t('כבר נפרעו'), money(_sum(deposited.map((c) => c.$3)))),
   ], sections: [
-    ReportSection('לפירעון', [
+    ReportSection(t('לפירעון'), [
       for (final c in future)
         ReportRow(c.$2,
             subtitle: fmtDate(c.$1),
             value: money(c.$3),
-            tag: c.$1.difference(s.today).inDays <= 7 ? 'השבוע' : null,
+            tag: c.$1.difference(s.today).inDays <= 7 ? t('השבוע') : null,
             tone: c.$1.difference(s.today).inDays <= 7 ? Tone.warn : Tone.plain),
     ]),
-    ReportSection('נפרעו', [for (final c in deposited) ReportRow(c.$2, subtitle: fmtDate(c.$1), value: money(c.$3))]),
+    ReportSection(
+        t('נפרעו'), [for (final c in deposited) ReportRow(c.$2, subtitle: fmtDate(c.$1), value: money(c.$3))]),
   ]);
 }
 
@@ -214,19 +216,19 @@ ReportData depositsReport(GymStore s, Period _) {
   final subs = s.subscriptions.where((x) => x.prepaidAmount > 0).toList();
   final covered = s.charges.where((c) => c.status == ChargeStatus.covered).toList();
   return ReportData(kpis: [
-    Kpi('חודשים ששולמו מראש', '${subs.length}'),
-    Kpi('סכום מוחזק', money(_sum(subs.map((x) => x.prepaidAmount))), tone: Tone.info),
+    Kpi(t('חודשים ששולמו מראש'), '${subs.length}'),
+    Kpi(t('סכום מוחזק'), money(_sum(subs.map((x) => x.prepaidAmount))), tone: Tone.info),
   ], sections: [
-    ReportSection('מנויים עם חודש אחרון משולם', [
+    ReportSection(t('מנויים עם חודש אחרון משולם'), [
       for (final x in subs)
         ReportRow(_name(s, x.customerId),
-            subtitle: '${_plan(s, x.planId)} · הצטרף ${fmtDate(x.joinedAt)}', value: money(x.prepaidAmount)),
+            subtitle: t('{0} · הצטרף {1}', [_plan(s, x.planId), fmtDate(x.joinedAt)]), value: money(x.prepaidAmount)),
     ]),
-    ReportSection('חודשים אחרונים שכוסו מהתשלום מראש', [
+    ReportSection(t('חודשים אחרונים שכוסו מהתשלום מראש'), [
       for (final c in covered)
-        ReportRow(_name(s, c.customerId), subtitle: fmtDate(c.dueDate), value: money(c.amount), tag: 'לא חויב'),
+        ReportRow(_name(s, c.customerId), subtitle: fmtDate(c.dueDate), value: money(c.amount), tag: t('לא חויב')),
     ]),
-  ], note: 'בביטול מנוי כזה צריך הודעה חודש מראש, והחודש האחרון לא מחויב כי כבר שולם.');
+  ], note: t('בביטול מנוי כזה צריך הודעה חודש מראש, והחודש האחרון לא מחויב כי כבר שולם.'));
 }
 
 // ------------------------------------------------------------------ collection
@@ -243,31 +245,33 @@ ReportData manualMonthlyReport(GymStore s, Period p) {
   }
 
   return ReportData(kpis: [
-    Kpi('לגבות בחודש', money(expected)),
-    Kpi('נגבה', money(_sum(paid.map((c) => c.amount))), tone: Tone.ok),
-    Kpi('נשאר', money(_sum(open.map((c) => c.amount))), tone: open.isEmpty ? Tone.ok : Tone.warn),
-    Kpi('לקוחות', '${list.map((c) => c.customerId).toSet().length}'),
+    Kpi(t('לגבות בחודש'), money(expected)),
+    Kpi(t('נגבה'), money(_sum(paid.map((c) => c.amount))), tone: Tone.ok),
+    Kpi(t('נשאר'), money(_sum(open.map((c) => c.amount))), tone: open.isEmpty ? Tone.ok : Tone.warn),
+    Kpi(t('לקוחות'), '${list.map((c) => c.customerId).toSet().length}'),
   ], sections: [
     ReportSection(
-        'עוד לא שילמו',
+        t('עוד לא שילמו'),
         [
           for (final c in open)
             ReportRow(_name(s, c.customerId),
-                subtitle: '${sub(c)} · מועד ${fmtDate(c.dueDate)}',
+                subtitle: t('{0} · מועד {1}', [sub(c), fmtDate(c.dueDate)]),
                 value: money(c.amount),
-                tag: c.daysOverdue(s.today) > 0 ? 'באיחור ${c.daysOverdue(s.today)} ימים' : 'ב-${fmtDate(c.dueDate)}',
+                tag: c.daysOverdue(s.today) > 0
+                    ? t('באיחור {0} ימים', [c.daysOverdue(s.today)])
+                    : t('ב-{0}', [fmtDate(c.dueDate)]),
                 tone: c.daysOverdue(s.today) > 0 ? Tone.bad : Tone.info),
         ],
-        empty: 'כולם שילמו'),
-    ReportSection('שילמו', [
+        empty: t('כולם שילמו')),
+    ReportSection(t('שילמו'), [
       for (final c in paid)
         ReportRow(_name(s, c.customerId),
-            subtitle: '${sub(c)} · שולם ${c.paidAt == null ? '' : fmtDate(c.paidAt!)}',
+            subtitle: t('{0} · שולם {1}', [sub(c), c.paidAt == null ? '' : fmtDate(c.paidAt!)]),
             value: money(c.amount),
             tag: c.paidWith?.label,
             tone: Tone.ok),
     ]),
-  ], note: 'מנויים חודשיים שמשלמים בעצמם (מזומן, שיק או העברה) ולא בחיוב אוטומטי.');
+  ], note: t('מנויים חודשיים שמשלמים בעצמם (מזומן, שיק או העברה) ולא בחיוב אוטומטי.'));
 }
 
 ReportData debtsReport(GymStore s, Period _) {
@@ -276,23 +280,23 @@ ReportData debtsReport(GymStore s, Period _) {
   double bucket(int from, int to) =>
       _sum(open.where((c) => c.daysOverdue(s.today) >= from && c.daysOverdue(s.today) <= to).map((c) => c.amount));
   return ReportData(kpis: [
-    Kpi('חוב פתוח', money(_sum(open.map((c) => c.amount))), tone: open.isEmpty ? Tone.ok : Tone.bad),
-    Kpi('1–7 ימים', money(bucket(1, 7))),
-    Kpi('8–30 ימים', money(bucket(8, 30)), tone: Tone.warn),
-    Kpi('מעל 30', money(bucket(31, 100000)), tone: Tone.bad),
+    Kpi(t('חוב פתוח'), money(_sum(open.map((c) => c.amount))), tone: open.isEmpty ? Tone.ok : Tone.bad),
+    Kpi(t('1–7 ימים'), money(bucket(1, 7))),
+    Kpi(t('8–30 ימים'), money(bucket(8, 30)), tone: Tone.warn),
+    Kpi(t('מעל 30'), money(bucket(31, 100000)), tone: Tone.bad),
   ], sections: [
     ReportSection(
-        'חייבים',
+        t('חייבים'),
         [
           for (final c in open)
             ReportRow(_name(s, c.customerId),
-                subtitle:
-                    '${c.manual ? 'גבייה ידנית' : 'אשראי נכשל'} · מועד ${fmtDate(c.dueDate)} · ${c.reminders} תזכורות',
+                subtitle: t('{0} · מועד {1} · {2} תזכורות',
+                    [c.manual ? t('גבייה ידנית') : t('אשראי נכשל'), fmtDate(c.dueDate), c.reminders]),
                 value: money(c.amount),
-                tag: s.entryBlocked(c.customerId) ? 'כניסה חסומה' : '${c.daysOverdue(s.today)} ימים',
+                tag: s.entryBlocked(c.customerId) ? t('כניסה חסומה') : t('{0} ימים', [c.daysOverdue(s.today)]),
                 tone: s.entryBlocked(c.customerId) ? Tone.bad : Tone.warn),
         ],
-        empty: 'אין חובות'),
+        empty: t('אין חובות')),
   ]);
 }
 
@@ -300,25 +304,26 @@ ReportData failedReport(GymStore s, Period _) {
   final f = s.charges.where((c) => c.status == ChargeStatus.failed).toList();
   return ReportData(
       kpis: [
-        Kpi('חיובים שנכשלו', '${f.length}', tone: f.isEmpty ? Tone.ok : Tone.bad),
-        Kpi('סכום', money(_sum(f.map((c) => c.amount)))),
+        Kpi(t('חיובים שנכשלו'), '${f.length}', tone: f.isEmpty ? Tone.ok : Tone.bad),
+        Kpi(t('סכום'), money(_sum(f.map((c) => c.amount)))),
       ],
       sections: [
         ReportSection(
-            'לטיפול',
+            t('לטיפול'),
             [
               for (final c in f)
                 ReportRow(_name(s, c.customerId),
-                    subtitle:
-                        '${fmtDate(c.dueDate)} · ${c.attempts} ניסיונות · כרטיס ${s.customer(c.customerId)?.savedCardLast4 ?? '—'}',
+                    subtitle: t('{0} · {1} ניסיונות · כרטיס {2}',
+                        [fmtDate(c.dueDate), c.attempts, s.customer(c.customerId)?.savedCardLast4 ?? '—']),
                     value: money(c.amount),
-                    tag: 'לשלוח לינק לעדכון כרטיס',
+                    tag: t('לשלוח לינק לעדכון כרטיס'),
                     tone: Tone.bad),
             ],
-            empty: 'אין חיובים שנכשלו'),
+            empty: t('אין חיובים שנכשלו')),
       ],
-      note:
-          'ניסיונות חוזרים אוטומטיים לפי ההגדרות: ${s.settings.retryDays.take(s.settings.retryAttempts).map((d) => 'יום $d').join(', ')}.');
+      note: t('ניסיונות חוזרים אוטומטיים לפי ההגדרות: {0}.', [
+        s.settings.retryDays.take(s.settings.retryAttempts).map((d) => t('יום {0}', [d])).join(', ')
+      ]));
 }
 
 // ------------------------------------------------------------------ members
@@ -331,16 +336,17 @@ ReportData activeByPlanReport(GymStore s, Period _) {
     if (subs.isEmpty) continue;
     final monthly = _sum(subs.map((x) => x.monthlyAmount ?? (p.kind == PlanKind.term ? p.price / p.months : 0)));
     mrr += monthly;
-    rows.add(ReportRow(p.name, subtitle: '${p.kind.label} · ${money(monthly)} בחודש', value: '${subs.length}'));
+    rows.add(
+        ReportRow(p.name, subtitle: t('{0} · {1} בחודש', [p.kind.label, money(monthly)]), value: '${subs.length}'));
   }
   rows.sort((a, b) => int.parse(b.value!).compareTo(int.parse(a.value!)));
   return ReportData(kpis: [
-    Kpi('מנויים פעילים', '${live.length}', tone: Tone.ok),
-    Kpi('הכנסה חודשית חוזרת', money(mrr), tone: Tone.info),
-    Kpi('ממוצע למנוי', money(live.isEmpty ? 0 : mrr / live.length)),
+    Kpi(t('מנויים פעילים'), '${live.length}', tone: Tone.ok),
+    Kpi(t('הכנסה חודשית חוזרת'), money(mrr), tone: Tone.info),
+    Kpi(t('ממוצע למנוי'), money(live.isEmpty ? 0 : mrr / live.length)),
   ], sections: [
-    ReportSection('לפי מסלול', rows)
-  ], note: 'במסלולי תקופה ההכנסה מחולקת לפי מספר החודשים.');
+    ReportSection(t('לפי מסלול'), rows)
+  ], note: t('במסלולי תקופה ההכנסה מחולקת לפי מספר החודשים.'));
 }
 
 ReportData expiringReport(GymStore s, Period _) {
@@ -352,18 +358,18 @@ ReportData expiringReport(GymStore s, Period _) {
   final cancelling =
       s.subscriptions.where((x) => x.cancelEffective != null && x.cancelEffective!.isAfter(s.today)).toList();
   return ReportData(kpis: [
-    Kpi('מסתיימים ב-30 יום', '${list.length}', tone: list.isEmpty ? Tone.ok : Tone.warn),
-    Kpi('בתהליך ביטול', '${cancelling.length}'),
+    Kpi(t('מסתיימים ב-30 יום'), '${list.length}', tone: list.isEmpty ? Tone.ok : Tone.warn),
+    Kpi(t('בתהליך ביטול'), '${cancelling.length}'),
   ], sections: [
-    ReportSection('להציע חידוש', [
+    ReportSection(t('להציע חידוש'), [
       for (final x in list)
         ReportRow(_name(s, x.customerId),
             subtitle: '${_plan(s, x.planId)} · ${s.customer(x.customerId)?.phone ?? ''}',
             value: fmtDate(x.end!),
-            tag: '${x.end!.difference(s.today).inDays} ימים',
+            tag: t('{0} ימים', [x.end!.difference(s.today).inDays]),
             tone: x.end!.difference(s.today).inDays <= 7 ? Tone.bad : Tone.warn),
     ]),
-    ReportSection('ביטולים שייכנסו לתוקף', [
+    ReportSection(t('ביטולים שייכנסו לתוקף'), [
       for (final x in cancelling)
         ReportRow(_name(s, x.customerId), subtitle: _plan(s, x.planId), value: fmtDate(x.cancelEffective!)),
     ]),
@@ -377,20 +383,20 @@ ReportData joinsReport(GymStore s, Period p) {
   final active = s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).length;
   final churn = active == 0 ? 0 : (cancels.length / active * 100);
   return ReportData(kpis: [
-    Kpi('הצטרפו', '${joins.length}', tone: Tone.ok),
-    Kpi('ביטלו', '${cancels.length}', tone: cancels.isEmpty ? Tone.plain : Tone.warn),
-    Kpi('נטו', '${joins.length - cancels.length}'),
-    Kpi('נטישה', '${churn.toStringAsFixed(1)}%'),
+    Kpi(t('הצטרפו'), '${joins.length}', tone: Tone.ok),
+    Kpi(t('ביטלו'), '${cancels.length}', tone: cancels.isEmpty ? Tone.plain : Tone.warn),
+    Kpi(t('נטו'), '${joins.length - cancels.length}'),
+    Kpi(t('נטישה'), '${churn.toStringAsFixed(1)}%'),
   ], sections: [
-    ReportSection('הצטרפויות', [
+    ReportSection(t('הצטרפויות'), [
       for (final x in joins)
         ReportRow(_name(s, x.customerId), subtitle: _plan(s, x.planId), value: fmtDate(x.joinedAt)),
     ]),
-    ReportSection('ביטולים', [
+    ReportSection(t('ביטולים'), [
       for (final x in cancels)
         ReportRow(_name(s, x.customerId),
-            subtitle:
-                '${_plan(s, x.planId)} · בתוקף עד ${x.cancelEffective == null ? '—' : fmtDate(x.cancelEffective!)}',
+            subtitle: t('{0} · בתוקף עד {1}',
+                [_plan(s, x.planId), x.cancelEffective == null ? '—' : fmtDate(x.cancelEffective!)]),
             value: fmtDate(x.cancelledAt!)),
     ]),
   ]);
@@ -399,18 +405,18 @@ ReportData joinsReport(GymStore s, Period p) {
 ReportData frozenReport(GymStore s, Period _) {
   final f = s.subscriptions.where((x) => x.status == SubStatus.frozen).toList();
   return ReportData(kpis: [
-    Kpi('מוקפאים', '${f.length}', tone: Tone.info),
-    Kpi('חיוב חודשי מושהה', money(_sum(f.map((x) => x.monthlyAmount ?? 0)))),
+    Kpi(t('מוקפאים'), '${f.length}', tone: Tone.info),
+    Kpi(t('חיוב חודשי מושהה'), money(_sum(f.map((x) => x.monthlyAmount ?? 0)))),
   ], sections: [
     ReportSection(
-        'מוקפאים עכשיו',
+        t('מוקפאים עכשיו'),
         [
           for (final x in f)
             ReportRow(_name(s, x.customerId),
-                subtitle: '${_plan(s, x.planId)} · נוצלו ${x.freezeDaysUsed} ימים',
-                value: x.frozenUntil == null ? '—' : 'עד ${fmtDate(x.frozenUntil!)}'),
+                subtitle: t('{0} · נוצלו {1} ימים', [_plan(s, x.planId), x.freezeDaysUsed]),
+                value: x.frozenUntil == null ? '—' : t('עד {0}', [fmtDate(x.frozenUntil!)])),
         ],
-        empty: 'אין מנויים מוקפאים'),
+        empty: t('אין מנויים מוקפאים')),
   ]);
 }
 
@@ -424,17 +430,17 @@ ReportData linksReport(GymStore s, Period p) {
   final paid = reached(LinkStage.paid);
   final rate = list.isEmpty ? 0 : (paid / list.length * 100).round();
   return ReportData(kpis: [
-    Kpi('נשלחו', '${list.length}'),
-    Kpi('שילמו', '$paid', tone: Tone.ok),
-    Kpi('המרה', '$rate%', tone: Tone.info),
-    Kpi('נכשלו', '${list.where((l) => l.stage == LinkStage.failed).length}', tone: Tone.bad),
+    Kpi(t('נשלחו'), '${list.length}'),
+    Kpi(t('שילמו'), '$paid', tone: Tone.ok),
+    Kpi(t('המרה'), '$rate%', tone: Tone.info),
+    Kpi(t('נכשלו'), '${list.where((l) => l.stage == LinkStage.failed).length}', tone: Tone.bad),
   ], sections: [
-    ReportSection('משפך', [
+    ReportSection(t('משפך'), [
       for (final st in [LinkStage.sent, LinkStage.opened, LinkStage.details, LinkStage.signed, LinkStage.paid])
         ReportRow(st.label,
             value: '${reached(st)}', tag: list.isEmpty ? null : '${(reached(st) / list.length * 100).round()}%'),
     ]),
-    ReportSection('לינקים', [
+    ReportSection(t('לינקים'), [
       for (final l in list)
         ReportRow(l.sentTo,
             subtitle: '${fmtDate(l.createdAt)}${l.amount != null ? ' · ${money(l.amount!)}' : ''}',
@@ -450,29 +456,33 @@ ReportData linksReport(GymStore s, Period p) {
 }
 
 List<ReportDef> get allReports => [
-  ReportDef('revenue', ReportGroup.money, 'הכנסות', 'נגבה לפי תקופה, אמצעי תשלום ומקור', revenueReport,
-      usesPeriod: true, headline: (s) => revenueReport(s, Period.month).kpis.first.value),
-  ReportDef('forecast', ReportGroup.money, 'צפי ל-30 יום', 'חיובים, גבייה ידנית ושיקים שצפויים להיכנס', forecastReport,
-      headline: (s) => forecastReport(s, Period.month).kpis.first.value),
-  ReportDef('cheques', ReportGroup.money, 'שיקים לפירעון', 'שיקים דחויים לפי תאריך', chequesReport,
-      headline: (s) => chequesReport(s, Period.month).kpis[1].value),
-  ReportDef('deposits', ReportGroup.money, 'חודש אחרון ששולם מראש', 'כספים שמוחזקים עד סוף מנוי', depositsReport,
-      headline: (s) => depositsReport(s, Period.month).kpis[1].value),
-  ReportDef('manual', ReportGroup.collection, 'גבייה ידנית חודשית', 'ממי צריך לגבות במזומן / שיק / העברה החודש',
-      manualMonthlyReport,
-      usesPeriod: true, headline: (s) => manualMonthlyReport(s, Period.month).kpis[2].value),
-  ReportDef('debts', ReportGroup.collection, 'חובות ופיגורים', 'מי חייב, כמה ימים ומי חסום', debtsReport,
-      headline: (s) => debtsReport(s, Period.month).kpis.first.value),
-  ReportDef('failed', ReportGroup.collection, 'חיובים שנכשלו', 'כרטיסים שנדחו ומה לעשות', failedReport,
-      headline: (s) => failedReport(s, Period.month).kpis.first.value),
-  ReportDef('active', ReportGroup.members, 'מנויים פעילים', 'כמה בכל מסלול והכנסה חודשית חוזרת', activeByPlanReport,
-      headline: (s) => activeByPlanReport(s, Period.month).kpis.first.value),
-  ReportDef('expiring', ReportGroup.members, 'מסתיימים וחידושים', 'מנויים שנגמרים ב-30 יום וביטולים', expiringReport,
-      headline: (s) => expiringReport(s, Period.month).kpis.first.value),
-  ReportDef('joins', ReportGroup.members, 'הצטרפויות וביטולים', 'גידול, ביטולים ואחוז נטישה', joinsReport,
-      usesPeriod: true, headline: (s) => '+${joinsReport(s, Period.month).kpis.first.value}'),
-  ReportDef('frozen', ReportGroup.members, 'מוקפאים', 'מי מוקפא ועד מתי', frozenReport,
-      headline: (s) => frozenReport(s, Period.month).kpis.first.value),
-  ReportDef('links', ReportGroup.links, 'לינקים והמרה', 'כמה נפתחו, חתמו ושילמו', linksReport,
-      usesPeriod: true, headline: (s) => linksReport(s, Period.month).kpis[2].value),
-];
+      ReportDef('revenue', ReportGroup.money, t('הכנסות'), t('נגבה לפי תקופה, אמצעי תשלום ומקור'), revenueReport,
+          usesPeriod: true, headline: (s) => revenueReport(s, Period.month).kpis.first.value),
+      ReportDef('forecast', ReportGroup.money, t('צפי ל-30 יום'), t('חיובים, גבייה ידנית ושיקים שצפויים להיכנס'),
+          forecastReport,
+          headline: (s) => forecastReport(s, Period.month).kpis.first.value),
+      ReportDef('cheques', ReportGroup.money, t('שיקים לפירעון'), t('שיקים דחויים לפי תאריך'), chequesReport,
+          headline: (s) => chequesReport(s, Period.month).kpis[1].value),
+      ReportDef(
+          'deposits', ReportGroup.money, t('חודש אחרון ששולם מראש'), t('כספים שמוחזקים עד סוף מנוי'), depositsReport,
+          headline: (s) => depositsReport(s, Period.month).kpis[1].value),
+      ReportDef('manual', ReportGroup.collection, t('גבייה ידנית חודשית'),
+          t('ממי צריך לגבות במזומן / שיק / העברה החודש'), manualMonthlyReport,
+          usesPeriod: true, headline: (s) => manualMonthlyReport(s, Period.month).kpis[2].value),
+      ReportDef('debts', ReportGroup.collection, t('חובות ופיגורים'), t('מי חייב, כמה ימים ומי חסום'), debtsReport,
+          headline: (s) => debtsReport(s, Period.month).kpis.first.value),
+      ReportDef('failed', ReportGroup.collection, t('חיובים שנכשלו'), t('כרטיסים שנדחו ומה לעשות'), failedReport,
+          headline: (s) => failedReport(s, Period.month).kpis.first.value),
+      ReportDef(
+          'active', ReportGroup.members, t('מנויים פעילים'), t('כמה בכל מסלול והכנסה חודשית חוזרת'), activeByPlanReport,
+          headline: (s) => activeByPlanReport(s, Period.month).kpis.first.value),
+      ReportDef('expiring', ReportGroup.members, t('מסתיימים וחידושים'), t('מנויים שנגמרים ב-30 יום וביטולים'),
+          expiringReport,
+          headline: (s) => expiringReport(s, Period.month).kpis.first.value),
+      ReportDef('joins', ReportGroup.members, t('הצטרפויות וביטולים'), t('גידול, ביטולים ואחוז נטישה'), joinsReport,
+          usesPeriod: true, headline: (s) => '+${joinsReport(s, Period.month).kpis.first.value}'),
+      ReportDef('frozen', ReportGroup.members, t('מוקפאים'), t('מי מוקפא ועד מתי'), frozenReport,
+          headline: (s) => frozenReport(s, Period.month).kpis.first.value),
+      ReportDef('links', ReportGroup.links, t('לינקים והמרה'), t('כמה נפתחו, חתמו ושילמו'), linksReport,
+          usesPeriod: true, headline: (s) => linksReport(s, Period.month).kpis[2].value),
+    ];

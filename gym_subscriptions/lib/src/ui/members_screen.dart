@@ -5,20 +5,21 @@ import '../domain/models.dart';
 import 'checkout/checkout_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 enum _Filter { all, active, pending, debt, failed, frozen, ending, cancelling, ended }
 
 extension on _Filter {
   String get label => switch (this) {
-        _Filter.all => 'הכל',
-        _Filter.active => 'פעילים',
-        _Filter.pending => 'ממתינים לתשלום',
-        _Filter.debt => 'חוב פתוח',
-        _Filter.failed => 'חיוב נכשל',
-        _Filter.frozen => 'מוקפאים',
-        _Filter.ending => 'מסתיימים',
-        _Filter.cancelling => 'בביטול',
-        _Filter.ended => 'הסתיימו / בוטלו',
+        _Filter.all => t('הכל'),
+        _Filter.active => t('פעילים'),
+        _Filter.pending => t('ממתינים לתשלום'),
+        _Filter.debt => t('חוב פתוח'),
+        _Filter.failed => t('חיוב נכשל'),
+        _Filter.frozen => t('מוקפאים'),
+        _Filter.ending => t('מסתיימים'),
+        _Filter.cancelling => t('בביטול'),
+        _Filter.ended => t('הסתיימו / בוטלו'),
       };
 }
 
@@ -57,18 +58,18 @@ class _MembersScreenState extends State<MembersScreen> {
       ..sort((a, b) => store.customer(a.customerId)!.name.compareTo(store.customer(b.customerId)!.name));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('מנויים')),
+      appBar: AppBar(title: Text(t('מנויים'))),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'newSubFab',
         backgroundColor: Aura.goldLight,
         foregroundColor: Aura.ink,
         onPressed: () => startCheckout(context, CheckoutFlow.subscription),
         icon: const Icon(Icons.add),
-        label: const Text('מנוי חדש'),
+        label: Text(t('מנוי חדש')),
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
         TextField(
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'חיפוש לפי שם או טלפון'),
+          decoration: InputDecoration(prefixIcon: Icon(Icons.search), hintText: t('חיפוש לפי שם או טלפון')),
           onChanged: (v) => setState(() => q = v.trim()),
         ),
         const SizedBox(height: 10),
@@ -88,7 +89,7 @@ class _MembersScreenState extends State<MembersScreen> {
           ]),
         ),
         const SizedBox(height: 10),
-        if (subs.isEmpty) const Note('אין מנויים שמתאימים לסינון.'),
+        if (subs.isEmpty) Note(t('אין מנויים שמתאימים לסינון.')),
         for (final s in subs)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -111,9 +112,9 @@ class _MemberRow extends StatelessWidget {
     final blocked = store.entryBlocked(c.id);
     final owes = store.charges.any((x) => x.subscriptionId == sub.id && x.isOpen() && x.daysOverdue(store.today) > 0);
     final detail = switch (p.kind) {
-      PlanKind.recurring => 'חיוב הבא ${sub.nextCharge == null ? '—' : fmtDate(sub.nextCharge!)}',
-      PlanKind.term => 'עד ${fmtDate(sub.end!)}',
-      PlanKind.punch => 'נשארו ${sub.entriesLeft ?? 0} כניסות',
+      PlanKind.recurring => t('חיוב הבא {0}', [sub.nextCharge == null ? '—' : fmtDate(sub.nextCharge!)]),
+      PlanKind.term => t('עד {0}', [fmtDate(sub.end!)]),
+      PlanKind.punch => t('נשארו {0} כניסות', [sub.entriesLeft ?? 0]),
     };
     return Panel(
       onTap: () => showMemberSheet(context, sub),
@@ -129,10 +130,10 @@ class _MemberRow extends StatelessWidget {
             Wrap(spacing: 6, runSpacing: 4, children: [
               Pill(sub.status.label, tone: toneFor(sub.status)),
               if (blocked)
-                const Pill('כניסה חסומה', tone: PillTone.bad)
+                Pill(t('כניסה חסומה'), tone: PillTone.bad)
               else if (owes)
-                const Pill('חוב פתוח', tone: PillTone.wait),
-              if (sub.cancelEffective != null) Pill('מבוטל מ-${fmtDate(sub.cancelEffective!)}'),
+                Pill(t('חוב פתוח'), tone: PillTone.wait),
+              if (sub.cancelEffective != null) Pill(t('מבוטל מ-{0}', [fmtDate(sub.cancelEffective!)])),
             ]),
           ]),
         ),
@@ -161,20 +162,20 @@ class _MemberSheet extends StatelessWidget {
     final c = store.customer(sub.customerId)!;
     final p = store.plan(sub.planId)!;
     final rows = <(String, String)>[
-      ('טלפון', c.phone),
-      ('מסלול', p.name),
-      ('סטטוס', sub.status.label),
-      ('התחלה', fmtDate(sub.start)),
-      if (sub.end != null) ('סיום', fmtDate(sub.end!)),
+      (t('טלפון'), c.phone),
+      (t('מסלול'), p.name),
+      (t('סטטוס'), sub.status.label),
+      (t('התחלה'), fmtDate(sub.start)),
+      if (sub.end != null) (t('סיום'), fmtDate(sub.end!)),
       if (p.isRecurring)
-        ('חיוב חודשי', '${money(sub.monthlyAmount ?? p.price)} · ${sub.recurringMethod?.label ?? '—'}'),
-      if (sub.nextCharge != null && p.isRecurring) ('חיוב הבא', fmtDate(sub.nextCharge!)),
-      if (sub.entriesLeft != null) ('כניסות שנותרו', '${sub.entriesLeft}'),
-      if (p.commitMonths > 0) ('התחייבות עד', fmtDate(addMonths(sub.start, p.commitMonths))),
-      if (sub.frozenUntil != null) ('מוקפא עד', fmtDate(sub.frozenUntil!)),
-      ('ימי הקפאה שנותרו', '${freezeDaysLeft(p, sub)} מתוך ${p.freezeDaysPerYear}'),
-      if (sub.cancelEffective != null) ('ביטול נכנס לתוקף', fmtDate(sub.cancelEffective!)),
-      ('הצהרת בריאות', c.healthDeclared ? 'נחתמה' : 'חסרה'),
+        (t('חיוב חודשי'), '${money(sub.monthlyAmount ?? p.price)} · ${sub.recurringMethod?.label ?? '—'}'),
+      if (sub.nextCharge != null && p.isRecurring) (t('חיוב הבא'), fmtDate(sub.nextCharge!)),
+      if (sub.entriesLeft != null) (t('כניסות שנותרו'), '${sub.entriesLeft}'),
+      if (p.commitMonths > 0) (t('התחייבות עד'), fmtDate(addMonths(sub.start, p.commitMonths))),
+      if (sub.frozenUntil != null) (t('מוקפא עד'), fmtDate(sub.frozenUntil!)),
+      (t('ימי הקפאה שנותרו'), t('{0} מתוך {1}', [freezeDaysLeft(p, sub), p.freezeDaysPerYear])),
+      if (sub.cancelEffective != null) (t('ביטול נכנס לתוקף'), fmtDate(sub.cancelEffective!)),
+      (t('הצהרת בריאות'), c.healthDeclared ? t('נחתמה') : t('חסרה')),
     ];
     final canFreeze = sub.status == SubStatus.active && freezeDaysLeft(p, sub) >= store.settings.freezeMinDays;
     return Padding(
@@ -189,9 +190,9 @@ class _MemberSheet extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           if (store.entryBlocked(c.id))
-            const Padding(
+            Padding(
                 padding: EdgeInsets.only(bottom: 12),
-                child: Note('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.', warn: true)),
+                child: Note(t('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.'), warn: true)),
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -200,17 +201,17 @@ class _MemberSheet extends StatelessWidget {
                 key: const Key('freeze'),
                 onPressed: () => _freeze(context),
                 icon: const Icon(Icons.ac_unit, size: 18),
-                label: const Text('הקפאה'),
+                label: Text(t('הקפאה')),
               ),
             if (sub.status == SubStatus.frozen)
               OutlinedButton.icon(
                 onPressed: () {
                   store.unfreeze(sub);
                   Navigator.pop(context);
-                  showDone(context, 'ההקפאה הסתיימה, המנוי פעיל');
+                  showDone(context, t('ההקפאה הסתיימה, המנוי פעיל'));
                 },
                 icon: const Icon(Icons.play_arrow, size: 18),
-                label: const Text('סיום הקפאה'),
+                label: Text(t('סיום הקפאה')),
               ),
             OutlinedButton.icon(
               onPressed: () {
@@ -218,7 +219,7 @@ class _MemberSheet extends StatelessWidget {
                 startCheckout(context, CheckoutFlow.subscription, customer: c);
               },
               icon: const Icon(Icons.autorenew, size: 18),
-              label: const Text('חידוש / החלפת מסלול'),
+              label: Text(t('חידוש / החלפת מסלול')),
             ),
             OutlinedButton.icon(
               onPressed: () {
@@ -226,7 +227,7 @@ class _MemberSheet extends StatelessWidget {
                 startCheckout(context, CheckoutFlow.quickPay, customer: c);
               },
               icon: const Icon(Icons.point_of_sale, size: 18),
-              label: const Text('תשלום'),
+              label: Text(t('תשלום')),
             ),
             if (sub.cancelEffective == null && sub.status != SubStatus.cancelled)
               OutlinedButton.icon(
@@ -234,7 +235,7 @@ class _MemberSheet extends StatelessWidget {
                 style: OutlinedButton.styleFrom(foregroundColor: Aura.warn),
                 onPressed: () => _cancel(context),
                 icon: const Icon(Icons.cancel_outlined, size: 18),
-                label: const Text('ביטול מנוי'),
+                label: Text(t('ביטול מנוי')),
               ),
           ]),
         ]),
@@ -254,17 +255,17 @@ class _MemberSheet extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('כמה ימים להקפיא?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            Text(t('כמה ימים להקפיא?'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text('נשארו $max ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.',
+            Text(t('נשארו {0} ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.', [max]),
                 style: const TextStyle(color: Aura.muted, fontSize: 13)),
             if (store.settings.freezeFeePerMonth > 0)
-              Text('דמי הקפאה: ${money(store.settings.freezeFeePerMonth)} לחודש',
+              Text(t('דמי הקפאה: {0} לחודש', [money(store.settings.freezeFeePerMonth)]),
                   style: const TextStyle(color: Aura.muted, fontSize: 13)),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final d in opts)
-                ActionChip(key: Key('freeze-$d'), label: Text('$d ימים'), onPressed: () => Navigator.pop(ctx, d)),
+                ActionChip(key: Key('freeze-$d'), label: Text(t('{0} ימים', [d])), onPressed: () => Navigator.pop(ctx, d)),
             ]),
           ]),
         ),
@@ -273,7 +274,7 @@ class _MemberSheet extends StatelessWidget {
     if (days == null || !context.mounted) return;
     final err = store.freeze(sub, days);
     Navigator.pop(context);
-    showDone(context, err ?? 'המנוי הוקפא ל-$days ימים');
+    showDone(context, err ?? t('המנוי הוקפא ל-{0} ימים', [days]));
   }
 
   Future<void> _cancel(BuildContext context) async {
@@ -283,20 +284,21 @@ class _MemberSheet extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('ביטול מנוי'),
+        title: Text(t('ביטול מנוי')),
         content: Text([
-          'הביטול ייכנס לתוקף ב-${fmtDate(when)}.',
-          if (p.commitMonths > 0) 'המסלול בהתחייבות ל-${p.commitMonths} חודשים, ולכן החיובים ממשיכים עד סוף ההתחייבות.',
-          if (p.isRecurring) 'הודעה מראש: ${p.cancelNoticeDays} יום.',
-          'אחרי התאריך הזה לא יהיו חיובים נוספים.',
+          t('הביטול ייכנס לתוקף ב-{0}.', [fmtDate(when)]),
+          if (p.commitMonths > 0)
+            t('המסלול בהתחייבות ל-{0} חודשים, ולכן החיובים ממשיכים עד סוף ההתחייבות.', [p.commitMonths]),
+          if (p.isRecurring) t('הודעה מראש: {0} יום.', [p.cancelNoticeDays]),
+          t('אחרי התאריך הזה לא יהיו חיובים נוספים.'),
         ].join('\n')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('חזרה')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('חזרה'))),
           TextButton(
             key: const Key('confirmCancel'),
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Aura.warn),
-            child: const Text('ביטול המנוי'),
+            child: Text(t('ביטול המנוי')),
           ),
         ],
       ),
@@ -304,6 +306,6 @@ class _MemberSheet extends StatelessWidget {
     if (ok != true || !context.mounted) return;
     store.cancel(sub);
     Navigator.pop(context);
-    showDone(context, 'המנוי יבוטל ב-${fmtDate(when)}');
+    showDone(context, t('המנוי יבוטל ב-{0}', [fmtDate(when)]));
   }
 }

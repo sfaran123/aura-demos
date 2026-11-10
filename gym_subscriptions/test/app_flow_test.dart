@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:aura_gym/src/app.dart';
+import 'package:aura_gym/src/domain/l10n.dart';
 import 'package:aura_gym/src/domain/models.dart';
+import 'package:aura_gym/src/state/reports.dart';
 import 'package:aura_gym/src/state/gym_store.dart';
 
 void main() {
@@ -113,7 +115,8 @@ void main() {
 
   testWidgets('owner creates a new plan', (t) async {
     await boot(t);
-    await tapKey(t, 'navPlans');
+    await tapKey(t, 'navSettings');
+    await tapKey(t, 'openPlans');
     await tapKey(t, 'newPlan');
     await t.enterText(find.byKey(const Key('pe-name')), 'חודשי סטודנטים');
     await t.enterText(find.byKey(const Key('pe-price')), '129');
@@ -170,7 +173,7 @@ void main() {
     t.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
     await boot(t);
-    for (final tab in ['navMembers', 'navCollect', 'navPlans', 'navSettings', 'navHome']) {
+    for (final tab in ['navMembers', 'navCollect', 'navReports', 'navSettings', 'navHome']) {
       await tapKey(t, tab);
       expect(t.takeException(), isNull, reason: tab);
     }
@@ -183,4 +186,74 @@ void main() {
     await tapKey(t, 'toSummary');
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('every report opens from the reports hub in two taps', (t) async {
+    await boot(t);
+    for (final r in allReports) {
+      await tapKey(t, 'navReports');
+      await tapKey(t, 'report-${r.id}');
+      expect(t.takeException(), isNull, reason: r.id);
+      expect(find.text(r.title), findsWidgets, reason: r.id);
+      await t.tap(find.byType(BackButton).last);
+      await t.pumpAndSettle();
+    }
+  });
+
+  testWidgets('member filters cover every status', (t) async {
+    await boot(t);
+    await tapKey(t, 'navMembers');
+    for (final f in ['active', 'pending', 'debt', 'failed', 'frozen', 'ending', 'cancelling', 'ended', 'all']) {
+      await tapKey(t, 'memberFilter-$f');
+      expect(t.takeException(), isNull, reason: f);
+    }
+    await tapKey(t, 'memberFilter-frozen');
+    expect(find.text('מאיה גולן'), findsOneWidget);
+    expect(find.text('נועה לוי'), findsNothing);
+  });
+
+  testWidgets('a sent link updates live until paid', (t) async {
+    await boot(t);
+    await tapKey(t, 'allLinks');
+    for (final f in ['waiting', 'opened', 'signed', 'paid', 'failed', 'all']) {
+      await tapKey(t, 'linkFilter-$f');
+      expect(t.takeException(), isNull, reason: f);
+    }
+    final l = store.links.firstWhere((l) => l.stage == LinkStage.sent);
+    await tapKey(t, 'link-${l.id}');
+    await tapKey(t, 'simulateLink');
+    for (var i = 0; i < 6; i++) {
+      await t.pump(const Duration(seconds: 2));
+    }
+    await t.pumpAndSettle();
+    expect(l.stage, LinkStage.paid);
+    store.stopSimulations();
+  });
+
+  for (final lang in [AppLang.ar, AppLang.en]) {
+    testWidgets('the app works in ${lang.name}', (t) async {
+      addTearDown(() => L10n.lang = AppLang.he);
+      await boot(t);
+      await tapKey(t, 'navSettings');
+      await tapKey(t, 'lang-${lang.code}');
+      expect(L10n.lang, lang);
+      for (final tab in ['navHome', 'navMembers', 'navCollect', 'navReports', 'navSettings']) {
+        await tapKey(t, tab);
+        expect(t.takeException(), isNull, reason: '${lang.name} $tab');
+      }
+      await tapKey(t, 'navReports');
+      await tapKey(t, 'report-manual');
+      expect(t.takeException(), isNull);
+      await t.tap(find.byType(BackButton).last);
+      await t.pumpAndSettle();
+      await tapKey(t, 'navHome');
+      expect(find.text(lang == AppLang.en ? 'New membership' : 'اشتراك جديد'), findsWidgets);
+      await tapKey(t, 'tileNewSub');
+      await tap(t, find.text(lang == AppLang.en ? 'Noa Levi' : 'نوعا ليفي'));
+      await tapKey(t, 'plan-p4');
+      await tapKey(t, 'toPayment');
+      await tapKey(t, 'add-cheque');
+      await tapKey(t, 'toSummary');
+      expect(t.takeException(), isNull);
+    });
+  }
 }

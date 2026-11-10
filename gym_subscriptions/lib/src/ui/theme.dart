@@ -31,7 +31,9 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
     error: Aura.warn,
     outlineVariant: Aura.line,
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: font);
+  // Cairo has no Hebrew letters or ₪ sign, so names and amounts fall back to Rubik.
+  final fb = font == 'Rubik' ? null : const ['Rubik'];
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: font, fontFamilyFallback: fb);
   return base.copyWith(
     splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: Aura.paper,
@@ -41,15 +43,15 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(fontFamily: font, fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
+      titleTextStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
     ),
-    textTheme: base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: font),
+    textTheme: base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: font, fontFamilyFallback: fb),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: Aura.ink,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(54),
-        textStyle: TextStyle(fontFamily: font, fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 16, fontWeight: FontWeight.w600),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
@@ -58,15 +60,15 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
         foregroundColor: Aura.ink,
         minimumSize: const Size.fromHeight(48),
         side: const BorderSide(color: Aura.line),
-        textStyle: TextStyle(fontFamily: font, fontSize: 15, fontWeight: FontWeight.w500),
+        textStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 15, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Colors.white,
       selectedColor: Aura.ink,
-      labelStyle: TextStyle(fontFamily: font, fontSize: 13.5, color: Aura.ink),
-      secondaryLabelStyle: TextStyle(fontFamily: font, fontSize: 13.5, color: Colors.white),
+      labelStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 13.5, color: Aura.ink),
+      secondaryLabelStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 13.5, color: Colors.white),
       side: const BorderSide(color: Aura.line),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       showCheckmark: false,
@@ -85,8 +87,7 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       indicatorColor: Aura.goldBg,
-      labelTextStyle:
-          WidgetStateProperty.all(TextStyle(fontFamily: font, fontSize: 12, fontWeight: FontWeight.w500)),
+      labelTextStyle: WidgetStateProperty.all(TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 12, fontWeight: FontWeight.w500)),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.all(Colors.white),

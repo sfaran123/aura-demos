@@ -83,7 +83,7 @@ class SettingsScreen extends StatelessWidget {
         );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('הגדרות העסק')),
+      appBar: AppBar(title: Text(t('הגדרות העסק'))),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Panel(
           key: const Key('openPlans'),
@@ -98,8 +98,9 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('מסלולי מנוי', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
-                Text('${store.plans.length} מסלולים · עריכה והוספה', style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                Text(t('מסלולי מנוי'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+                Text(t('{0} מסלולים · עריכה והוספה', [store.plans.length]),
+                    style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
               ]),
             ),
             const ForwardChevron(),
@@ -108,10 +109,10 @@ class SettingsScreen extends StatelessWidget {
         const SizedBox(height: 10),
         Panel(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.translate, color: Aura.muted),
               SizedBox(width: 12),
-              Text('שפה · Language · اللغة', style: TextStyle(fontSize: 15)),
+              Expanded(child: Text(t('שפה · Language · اللغة'), style: TextStyle(fontSize: 15))),
             ]),
             const SizedBox(height: 8),
             Wrap(spacing: 6, runSpacing: 6, children: [
@@ -127,94 +128,97 @@ class SettingsScreen extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 4),
-        group('העסק', '', [
+        group(t('העסק'), '', [
           ListTile(
-            title: const Text('שם העסק'),
+            title: Text(t('שם העסק')),
             subtitle: Text(s.businessName),
             trailing: const Icon(Icons.edit_outlined),
             onTap: () async {
-              final v = await _askText(context, 'שם העסק', s.businessName);
+              final v = await _askText(context, t('שם העסק'), s.businessName);
               if (v != null && v.trim().isNotEmpty) set(() => s.businessName = v.trim());
             },
           ),
-          const ListTile(
-              title: Text('סוג עסק'), subtitle: Text('חדר כושר / סטודיו'), trailing: Pill('Gym', tone: PillTone.info)),
+          ListTile(
+              title: Text(t('סוג עסק')), subtitle: Text(t('חדר כושר / סטודיו')), trailing: Pill('Gym', tone: PillTone.info)),
           chips<DocType>(
-              'מסמך שמופק בכל תשלום', DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
-          stepper('מע״מ', s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),
+              t('מסמך שמופק בכל תשלום'), DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
+          stepper(t('מע״מ'), s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),
         ]),
-        group('אמצעי תשלום', 'מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.', [
+        group(t('אמצעי תשלום'), t('מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.'), [
           chips<PayMethod>(
-              'אמצעים פעילים',
+              t('אמצעים פעילים'),
               PayMethod.values,
               (m) => s.enabledMethods.contains(m),
               (m) => s.enabledMethods.contains(m) ? s.enabledMethods.remove(m) : s.enabledMethods.add(m),
               (m) => m.label),
-          stepper('מקסימום תשלומים באשראי', s.maxInstallments, (v) => s.maxInstallments = v, min: 1, max: 36),
-          stepper('מקסימום שיקים', s.maxCheques, (v) => s.maxCheques = v, min: 1, max: 24),
+          stepper(t('מקסימום תשלומים באשראי'), s.maxInstallments, (v) => s.maxInstallments = v, min: 1, max: 36),
+          stepper(t('מקסימום שיקים'), s.maxCheques, (v) => s.maxCheques = v, min: 1, max: 24),
         ]),
-        group('מנוי חודשי מתחדש', 'איך גובים את החודשים שאחרי התשלום הראשון.', [
-          sw('הוראת קבע בבנק', s.allowStandingOrder, (v) => s.allowStandingOrder = v,
-              sub: 'חיוב חשבון בנק עם טופס הרשאה'),
-          sw('גבייה ידנית כל חודש', s.allowManualMonthly, (v) => s.allowManualMonthly = v,
+        group(t('מנוי חודשי מתחדש'), t('איך גובים את החודשים שאחרי התשלום הראשון.'), [
+          sw(t('הוראת קבע בבנק'), s.allowStandingOrder, (v) => s.allowStandingOrder = v,
+              sub: t('חיוב חשבון בנק עם טופס הרשאה')),
+          sw(t('גבייה ידנית כל חודש'), s.allowManualMonthly, (v) => s.allowManualMonthly = v,
               key: const Key('allowManual'),
-              sub: 'ללקוחות שמשלמים במזומן, בשיק או בהעברה. התשלום מופיע ב"לגבייה" כל חודש, עם תזכורות ומעקב חוב.'),
+              sub: t('ללקוחות שמשלמים במזומן, בשיק או בהעברה. התשלום מופיע ב"לגבייה" כל חודש, עם תזכורות ומעקב חוב.')),
           chips<ChargeDay>(
-              'יום החיוב החודשי', ChargeDay.values, (d) => s.chargeDay == d, (d) => s.chargeDay = d, (d) => d.label),
-          stepper('תזכורת לפני גבייה ידנית', s.manualReminderDaysBefore, (v) => s.manualReminderDaysBefore = v,
-              max: 14, unit: ' ימים'),
+              t('יום החיוב החודשי'), ChargeDay.values, (d) => s.chargeDay == d, (d) => s.chargeDay = d, (d) => d.label),
+          stepper(t('תזכורת לפני גבייה ידנית'), s.manualReminderDaysBefore, (v) => s.manualReminderDaysBefore = v,
+              max: 14, unit: t(' ימים')),
         ]),
-        group('חיוב שנכשל וחובות', 'מה קורה כשכרטיס נדחה או שתשלום ידני לא הגיע.', [
-          stepper('ניסיונות חיוב חוזרים', s.retryAttempts, (v) => s.retryAttempts = v,
-              max: 8, sub: 'מרווחים: ${s.retryDays.take(s.retryAttempts).map((d) => 'יום $d').join(', ')}'),
-          stepper('ימי חסד לפני חסימה', s.graceDays, (v) => s.graceDays = v, max: 30, unit: ' ימים'),
-          sw('חסימת כניסה כשיש חוב', s.blockEntryWhenOverdue, (v) => s.blockEntryWhenOverdue = v,
-              sub: 'אחרי ימי החסד, עד שהחוב משולם'),
-          sw('תזכורת על כרטיס שעומד לפוג', s.expiringCardReminder, (v) => s.expiringCardReminder = v),
+        group(t('חיוב שנכשל וחובות'), t('מה קורה כשכרטיס נדחה או שתשלום ידני לא הגיע.'), [
+          stepper(t('ניסיונות חיוב חוזרים'), s.retryAttempts, (v) => s.retryAttempts = v,
+              max: 8,
+              sub: t('מרווחים: {0}', [
+                s.retryDays.take(s.retryAttempts).map((d) => t('יום {0}', [d])).join(', ')
+              ])),
+          stepper(t('ימי חסד לפני חסימה'), s.graceDays, (v) => s.graceDays = v, max: 30, unit: t(' ימים')),
+          sw(t('חסימת כניסה כשיש חוב'), s.blockEntryWhenOverdue, (v) => s.blockEntryWhenOverdue = v,
+              sub: t('אחרי ימי החסד, עד שהחוב משולם')),
+          sw(t('תזכורת על כרטיס שעומד לפוג'), s.expiringCardReminder, (v) => s.expiringCardReminder = v),
           chips<Channel>(
-              'ערוצי תזכורת',
+              t('ערוצי תזכורת'),
               Channel.values,
               (c) => s.reminderChannels.contains(c),
               (c) => s.reminderChannels.contains(c) ? s.reminderChannels.remove(c) : s.reminderChannels.add(c),
               (c) => c.label),
         ]),
-        group('מדיניות מנויים', '', [
-          stepper('הקפאה מינימלית', s.freezeMinDays, (v) => s.freezeMinDays = v, min: 1, max: 30, unit: ' ימים'),
-          stepper('דמי הקפאה לחודש', s.freezeFeePerMonth.round(), (v) => s.freezeFeePerMonth = v.toDouble(),
+        group(t('מדיניות מנויים'), '', [
+          stepper(t('הקפאה מינימלית'), s.freezeMinDays, (v) => s.freezeMinDays = v, min: 1, max: 30, unit: t(' ימים')),
+          stepper(t('דמי הקפאה לחודש'), s.freezeFeePerMonth.round(), (v) => s.freezeFeePerMonth = v.toDouble(),
               max: 200, step: 5, unit: ' ₪'),
-          stepper('תזכורת לפני סוף מנוי', s.renewalReminderDaysBefore, (v) => s.renewalReminderDaysBefore = v,
-              max: 60, unit: ' ימים'),
-          sw('הצהרת בריאות חובה', s.requireHealthDeclaration, (v) => s.requireHealthDeclaration = v),
-          sw('תעודת זהות חובה', s.requireIdNumber, (v) => s.requireIdNumber = v),
+          stepper(t('תזכורת לפני סוף מנוי'), s.renewalReminderDaysBefore, (v) => s.renewalReminderDaysBefore = v,
+              max: 60, unit: t(' ימים')),
+          sw(t('הצהרת בריאות חובה'), s.requireHealthDeclaration, (v) => s.requireHealthDeclaration = v),
+          sw(t('תעודת זהות חובה'), s.requireIdNumber, (v) => s.requireIdNumber = v),
         ]),
-        group('הרשאות צוות', '', [
-          stepper('הנחה מקסימלית בקבלה', s.staffMaxDiscountPct, (v) => s.staffMaxDiscountPct = v,
+        group(t('הרשאות צוות'), '', [
+          stepper(t('הנחה מקסימלית בקבלה'), s.staffMaxDiscountPct, (v) => s.staffMaxDiscountPct = v,
               max: 50, step: 5, unit: '%'),
-          sw('ויתור על דמי רישום', s.staffCanWaiveRegistration, (v) => s.staffCanWaiveRegistration = v),
+          sw(t('ויתור על דמי רישום'), s.staffCanWaiveRegistration, (v) => s.staffCanWaiveRegistration = v),
         ]),
-        group('לינק הרשמה וקבלות', '', [
-          sw('לינק הרשמה פעיל', s.signupLinkEnabled, (v) => s.signupLinkEnabled = v),
+        group(t('לינק הרשמה וקבלות'), '', [
+          sw(t('לינק הרשמה פעיל'), s.signupLinkEnabled, (v) => s.signupLinkEnabled = v),
           ListTile(
-            title: const Text('כתובת הלינק'),
+            title: Text(t('כתובת הלינק')),
             subtitle: Directionality(
                 textDirection: TextDirection.ltr,
                 child: Text('${s.linkSlug}.aura.link/join', textAlign: TextAlign.right)),
             trailing: const Icon(Icons.edit_outlined),
             onTap: () async {
-              final v = await _askText(context, 'כתובת הלינק (אנגלית בלבד)', s.linkSlug, latin: true);
+              final v = await _askText(context, t('כתובת הלינק (אנגלית בלבד)'), s.linkSlug, latin: true);
               if (v != null && v.trim().isNotEmpty) set(() => s.linkSlug = v.trim().toLowerCase());
             },
           ),
           chips<Channel>(
-              'שליחת קבלה ללקוח',
+              t('שליחת קבלה ללקוח'),
               Channel.values,
               (c) => s.receiptChannels.contains(c),
               (c) => s.receiptChannels.contains(c) ? s.receiptChannels.remove(c) : s.receiptChannels.add(c),
               (c) => c.label),
         ]),
-        const Note('ההגדרות נשמרות במכשיר בגרסת ההדגמה. בחיבור למערכת AURA הן נשמרות בשרת לכל הסניפים.'),
+        Note(t('ההגדרות נשמרות במכשיר בגרסת ההדגמה. בחיבור למערכת AURA הן נשמרות בשרת לכל הסניפים.')),
         const SizedBox(height: 8),
-        Text('אמצעי תשלום פעילים: ${s.enabledMethods.map((m) => m.label).join(' · ')}',
+        Text(t('אמצעי תשלום פעילים: {0}', [s.enabledMethods.map((m) => m.label).join(' · ')]),
             style: const TextStyle(fontSize: 12, color: Aura.muted)),
         const SizedBox(height: 4),
         Row(children: [
@@ -237,8 +241,8 @@ class SettingsScreen extends StatelessWidget {
           inputFormatters: latin ? [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-]'))] : null,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ביטול')),
-          TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: const Text('שמירה')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('ביטול'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: Text(t('שמירה'))),
         ],
       ),
     );

@@ -2,14 +2,15 @@
 // so the owner changes behaviour without a new app version.
 
 import 'models.dart';
+import 'l10n.dart';
 
 enum ChargeDay { anniversary, firstOfMonth, tenthOfMonth }
 
 extension ChargeDayLabel on ChargeDay {
   String get label => switch (this) {
-        ChargeDay.anniversary => 'ביום ההצטרפות',
-        ChargeDay.firstOfMonth => 'ב-1 לחודש',
-        ChargeDay.tenthOfMonth => 'ב-10 לחודש',
+        ChargeDay.anniversary => t('ביום ההצטרפות'),
+        ChargeDay.firstOfMonth => t('ב-1 לחודש'),
+        ChargeDay.tenthOfMonth => t('ב-10 לחודש'),
       };
 }
 
@@ -17,8 +18,8 @@ enum DocType { taxInvoiceReceipt, receipt }
 
 extension DocTypeLabel on DocType {
   String get label => switch (this) {
-        DocType.taxInvoiceReceipt => 'חשבונית מס קבלה',
-        DocType.receipt => 'קבלה (עוסק פטור)',
+        DocType.taxInvoiceReceipt => t('חשבונית מס קבלה'),
+        DocType.receipt => t('קבלה (עוסק פטור)'),
       };
 }
 
@@ -28,7 +29,7 @@ extension ChannelLabel on Channel {
   String get label => switch (this) {
         Channel.whatsapp => 'WhatsApp',
         Channel.sms => 'SMS',
-        Channel.email => 'מייל',
+        Channel.email => t('מייל'),
       };
 }
 

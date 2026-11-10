@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../domain/models.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 class PlansScreen extends StatelessWidget {
   const PlansScreen({super.key});
@@ -12,7 +13,7 @@ class PlansScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('מסלולי מנוי')),
+      appBar: AppBar(title: Text(t('מסלולי מנוי'))),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('newPlan'),
         heroTag: 'newPlanFab',
@@ -25,11 +26,11 @@ class PlansScreen extends StatelessWidget {
                   plan: SubscriptionPlan(id: '', name: '', kind: PlanKind.recurring, price: 0, freezeDaysPerYear: 14))),
         ),
         icon: const Icon(Icons.add),
-        label: const Text('מסלול חדש'),
+        label: Text(t('מסלול חדש')),
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
-        const Note(
-            'כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'),
+        Note(t(
+            t('כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'))),
         const SizedBox(height: 12),
         for (final p in store.plans)
           Padding(
@@ -81,7 +82,7 @@ class _PlanEditorState extends State<PlanEditor> {
     final store = StoreScope.of(context);
     final isNew = p.id.isEmpty;
     return FlowScaffold(
-      title: isNew ? 'מסלול חדש' : 'עריכת מסלול',
+      title: isNew ? t('מסלול חדש') : t('עריכת מסלול'),
       bottom: Column(mainAxisSize: MainAxisSize.min, children: [
         if (error != null)
           Padding(
@@ -97,16 +98,16 @@ class _PlanEditorState extends State<PlanEditor> {
             if (e != null) return setState(() => error = e);
             store.savePlan(p);
             Navigator.pop(context);
-            showDone(context, 'המסלול "${p.name}" נשמר');
+            showDone(context, t('המסלול "{0}" נשמר', [p.name]));
           },
-          child: const Text('שמירת המסלול'),
+          child: Text(t('שמירת המסלול')),
         ),
       ]),
       children: [
         TextFormField(
           key: const Key('pe-name'),
           initialValue: p.name,
-          decoration: const InputDecoration(labelText: 'שם המסלול', hintText: 'לדוגמה: חודשי סטודנטים'),
+          decoration: InputDecoration(labelText: t('שם המסלול'), hintText: t('לדוגמה: חודשי סטודנטים')),
           onChanged: (v) => p.name = v,
         ),
         SegmentedButton<PlanKind>(
@@ -117,54 +118,57 @@ class _PlanEditorState extends State<PlanEditor> {
         ),
         Text(
           switch (p.kind) {
-            PlanKind.recurring => 'חיוב אוטומטי כל חודש עד ביטול. מתאים למנוי "חודשי ללא הגבלה".',
-            PlanKind.term => 'משלמים מראש על תקופה קבועה (3, 6, 12 חודשים), אפשר בתשלומים או בשיקים.',
-            PlanKind.punch => 'מספר כניסות קבוע עם תוקף. כל כניסה מורידה אחת.',
+            PlanKind.recurring => t('חיוב אוטומטי כל חודש עד ביטול. מתאים למנוי "חודשי ללא הגבלה".'),
+            PlanKind.term => t('משלמים מראש על תקופה קבועה (3, 6, 12 חודשים), אפשר בתשלומים או בשיקים.'),
+            PlanKind.punch => t('מספר כניסות קבוע עם תוקף. כל כניסה מורידה אחת.'),
           },
           style: const TextStyle(fontSize: 13, color: Aura.muted),
         ),
-        const SectionLabel('מחיר ומשך'),
+        SectionLabel(t('מחיר ומשך')),
         _grid([
-          _num('price', p.isRecurring ? 'מחיר לחודש' : 'מחיר כולל', p.price, (v) => p.price = v.toDouble(),
+          _num('price', p.isRecurring ? t('מחיר לחודש') : t('מחיר כולל'), p.price, (v) => p.price = v.toDouble(),
               suffix: '₪', decimal: true),
-          if (p.kind == PlanKind.term) _num('months', 'משך בחודשים', p.months, (v) => p.months = v.toInt()),
-          if (p.kind == PlanKind.punch) _num('entries', 'מספר כניסות', p.entries, (v) => p.entries = v.toInt()),
-          if (p.kind == PlanKind.punch) _num('valid', 'תוקף בחודשים', p.validMonths, (v) => p.validMonths = v.toInt()),
+          if (p.kind == PlanKind.term) _num('months', t('משך בחודשים'), p.months, (v) => p.months = v.toInt()),
+          if (p.kind == PlanKind.punch) _num('entries', t('מספר כניסות'), p.entries, (v) => p.entries = v.toInt()),
+          if (p.kind == PlanKind.punch)
+            _num('valid', t('תוקף בחודשים'), p.validMonths, (v) => p.validMonths = v.toInt()),
           if (p.isRecurring)
-            _num('commit', 'התחייבות בחודשים', p.commitMonths, (v) => p.commitMonths = v.toInt(), hint: '0 = בלי'),
+            _num('commit', t('התחייבות בחודשים'), p.commitMonths, (v) => p.commitMonths = v.toInt(),
+                hint: t('0 = בלי')),
           if (p.isRecurring)
-            _num('notice', 'הודעת ביטול מראש', p.cancelNoticeDays, (v) => p.cancelNoticeDays = v.toInt(),
-                suffix: 'ימים'),
-          _num('reg', 'דמי רישום', p.registrationFee, (v) => p.registrationFee = v.toDouble(),
+            _num('notice', t('הודעת ביטול מראש'), p.cancelNoticeDays, (v) => p.cancelNoticeDays = v.toInt(),
+                suffix: t('ימים')),
+          _num('reg', t('דמי רישום'), p.registrationFee, (v) => p.registrationFee = v.toDouble(),
               suffix: '₪', hint: '0', decimal: true),
         ]),
-        const SectionLabel('שימוש'),
+        SectionLabel(t('שימוש')),
         _grid([
-          _num('limit', 'כניסות בשבוע', p.weeklyLimit, (v) => p.weeklyLimit = v.toInt(), hint: 'ללא הגבלה'),
-          _num('freeze', 'ימי הקפאה בשנה', p.freezeDaysPerYear, (v) => p.freezeDaysPerYear = v.toInt(), hint: '0'),
+          _num('limit', t('כניסות בשבוע'), p.weeklyLimit, (v) => p.weeklyLimit = v.toInt(), hint: t('ללא הגבלה')),
+          _num('freeze', t('ימי הקפאה בשנה'), p.freezeDaysPerYear, (v) => p.freezeDaysPerYear = v.toInt(), hint: '0'),
         ]),
-        const SectionLabel('תשלום'),
+        SectionLabel(t('תשלום')),
         _grid([
           if (!p.isRecurring)
-            _num('inst', 'מקס׳ תשלומים באשראי', p.maxInstallments,
+            _num('inst', t('מקס׳ תשלומים באשראי'), p.maxInstallments,
                 (v) => p.maxInstallments = v.toInt() < 1 ? 1 : v.toInt()),
-          _num('chq', 'מקס׳ שיקים', p.maxCheques, (v) => p.maxCheques = v.toInt(), hint: '0'),
+          _num('chq', t('מקס׳ שיקים'), p.maxCheques, (v) => p.maxCheques = v.toInt(), hint: '0'),
         ]),
         Panel(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           child: Column(children: [
             if (p.kind == PlanKind.term)
               SwitchListTile(
-                title: const Text('חידוש אוטומטי בסוף התקופה'),
-                subtitle: const Text('אם כבוי, נשלחת ללקוח תזכורת לחידוש'),
+                title: Text(t('חידוש אוטומטי בסוף התקופה')),
+                subtitle: Text(t('אם כבוי, נשלחת ללקוח תזכורת לחידוש')),
                 value: p.autoRenew,
                 onChanged: (v) => setState(() => p.autoRenew = v),
               ),
             if (p.isRecurring)
               SwitchListTile(
                 key: const Key('pe-prepay'),
-                title: const Text('תשלום מראש על החודש האחרון'),
-                subtitle: const Text('בהצטרפות משלמים חודש ראשון + חודש אחרון. ביטול בהודעה של חודש, והחודש האחרון לא מחויב'),
+                title: Text(t('תשלום מראש על החודש האחרון')),
+                subtitle:
+                    Text(t('בהצטרפות משלמים חודש ראשון + חודש אחרון. ביטול בהודעה של חודש, והחודש האחרון לא מחויב')),
                 value: p.prepayLastMonth,
                 onChanged: (v) => setState(() {
                   p.prepayLastMonth = v;
@@ -172,25 +176,25 @@ class _PlanEditorState extends State<PlanEditor> {
                 }),
               ),
             SwitchListTile(
-              title: const Text('מותר מזומן'),
-              subtitle: Text(p.isRecurring ? 'בתשלום הראשון ובגבייה ידנית חודשית' : 'בתשלום בקבלה'),
+              title: Text(t('מותר מזומן')),
+              subtitle: Text(p.isRecurring ? t('בתשלום הראשון ובגבייה ידנית חודשית') : t('בתשלום בקבלה')),
               value: p.allowCash,
               onChanged: (v) => setState(() => p.allowCash = v),
             ),
             SwitchListTile(
-              title: const Text('מותר שיקים'),
+              title: Text(t('מותר שיקים')),
               value: p.allowCheques,
               onChanged: (v) => setState(() => p.allowCheques = v),
             ),
             SwitchListTile(
-              title: const Text('זמין בלינק ההרשמה'),
-              subtitle: const Text('הלקוח יכול לבחור אותו לבד'),
+              title: Text(t('זמין בלינק ההרשמה')),
+              subtitle: Text(t('הלקוח יכול לבחור אותו לבד')),
               value: p.onlineSignup,
               onChanged: (v) => setState(() => p.onlineSignup = v),
             ),
             SwitchListTile(
-              title: const Text('מסלול פעיל'),
-              subtitle: const Text('כבוי = לא מוצג בפתיחת מנוי חדש'),
+              title: Text(t('מסלול פעיל')),
+              subtitle: Text(t('כבוי = לא מוצג בפתיחת מנוי חדש')),
               value: p.active,
               onChanged: (v) => setState(() => p.active = v),
             ),

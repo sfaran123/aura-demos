@@ -6,6 +6,7 @@ import '../domain/models.dart';
 import 'links.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 PillTone stageTone(LinkStage s) => switch (s) {
       LinkStage.paid => PillTone.ok,
@@ -32,12 +33,12 @@ enum _LinkFilter { all, waiting, opened, signed, paid, failed }
 
 extension on _LinkFilter {
   String get label => switch (this) {
-        _LinkFilter.all => 'הכל',
-        _LinkFilter.waiting => 'ממתין לתשלום',
-        _LinkFilter.opened => 'נפתח',
-        _LinkFilter.signed => 'חתם',
-        _LinkFilter.paid => 'שולם',
-        _LinkFilter.failed => 'נכשל',
+        _LinkFilter.all => t('הכל'),
+        _LinkFilter.waiting => t('ממתין לתשלום'),
+        _LinkFilter.opened => t('נפתח'),
+        _LinkFilter.signed => t('חתם'),
+        _LinkFilter.paid => t('שולם'),
+        _LinkFilter.failed => t('נכשל'),
       };
 
   bool matches(SignupLink l) => switch (this) {
@@ -65,14 +66,14 @@ class _LinksScreenState extends State<LinksScreen> {
     final store = StoreScope.of(context);
     final list = store.links.where(f.matches).toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('לינקים שנשלחו')),
+      appBar: AppBar(title: Text(t('לינקים שנשלחו'))),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'sendLinkFab',
         backgroundColor: Aura.goldLight,
         foregroundColor: Aura.ink,
         onPressed: () => showSignupLinkSheet(context),
         icon: const Icon(Icons.send),
-        label: const Text('לינק חדש'),
+        label: Text(t('לינק חדש')),
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
         SingleChildScrollView(
@@ -91,9 +92,8 @@ class _LinksScreenState extends State<LinksScreen> {
           ]),
         ),
         const SizedBox(height: 10),
-        if (list.isEmpty) const Note('אין לינקים בסטטוס הזה.'),
-        for (final l in list)
-          Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
+        if (list.isEmpty) Note(t('אין לינקים בסטטוס הזה.')),
+        for (final l in list) Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
       ]),
     );
   }
@@ -125,7 +125,7 @@ class LinkTile extends StatelessWidget {
             Text(link.sentTo, style: const TextStyle(fontWeight: FontWeight.w500)),
             Text(
               [
-                plan?.name ?? 'לינק הרשמה',
+                plan?.name ?? t('לינק הרשמה'),
                 if (link.amount != null) money(link.amount!),
                 _time(last, store.now),
               ].join(' · '),
@@ -134,7 +134,7 @@ class LinkTile extends StatelessWidget {
             const SizedBox(height: 4),
             Wrap(spacing: 6, children: [
               Pill(link.stage.label, tone: stageTone(link.stage)),
-              if (store.isSimulating(link)) const Pill('בשידור חי', tone: PillTone.info),
+              if (store.isSimulating(link)) Pill(t('בשידור חי'), tone: PillTone.info),
             ]),
           ]),
         ),
@@ -171,8 +171,7 @@ class _LinkLiveSheet extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(link.sentTo, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                Text(
-                    [plan?.name ?? 'לינק הרשמה', if (link.amount != null) money(link.amount!)].join(' · '),
+                Text([plan?.name ?? t('לינק הרשמה'), if (link.amount != null) money(link.amount!)].join(' · '),
                     style: const TextStyle(color: Aura.muted)),
               ]),
             ),
@@ -182,8 +181,10 @@ class _LinkLiveSheet extends StatelessWidget {
           Row(children: [
             Icon(Icons.circle, size: 10, color: live ? Aura.ok : Aura.muted),
             const SizedBox(width: 6),
-            Text(live ? 'מתעדכן בזמן אמת' : 'הסטטוס מתעדכן ברגע שהלקוח מתקדם',
-                style: TextStyle(fontSize: 12.5, color: live ? Aura.ok : Aura.muted)),
+            Expanded(
+              child: Text(live ? t('מתעדכן בזמן אמת') : t('הסטטוס מתעדכן ברגע שהלקוח מתקדם'),
+                  style: TextStyle(fontSize: 12.5, color: live ? Aura.ok : Aura.muted)),
+            ),
           ]),
           const SizedBox(height: 14),
           for (var i = 0; i < steps.length; i++)
@@ -205,11 +206,11 @@ class _LinkLiveSheet extends StatelessWidget {
                   child: Directionality(
                       textDirection: TextDirection.ltr, child: Text(link.url, overflow: TextOverflow.ellipsis))),
               IconButton(
-                tooltip: 'העתקה',
+                tooltip: t('העתקה'),
                 icon: const Icon(Icons.copy, size: 18),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: 'https://${link.url}'));
-                  showDone(context, 'הלינק הועתק');
+                  showDone(context, t('הלינק הועתק'));
                 },
               ),
             ]),
@@ -220,7 +221,7 @@ class _LinkLiveSheet extends StatelessWidget {
               key: const Key('simulateLink'),
               onPressed: live ? null : () => store.simulateLink(link),
               icon: const Icon(Icons.play_arrow),
-              label: Text(live ? 'הלקוח מתקדם…' : 'הדגמה חיה: הלקוח ממלא ומשלם'),
+              label: Text(live ? t('הלקוח מתקדם…') : t('הדגמה חיה: הלקוח ממלא ומשלם')),
             ),
             const SizedBox(height: 8),
             Row(children: [
@@ -231,15 +232,15 @@ class _LinkLiveSheet extends StatelessWidget {
                     openCustomerPreview(context, link);
                   },
                   icon: const Icon(Icons.phone_android, size: 18),
-                  label: const Text('לפתוח כלקוח'),
+                  label: Text(t('לפתוח כלקוח')),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => showDone(context, 'תזכורת נשלחה ל${link.sentTo}'),
+                  onPressed: () => showDone(context, t('תזכורת נשלחה ל{0}', [link.sentTo])),
                   icon: const Icon(Icons.notifications_none, size: 18),
-                  label: const Text('תזכורת'),
+                  label: Text(t('תזכורת')),
                 ),
               ),
             ]),

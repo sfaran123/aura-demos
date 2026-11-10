@@ -14,9 +14,12 @@ Flutter module for gyms: opening memberships at the counter, quick payments, spl
 | Split payment | card (saved/new, installments), cash, cheques, bank transfer, link to customer – any mix that balances to the amount due |
 | Monthly charge for recurring plans | saved card, new card, bank standing order, or **manual monthly collection** (cash/cheque/transfer) |
 | To collect | manual monthly charges and failed card charges: mark paid (issues receipt, opens next month), send payment link, send reminder; entry blocked after grace days |
-| Members | filters (active, pending, frozen, failed, ending), member card: freeze, end freeze, renew/change plan, pay, cancel (respects notice and commitment) |
-| Plans | create/edit: type (recurring / term / punch card), price, months/entries/validity, commitment, cancel notice, registration fee, weekly limit, freeze days, max installments/cheques, auto-renew, cash/cheques allowed, available on link, active |
+| Members | filters for every status with counts (active, awaiting payment, debt, failed charge, frozen, ending, being cancelled, ended), member card: freeze, end freeze, renew/change plan, pay, cancel (respects notice and commitment) |
+| Plans (Settings → plans) | create/edit: type (recurring / term / punch card), price, months/entries/validity, commitment, cancel notice, registration fee, weekly limit, freeze days, max installments/cheques, auto-renew, cash/cheques allowed, available on link, active, **last month paid upfront** (join pays first + last month; cancellation needs a month's notice and the last month is not charged) |
 | Settings | document type, VAT, payment methods, installments, standing order, manual monthly, charge day, retries, grace days, entry blocking, reminders, freeze rules, staff permissions, sign-up link, receipt channels |
+| Reports (tab) | 12 reports, each two taps away, grouped: Money (revenue, 30-day forecast, cheques to clear, last-month deposits), Collection & debt (**monthly manual collection** – who still owes cash/cheque/transfer this month, debts and arrears, failed charges), Members (active and MRR, ending and renewals, joins/cancellations and churn, frozen), Links (funnel). Period chips, KPI tiles, copy to Excel |
+| Sent links (live) | every payment/sign-up link with its stage – sent, opened, filled details, signed, paid, failed – filters by stage, and a live timeline that updates as the customer moves on (with a built-in live demo) |
+| Languages | Hebrew, Arabic and English (Settings → language); RTL/LTR switch, Cairo font for Arabic |
 | Customer link | plan → details + health declaration + terms → card payment → active membership (previewed inside the app) |
 
 ## Code layout

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/checkout.dart';
 import '../../domain/models.dart';
 import '../../state/gym_store.dart';
+import '../../domain/l10n.dart';
 
 /// Everything chosen during one checkout (new subscription or quick payment).
 class CheckoutDraft extends ChangeNotifier {
@@ -172,7 +173,7 @@ class CheckoutDraft extends ChangeNotifier {
       final i = store.items.firstWhere((x) => x.id == id);
       parts.add(q > 1 ? '${i.name} ×$q' : i.name);
     });
-    if (customAmount > 0) parts.add(customNote.isEmpty ? 'סכום חופשי' : customNote);
+    if (customAmount > 0) parts.add(customNote.isEmpty ? t('סכום חופשי') : customNote);
     return parts.join(', ');
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../state/reports.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 IconData _icon(String id) => switch (id) {
       'revenue' => Icons.trending_up,
@@ -29,7 +30,7 @@ class ReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text('דוחות')),
+      appBar: AppBar(title: Text(t('דוחות'))),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         for (final g in ReportGroup.values) ...[
           SectionLabel(g.label),
@@ -43,8 +44,7 @@ class ReportsScreen extends StatelessWidget {
                     width: w,
                     child: Panel(
                       key: Key('report-${r.id}'),
-                      onTap: () =>
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen(report: r))),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen(report: r))),
                       padding: const EdgeInsets.all(12),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
@@ -119,11 +119,11 @@ class _ReportScreenState extends State<ReportScreen> {
         title: Text(r.title),
         actions: [
           IconButton(
-            tooltip: 'העתקה לאקסל',
+            tooltip: t('העתקה לאקסל'),
             icon: const Icon(Icons.copy_all_outlined),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: data.toCsv(r.title)));
-              showDone(context, 'הדוח הועתק. אפשר להדביק באקסל או בגוגל שיטס');
+              showDone(context, t('הדוח הועתק. אפשר להדביק באקסל או בגוגל שיטס'));
             },
           ),
         ],

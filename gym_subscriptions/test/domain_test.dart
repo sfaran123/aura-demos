@@ -40,8 +40,8 @@ void main() {
   });
 
   group('pricing', () {
-    final monthly = SubscriptionPlan(
-        id: 'm', name: 'חודשי', kind: PlanKind.recurring, price: 199, registrationFee: 100);
+    final monthly =
+        SubscriptionPlan(id: 'm', name: 'חודשי', kind: PlanKind.recurring, price: 199, registrationFee: 100);
 
     test('due now = first month + registration fee', () {
       expect(subscriptionDueNow(monthly), 299);
@@ -62,8 +62,8 @@ void main() {
   });
 
   group('split payment validation', () {
-    final term = SubscriptionPlan(
-        id: 't', name: '3 חודשים', kind: PlanKind.term, price: 540, months: 3, maxInstallments: 3);
+    final term =
+        SubscriptionPlan(id: 't', name: '3 חודשים', kind: PlanKind.term, price: 540, months: 3, maxInstallments: 3);
     final rec = SubscriptionPlan(id: 'r', name: 'חודשי', kind: PlanKind.recurring, price: 199);
 
     test('needs at least one line', () {
@@ -83,25 +83,32 @@ void main() {
     });
 
     test('balanced split of cash and card passes', () {
-      final p = paymentProblem(due: 540, lines: [
-        PaymentLine(method: PayMethod.cash, amount: 200),
-        PaymentLine(method: PayMethod.card, amount: 340, installments: 2),
-      ], newCardReady: false, plan: term);
+      final p = paymentProblem(
+          due: 540,
+          lines: [
+            PaymentLine(method: PayMethod.cash, amount: 200),
+            PaymentLine(method: PayMethod.card, amount: 340, installments: 2),
+          ],
+          newCardReady: false,
+          plan: term);
       expect(p, isNull);
     });
 
     test('a new card must be entered first', () {
-      final p = paymentProblem(due: 540, lines: [
-        PaymentLine(method: PayMethod.card, amount: 540, cardSource: CardSource.newCard),
-      ], newCardReady: false, plan: term);
+      final p = paymentProblem(
+          due: 540,
+          lines: [
+            PaymentLine(method: PayMethod.card, amount: 540, cardSource: CardSource.newCard),
+          ],
+          newCardReady: false,
+          plan: term);
       expect(p, 'צריך להזין את הכרטיס החדש');
     });
 
     test('recurring plan needs a monthly method', () {
       final lines = [PaymentLine(method: PayMethod.cash, amount: 199)];
       expect(paymentProblem(due: 199, lines: lines, newCardReady: false, plan: rec), 'בחרו איך ייגבה התשלום החודשי');
-      expect(
-          paymentProblem(due: 199, lines: lines, newCardReady: false, plan: rec, recurring: RecurringMethod.manual),
+      expect(paymentProblem(due: 199, lines: lines, newCardReady: false, plan: rec, recurring: RecurringMethod.manual),
           isNull);
     });
 
@@ -210,8 +217,7 @@ void main() {
       );
       expect(res.sub.status, SubStatus.pendingPayment);
       expect(st.links.first.amount, 300);
-      st.completeSignup(st.links.first,
-          name: c.name, phone: c.phone, plan: st.plan('p4')!, cardLast4: '1111');
+      st.completeSignup(st.links.first, name: c.name, phone: c.phone, plan: st.plan('p4')!, cardLast4: '1111');
       expect(res.sub.status, SubStatus.active);
     });
 
@@ -343,7 +349,8 @@ void main() {
     test('debts report totals overdue charges', () {
       final st = newStore();
       final d = debtsReport(st, Period.month);
-      expect(d.kpis.first.value, money(st.charges.where((c) => c.isOpen() && c.daysOverdue(st.today) > 0).fold(0.0, (a, c) => a + c.amount)));
+      expect(d.kpis.first.value,
+          money(st.charges.where((c) => c.isOpen() && c.daysOverdue(st.today) > 0).fold(0.0, (a, c) => a + c.amount)));
     });
   });
 }

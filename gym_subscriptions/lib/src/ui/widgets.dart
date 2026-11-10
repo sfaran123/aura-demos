@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/models.dart';
 import '../state/gym_store.dart';
 import 'theme.dart';
+import '../domain/l10n.dart';
 
 /// Makes [GymStore] available to the widget tree and rebuilds dependants
 /// when it changes.
@@ -143,13 +144,13 @@ class PlanCard extends StatelessWidget {
             const SizedBox(width: 8),
             Text.rich(TextSpan(children: [
               TextSpan(text: money(plan.price), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              if (plan.isRecurring) const TextSpan(text: ' / חודש', style: TextStyle(fontSize: 12, color: Aura.muted)),
+              if (plan.isRecurring) TextSpan(text: t(' / חודש'), style: TextStyle(fontSize: 12, color: Aura.muted)),
             ])),
           ]),
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
             if (plan.badge != null) Pill(plan.badge!, tone: PillTone.wait),
-            if (!plan.active) const Pill('לא פעיל', tone: PillTone.bad),
+            if (!plan.active) Pill(t('לא פעיל'), tone: PillTone.bad),
             if (showKind)
               Pill(plan.kind.label,
                   tone: switch (plan.kind) {

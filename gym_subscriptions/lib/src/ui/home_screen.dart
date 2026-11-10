@@ -7,6 +7,7 @@ import 'links.dart';
 import 'links_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import '../domain/l10n.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.goTo});
@@ -39,11 +40,11 @@ class HomeScreen extends StatelessWidget {
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Row(children: [
-          _Kpi(label: 'מנויים פעילים', value: '${store.activeCount}'),
+          _Kpi(label: t('מנויים פעילים'), value: '${store.activeCount}'),
           const SizedBox(width: 8),
-          _Kpi(label: 'הכנסות היום', value: money(store.todayRevenue)),
+          _Kpi(label: t('הכנסות היום'), value: money(store.todayRevenue)),
           const SizedBox(width: 8),
-          _Kpi(label: 'חוב פתוח', value: money(store.openDebt), alert: store.openDebt > 0, onTap: () => goTo(2)),
+          _Kpi(label: t('חוב פתוח'), value: money(store.openDebt), alert: store.openDebt > 0, onTap: () => goTo(2)),
         ]),
         const SizedBox(height: 14),
         _TileRow(
@@ -51,15 +52,15 @@ class HomeScreen extends StatelessWidget {
               key: const Key('tileNewSub'),
               primary: true,
               icon: Icons.add,
-              title: 'מנוי חדש',
-              sub: 'לקוח בקבלה',
+              title: t('מנוי חדש'),
+              sub: t('לקוח בקבלה'),
               onTap: () => startCheckout(context, CheckoutFlow.subscription),
             ),
             right: _Tile(
               key: const Key('tileQuickPay'),
               icon: Icons.point_of_sale,
-              title: 'תשלום מהיר',
-              sub: 'מוצרים, אימון אישי או סכום חופשי',
+              title: t('תשלום מהיר'),
+              sub: t('מוצרים, אימון אישי או סכום חופשי'),
               onTap: () => startCheckout(context, CheckoutFlow.quickPay),
             )),
         const SizedBox(height: 10),
@@ -67,30 +68,30 @@ class HomeScreen extends StatelessWidget {
             left: _Tile(
               key: const Key('tileLink'),
               icon: Icons.ios_share,
-              title: 'לינק הרשמה',
-              sub: 'הלקוח בוחר מסלול ומשלם לבד',
+              title: t('לינק הרשמה'),
+              sub: t('הלקוח בוחר מסלול ומשלם לבד'),
               onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
             ),
             right: _Tile(
               key: const Key('tileCollect'),
               icon: Icons.receipt_long,
-              title: 'לגבייה',
+              title: t('לגבייה'),
               sub: collect.isEmpty
-                  ? 'אין תשלומים פתוחים'
-                  : '${collect.length} תשלומים · ${money(collect.fold(0.0, (a, c) => a + c.amount))}',
+                  ? t('אין תשלומים פתוחים')
+                  : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]),
               onTap: () => goTo(2),
             )),
         if (overdue.isNotEmpty || expiring.isNotEmpty) ...[
           const SizedBox(height: 8),
-          const SectionLabel('דורש טיפול'),
+          SectionLabel(t('דורש טיפול')),
           for (final c in overdue)
             _Alert(
               icon: Icons.warning_amber_rounded,
               tone: PillTone.bad,
               title: store.customer(c.customerId)!.name,
               text: c.manual
-                  ? 'גבייה ידנית · ${money(c.amount)} · באיחור של ${c.daysOverdue(store.today)} ימים'
-                  : 'חיוב באשראי נכשל · ${money(c.amount)} · ${c.attempts} ניסיונות',
+                  ? t('גבייה ידנית · {0} · באיחור של {1} ימים', [money(c.amount), c.daysOverdue(store.today)])
+                  : t('חיוב באשראי נכשל · {0} · {1} ניסיונות', [money(c.amount), c.attempts]),
               onTap: () => goTo(2),
             ),
           for (final s in expiring)
@@ -98,22 +99,22 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.event_busy,
               tone: PillTone.info,
               title: store.customer(s.customerId)!.name,
-              text: '${store.plan(s.planId)!.name} מסתיים ב-${fmtDate(s.end!)} · להציע חידוש',
+              text: t('{0} מסתיים ב-{1} · להציע חידוש', [store.plan(s.planId)!.name, fmtDate(s.end!)]),
               onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
             ),
         ],
         if (waiting.isNotEmpty) ...[
           const SizedBox(height: 8),
-          SectionLabel('לינקים פתוחים (${waiting.length})',
+          SectionLabel(t('לינקים פתוחים ({0})', [waiting.length]),
               trailing: TextButton(
                 key: const Key('allLinks'),
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinksScreen())),
-                child: const Text('כל הלינקים'),
+                child: Text(t('כל הלינקים')),
               )),
           for (final l in waiting.take(3)) Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
         ],
         const SizedBox(height: 8),
-        const SectionLabel('תשלומים אחרונים'),
+        SectionLabel(t('תשלומים אחרונים')),
         for (final r in store.receipts.reversed.take(5))
           Padding(
             padding: const EdgeInsets.only(bottom: 8),

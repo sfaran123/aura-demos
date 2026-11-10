@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../widgets.dart';
 import 'card_sheet.dart';
 import 'draft.dart';
+import '../../domain/l10n.dart';
 
 void startCheckout(BuildContext context, CheckoutFlow flow, {Customer? customer}) {
   final store = StoreScope.read(context);
@@ -45,19 +46,19 @@ class _CustomerStepState extends State<CustomerStep> {
     final list = store.searchCustomers(q);
     final d = widget.draft;
     return FlowScaffold(
-      title: d.isSubscription ? 'למי פותחים מנוי?' : 'למי התשלום?',
+      title: d.isSubscription ? t('למי פותחים מנוי?') : t('למי התשלום?'),
       step: 0,
       children: [
         TextField(
           key: const Key('customerSearch'),
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'חיפוש לפי שם או טלפון'),
+          decoration: InputDecoration(prefixIcon: Icon(Icons.search), hintText: t('חיפוש לפי שם או טלפון')),
           onChanged: (v) => setState(() => q = v),
         ),
         Wrap(spacing: 8, runSpacing: 8, children: [
           ActionChip(
             key: const Key('newCustomer'),
             avatar: const Icon(Icons.person_add_alt_1, size: 18),
-            label: const Text('לקוח חדש'),
+            label: Text(t('לקוח חדש')),
             onPressed: () async {
               final c = await showNewCustomerSheet(context, store);
               if (c != null) _pick(c);
@@ -67,12 +68,12 @@ class _CustomerStepState extends State<CustomerStep> {
             ActionChip(
               key: const Key('walkIn'),
               avatar: const Icon(Icons.directions_walk, size: 18),
-              label: const Text('לקוח מזדמן'),
+              label: Text(t('לקוח מזדמן')),
               onPressed: () => _pick(null, walkIn: true),
             ),
         ]),
-        SectionLabel(q.isEmpty ? 'לקוחות אחרונים' : 'תוצאות'),
-        if (list.isEmpty) const Note('לא נמצא לקוח. אפשר להוסיף לקוח חדש.'),
+        SectionLabel(q.isEmpty ? t('לקוחות אחרונים') : t('תוצאות')),
+        if (list.isEmpty) Note(t('לא נמצא לקוח. אפשר להוסיף לקוח חדש.')),
         for (final c in list) _CustomerTile(customer: c, onTap: () => _pick(c)),
       ],
     );
@@ -98,13 +99,13 @@ class _CustomerTile extends StatelessWidget {
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
-            Text('${customer.phone}${customer.hasSavedCard ? ' · כרטיס שמור' : ''}',
+            Text('${customer.phone}${customer.hasSavedCard ? t(' · כרטיס שמור') : ''}',
                 style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
             const SizedBox(height: 4),
             if (sub != null)
               Pill(plan == null ? sub.status.label : '${sub.status.label} · ${plan.name}', tone: toneFor(sub.status))
             else
-              const Pill('ללא מנוי'),
+              Pill(t('ללא מנוי')),
           ]),
         ),
         const ForwardChevron(),
@@ -145,11 +146,11 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
 
   void _save() {
     final s = widget.store.settings;
-    if (name.text.trim().length < 2) return setState(() => error = 'צריך שם מלא');
-    if (!isValidPhone(phone.text)) return setState(() => error = 'מספר הטלפון לא תקין');
-    if (s.requireIdNumber && idn.text.trim().isEmpty) return setState(() => error = 'צריך תעודת זהות');
+    if (name.text.trim().length < 2) return setState(() => error = t('צריך שם מלא'));
+    if (!isValidPhone(phone.text)) return setState(() => error = t('מספר הטלפון לא תקין'));
+    if (s.requireIdNumber && idn.text.trim().isEmpty) return setState(() => error = t('צריך תעודת זהות'));
     if (idn.text.trim().isNotEmpty && !isValidIsraeliId(idn.text)) {
-      return setState(() => error = 'תעודת הזהות לא עוברת בדיקת ספרת ביקורת');
+      return setState(() => error = t('תעודת הזהות לא עוברת בדיקת ספרת ביקורת'));
     }
     final dup = widget.store.customers
         .where((c) => c.phone.replaceAll(RegExp(r'\D'), '') == phone.text.replaceAll(RegExp(r'\D'), ''))
@@ -169,14 +170,14 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Text('לקוח חדש', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+        Text(t('לקוח חדש'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
         TextField(
             key: const Key('ncName'),
             controller: name,
             autofocus: true,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(labelText: 'שם מלא')),
+            decoration: InputDecoration(labelText: t('שם מלא'))),
         const SizedBox(height: 10),
         TextField(
           key: const Key('ncPhone'),
@@ -184,7 +185,7 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
           keyboardType: TextInputType.phone,
           textInputAction: TextInputAction.next,
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\-]'))],
-          decoration: const InputDecoration(labelText: 'טלפון נייד', hintText: '05X-XXXXXXX'),
+          decoration: InputDecoration(labelText: t('טלפון נייד'), hintText: '05X-XXXXXXX'),
         ),
         const SizedBox(height: 10),
         TextField(
@@ -192,14 +193,14 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
           controller: idn,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
-          decoration: InputDecoration(labelText: reqId ? 'תעודת זהות' : 'תעודת זהות (לא חובה)'),
+          decoration: InputDecoration(labelText: reqId ? t('תעודת זהות') : t('תעודת זהות (לא חובה)')),
         ),
         if (error != null) ...[const SizedBox(height: 10), Note(error!, warn: true)],
         const SizedBox(height: 8),
-        const Text('הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.',
+        Text(t('הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.'),
             style: TextStyle(fontSize: 12.5, color: Aura.muted)),
         const SizedBox(height: 12),
-        FilledButton(key: const Key('ncSave'), onPressed: _save, child: const Text('שמירה והמשך')),
+        FilledButton(key: const Key('ncSave'), onPressed: _save, child: Text(t('שמירה והמשך'))),
       ]),
     );
   }
@@ -219,7 +220,7 @@ class PlanStep extends StatelessWidget {
         final p = draft.plan;
         final s = store.settings;
         return FlowScaffold(
-          title: 'בחירת מסלול',
+          title: t('בחירת מסלול'),
           step: 1,
           bottom: FilledButton(
             key: const Key('toPayment'),
@@ -229,11 +230,11 @@ class PlanStep extends StatelessWidget {
                     draft.prefillPayment();
                     Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentStep(draft: draft)));
                   },
-            child: Text(p == null ? 'בחרו מסלול' : 'המשך לתשלום · ${money(draft.due)}'),
+            child: Text(p == null ? t('בחרו מסלול') : t('המשך לתשלום · {0}', [money(draft.due)])),
           ),
           children: [
             Text.rich(TextSpan(children: [
-              const TextSpan(text: 'עבור ', style: TextStyle(color: Aura.muted)),
+              TextSpan(text: t('עבור '), style: TextStyle(color: Aura.muted)),
               TextSpan(text: draft.customer!.name, style: const TextStyle(fontWeight: FontWeight.w600)),
             ])),
             for (final kind in PlanKind.values)
@@ -251,10 +252,10 @@ class PlanStep extends StatelessWidget {
                   ),
               ],
             if (p != null) ...[
-              const SectionLabel('אפשרויות'),
+              SectionLabel(t('אפשרויות')),
               Panel(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('תחילת מנוי', style: TextStyle(fontSize: 13, color: Aura.muted)),
+                  Text(t('תחילת מנוי'), style: TextStyle(fontSize: 13, color: Aura.muted)),
                   const SizedBox(height: 6),
                   ChoiceRow<StartOption>(
                     values: StartOption.values,
@@ -263,20 +264,20 @@ class PlanStep extends StatelessWidget {
                     onSelected: draft.setStart,
                   ),
                   const SizedBox(height: 12),
-                  const Text('הנחה', style: TextStyle(fontSize: 13, color: Aura.muted)),
+                  Text(t('הנחה'), style: TextStyle(fontSize: 13, color: Aura.muted)),
                   const SizedBox(height: 6),
                   ChoiceRow<int>(
                     values: s.discountSteps(),
                     selected: draft.discountPct,
-                    label: (d) => d == 0 ? 'ללא' : '$d%',
+                    label: (d) => d == 0 ? t('ללא') : '$d%',
                     onSelected: draft.setDiscount,
                   ),
                   if (p.registrationFee > 0 && s.staffCanWaiveRegistration)
                     SwitchListTile(
                       key: const Key('waiveReg'),
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('ויתור על דמי רישום'),
-                      subtitle: Text('${money(p.registrationFee)} חד-פעמי'),
+                      title: Text(t('ויתור על דמי רישום')),
+                      subtitle: Text(t('{0} חד-פעמי', [money(p.registrationFee)])),
                       value: draft.waiveRegistration,
                       onChanged: draft.setWaive,
                     ),
@@ -317,7 +318,7 @@ class _ItemsStepState extends State<ItemsStep> {
     return ListenableBuilder(
       listenable: d,
       builder: (context, _) => FlowScaffold(
-        title: 'מה משלמים?',
+        title: t('מה משלמים?'),
         step: 1,
         bottom: FilledButton(
           key: const Key('itemsToPayment'),
@@ -327,10 +328,11 @@ class _ItemsStepState extends State<ItemsStep> {
                   d.prefillPayment();
                   Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentStep(draft: d)));
                 },
-          child: Text(d.due <= 0 ? 'בחרו מוצר או סכום' : 'המשך לתשלום · ${money(d.due)}'),
+          child: Text(d.due <= 0 ? t('בחרו מוצר או סכום') : t('המשך לתשלום · {0}', [money(d.due)])),
         ),
         children: [
-          Text(d.walkIn ? 'לקוח מזדמן' : 'עבור ${d.customer!.name}', style: const TextStyle(color: Aura.muted)),
+          Text(d.walkIn ? t('לקוח מזדמן') : t('עבור {0}', [d.customer!.name]),
+              style: const TextStyle(color: Aura.muted)),
           LayoutBuilder(
             builder: (context, box) => Wrap(
               spacing: 8,
@@ -374,8 +376,8 @@ class _ItemsStepState extends State<ItemsStep> {
             ),
           ),
           if (d.cart.isNotEmpty)
-            const Text('לחיצה על המספר מורידה פריט אחד.', style: TextStyle(fontSize: 12, color: Aura.muted)),
-          const SectionLabel('סכום חופשי'),
+            Text(t('לחיצה על המספר מורידה פריט אחד.'), style: TextStyle(fontSize: 12, color: Aura.muted)),
+          SectionLabel(t('סכום חופשי')),
           Row(children: [
             Expanded(
               flex: 2,
@@ -384,7 +386,7 @@ class _ItemsStepState extends State<ItemsStep> {
                 controller: amount,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: const InputDecoration(labelText: 'סכום', suffixText: '₪'),
+                decoration: InputDecoration(labelText: t('סכום'), suffixText: '₪'),
                 onChanged: (_) => _custom(),
               ),
             ),
@@ -393,7 +395,7 @@ class _ItemsStepState extends State<ItemsStep> {
               flex: 3,
               child: TextField(
                 controller: note,
-                decoration: const InputDecoration(labelText: 'עבור (למשל: חוב אוקטובר)'),
+                decoration: InputDecoration(labelText: t('עבור (למשל: חוב אוקטובר)')),
                 onChanged: (_) => _custom(),
               ),
             ),
@@ -433,7 +435,7 @@ class PaymentStep extends StatelessWidget {
         final problem = d.problem;
         final pct = d.due <= 0 ? 0.0 : (d.assigned / d.due).clamp(0.0, 1.0);
         return FlowScaffold(
-          title: 'תשלום',
+          title: t('תשלום'),
           step: 2,
           bottom: Column(mainAxisSize: MainAxisSize.min, children: [
             if (problem != null)
@@ -447,7 +449,7 @@ class PaymentStep extends StatelessWidget {
               onPressed: problem != null
                   ? null
                   : () => Navigator.push(context, MaterialPageRoute(builder: (_) => SummaryStep(draft: d))),
-              child: const Text('המשך לסיכום'),
+              child: Text(t('המשך לסיכום')),
             ),
           ]),
           children: [
@@ -461,12 +463,12 @@ class PaymentStep extends StatelessWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(
                         p != null && p.isRecurring
-                            ? '${'לתשלום היום'} (${[
-                                'חודש ראשון',
-                                if (p.prepayLastMonth) 'חודש אחרון מראש',
-                                if (!d.waiveRegistration && p.registrationFee > 0) 'דמי רישום',
+                            ? '${t('לתשלום היום')} (${[
+                                t('חודש ראשון'),
+                                if (p.prepayLastMonth) t('חודש אחרון מראש'),
+                                if (!d.waiveRegistration && p.registrationFee > 0) t('דמי רישום'),
                               ].join(' + ')})'
-                            : 'לתשלום',
+                            : t('לתשלום'),
                         style: const TextStyle(color: Aura.goldLight, fontSize: 12.5),
                       ),
                       Text(money(d.due),
@@ -475,7 +477,7 @@ class PaymentStep extends StatelessWidget {
                     ]),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    const Text('שויך', style: TextStyle(color: Aura.goldLight, fontSize: 12.5)),
+                    Text(t('שויך'), style: TextStyle(color: Aura.goldLight, fontSize: 12.5)),
                     Text(money(d.assigned),
                         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                   ]),
@@ -494,7 +496,7 @@ class PaymentStep extends StatelessWidget {
             ),
             for (final l in d.lines)
               _LineEditor(key: ObjectKey(l), draft: d, line: l, needCard: () => _needCard(context)),
-            SectionLabel(d.lines.isEmpty ? 'איך משלמים?' : 'הוספת אמצעי נוסף (פיצול)'),
+            SectionLabel(d.lines.isEmpty ? t('איך משלמים?') : t('הוספת אמצעי נוסף (פיצול)')),
             Row(children: [
               for (final m in PayMethod.values) ...[
                 if (m != PayMethod.values.first) const SizedBox(width: 6),
@@ -512,13 +514,14 @@ class PaymentStep extends StatelessWidget {
               ],
             ]),
             if (p != null && p.isRecurring) ...[
-              SectionLabel('החיוב החודשי · ${money(d.monthly)} כל חודש'),
+              SectionLabel(t('החיוב החודשי · {0} כל חודש', [money(d.monthly)])),
               ChoiceRow<RecurringMethod>(
                 values: d.recurringChoices,
                 selected: d.recurring,
                 label: (m) => switch (m) {
-                  RecurringMethod.savedCard => 'כרטיס שמור •••• ${d.customer!.savedCardLast4}',
-                  RecurringMethod.newCard => d.newCardLast4 != null ? 'כרטיס •••• ${d.newCardLast4}' : 'כרטיס חדש',
+                  RecurringMethod.savedCard => t('כרטיס שמור •••• {0}', [d.customer!.savedCardLast4]),
+                  RecurringMethod.newCard =>
+                    d.newCardLast4 != null ? t('כרטיס •••• {0}', [d.newCardLast4]) : t('כרטיס חדש'),
                   _ => m.label,
                 },
                 onSelected: (m) async {
@@ -527,13 +530,15 @@ class PaymentStep extends StatelessWidget {
                 },
               ),
               Note(switch (d.recurring) {
-                RecurringMethod.manual =>
-                  'בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי ${d.store.settings.graceDays} ימי איחור הכניסה נחסמת.',
-                RecurringMethod.standingOrder => 'החיוב יעבור דרך הבנק. יש להחתים את הלקוח על טופס הרשאה לחיוב חשבון.',
-                null => 'בחרו איך ייגבה החודש הבא.',
+                RecurringMethod.manual => t(
+                    t('בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי {0} ימי איחור הכניסה נחסמת.'),
+                    [d.store.settings.graceDays]),
+                RecurringMethod.standingOrder =>
+                  t('החיוב יעבור דרך הבנק. יש להחתים את הלקוח על טופס הרשאה לחיוב חשבון.'),
+                null => t('בחרו איך ייגבה החודש הבא.'),
                 _ => p.commitMonths > 0
-                    ? 'חיוב אוטומטי כל חודש · התחייבות ל-${p.commitMonths} חודשים.'
-                    : 'חיוב אוטומטי כל חודש · ביטול בהודעה של ${p.cancelNoticeDays} יום מראש.',
+                    ? t('חיוב אוטומטי כל חודש · התחייבות ל-{0} חודשים.', [p.commitMonths])
+                    : t('חיוב אוטומטי כל חודש · ביטול בהודעה של {0} יום מראש.', [p.cancelNoticeDays]),
               }),
             ],
           ],
@@ -627,7 +632,7 @@ class _LineEditorState extends State<_LineEditor> {
             ),
           ),
           IconButton(
-            tooltip: 'הסרה',
+            tooltip: t('הסרה'),
             onPressed: () => d.removeLine(l),
             icon: const Icon(Icons.close, color: Aura.muted),
           ),
@@ -637,13 +642,13 @@ class _LineEditorState extends State<_LineEditor> {
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (card != null)
               ChoiceChip(
-                label: Text('שמור •••• $card'),
+                label: Text(t('שמור •••• {0}', [card])),
                 selected: l.cardSource == CardSource.saved,
                 labelStyle: TextStyle(color: l.cardSource == CardSource.saved ? Colors.white : Aura.ink),
                 onSelected: (_) => d.setCardSource(l, CardSource.saved),
               ),
             ChoiceChip(
-              label: Text(d.newCardLast4 != null ? 'חדש •••• ${d.newCardLast4}' : 'כרטיס חדש'),
+              label: Text(d.newCardLast4 != null ? t('חדש •••• {0}', [d.newCardLast4]) : t('כרטיס חדש')),
               selected: l.cardSource == CardSource.newCard,
               labelStyle: TextStyle(color: l.cardSource == CardSource.newCard ? Colors.white : Aura.ink),
               onSelected: (_) async {
@@ -657,7 +662,7 @@ class _LineEditorState extends State<_LineEditor> {
             ChoiceRow<int>(
               values: [1, 2, 3, 6, 10, 12].where((x) => x <= maxI).toList(),
               selected: l.installments,
-              label: (x) => x == 1 ? 'תשלום אחד' : '$x תשלומים',
+              label: (x) => x == 1 ? t('תשלום אחד') : t('{0} תשלומים', [x]),
               onSelected: (x) => d.setInstallments(l, x),
             ),
           ],
@@ -673,30 +678,31 @@ class _LineEditorState extends State<_LineEditor> {
           ChoiceRow<int>(
             values: [1, 2, 3, 6, 10, 12].where((x) => x <= maxC).toList(),
             selected: l.cheques,
-            label: (x) => x == 1 ? 'שיק אחד' : '$x שיקים',
+            label: (x) => x == 1 ? t('שיק אחד') : t('{0} שיקים', [x]),
             onSelected: (x) => d.setCheques(l, x),
           ),
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-                '${l.cheques} × ${money(l.amount / l.cheques)} · הראשון היום והשאר בכל חודש. מספרי השיקים נרשמים בקבלה.',
+                t('{0} × {1} · הראשון היום והשאר בכל חודש. מספרי השיקים נרשמים בקבלה.',
+                    [l.cheques, money(l.amount / l.cheques)]),
                 style: const TextStyle(fontSize: 12.5, color: Aura.muted, height: 1.4)),
           ),
         ],
         if (l.method == PayMethod.cash)
-          const Padding(
+          Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Text('המזומן נרשם בקופה, והקבלה תציין "מזומן".',
+              child: Text(t('המזומן נרשם בקופה, והקבלה תציין "מזומן".'),
                   style: TextStyle(fontSize: 12.5, color: Aura.muted))),
         if (l.method == PayMethod.bank)
-          const Padding(
+          Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Text('החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.',
+              child: Text(t('החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.'),
                   style: TextStyle(fontSize: 12.5, color: Aura.muted))),
         if (l.method == PayMethod.link)
-          const Padding(
+          Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Text('החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.',
+              child: Text(t('החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.'),
                   style: TextStyle(fontSize: 12.5, color: Aura.muted))),
       ]),
     );
@@ -711,11 +717,12 @@ class SummaryStep extends StatelessWidget {
   String _lineText(PaymentLine l) {
     final b = StringBuffer(money(l.amount));
     if (l.method == PayMethod.card) {
-      b.write(' · כרטיס ${l.cardSource == CardSource.saved ? draft.customer!.savedCardLast4 : draft.newCardLast4}');
-      if (l.installments > 1) b.write(' · ${l.installments} תשלומים');
+      b.write(
+          t(' · כרטיס {0}', [l.cardSource == CardSource.saved ? draft.customer!.savedCardLast4 : draft.newCardLast4]));
+      if (l.installments > 1) b.write(t(' · {0} תשלומים', [l.installments]));
     }
-    if (l.method == PayMethod.cheque) b.write(' · ${l.cheques} שיקים');
-    if (l.method.isDeferred) b.write(' · ממתין');
+    if (l.method == PayMethod.cheque) b.write(t(' · {0} שיקים', [l.cheques]));
+    if (l.method.isDeferred) b.write(t(' · ממתין'));
     return b.toString();
   }
 
@@ -726,28 +733,28 @@ class SummaryStep extends StatelessWidget {
     final p = d.isSubscription ? d.plan : null;
     final start = startDate(d.start, store.now);
     final rows = <(String, String)>[
-      ('לקוח', d.walkIn ? 'לקוח מזדמן' : d.customer!.name),
+      (t('לקוח'), d.walkIn ? t('לקוח מזדמן') : d.customer!.name),
       if (p != null) ...[
-        ('מסלול', p.name),
-        ('תחילה', fmtDate(start)),
+        (t('מסלול'), p.name),
+        (t('תחילה'), fmtDate(start)),
         (
-          p.isRecurring ? 'חידוש' : 'סיום',
+          p.isRecurring ? t('חידוש') : t('סיום'),
           switch (p.kind) {
-            PlanKind.recurring => 'כל חודש, עד ביטול',
+            PlanKind.recurring => t('כל חודש, עד ביטול'),
             PlanKind.term => fmtDate(endDate(p, start)!),
-            PlanKind.punch => '${p.entries} כניסות, עד ${fmtDate(endDate(p, start)!)}',
+            PlanKind.punch => t('{0} כניסות, עד {1}', [p.entries, fmtDate(endDate(p, start)!)]),
           }
         ),
-        if (d.discountPct > 0) ('הנחה', '${d.discountPct}%'),
-        if (p.registrationFee > 0) ('דמי רישום', d.waiveRegistration ? 'בוטלו' : money(p.registrationFee)),
-        if (p.isRecurring && p.prepayLastMonth) ('חודש אחרון ששולם מראש', money(d.monthly)),
+        if (d.discountPct > 0) (t('הנחה'), '${d.discountPct}%'),
+        if (p.registrationFee > 0) (t('דמי רישום'), d.waiveRegistration ? t('בוטלו') : money(p.registrationFee)),
+        if (p.isRecurring && p.prepayLastMonth) (t('חודש אחרון ששולם מראש'), money(d.monthly)),
       ] else
-        ('פריטים', d.itemsDescription),
+        (t('פריטים'), d.itemsDescription),
     ];
     final pending = isPending(d.lines);
     final channel = store.settings.receiptChannels.map((c) => c.label).join(' / ');
     return FlowScaffold(
-      title: 'סיכום ואישור',
+      title: t('סיכום ואישור'),
       step: 3,
       bottom: FilledButton(
         key: const Key('confirm'),
@@ -777,22 +784,25 @@ class SummaryStep extends StatelessWidget {
             (route) => route.isFirst,
           );
         },
-        child: Text('${p != null ? 'פתיחת המנוי' : 'ביצוע התשלום'} · ${money(d.due)}'),
+        child: Text('${p != null ? t('פתיחת המנוי') : t('ביצוע התשלום')} · ${money(d.due)}'),
       ),
       children: [
         SummaryBox(rows: rows),
-        const SectionLabel('תשלום'),
+        SectionLabel(t('תשלום')),
         SummaryBox(
           rows: [for (final l in d.lines) (l.method.label, _lineText(l))],
-          total: ('סה״כ היום', money(d.due)),
+          total: (t('סה״כ היום'), money(d.due)),
         ),
         if (p != null && p.isRecurring)
           Note(d.recurring == RecurringMethod.manual
-              ? 'מהחודש הבא: ${money(d.monthly)} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.'
-              : 'מהחודש הבא: ${money(d.monthly)} ב${d.recurring!.label}.'),
+              ? t('מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.', [money(d.monthly)])
+              : t('מהחודש הבא: {0} ב{1}.', [money(d.monthly), d.recurring!.label])),
         Note([
-          if (pending) 'המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.',
-          '${store.settings.docType.label} אחת עם כל אמצעי התשלום${d.walkIn ? ' תודפס או תישלח ב-SMS' : ' תישלח ב-$channel ל-${d.customer!.phone}'}.',
+          if (pending) t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
+          t('{0} אחת עם כל אמצעי התשלום{1}.', [
+            store.settings.docType.label,
+            d.walkIn ? t(' תודפס או תישלח ב-SMS') : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
+          ]),
         ].join(' ')),
       ],
     );
@@ -810,7 +820,7 @@ class DoneScreen extends StatelessWidget {
     final pending = sub?.status == SubStatus.pendingPayment;
     final p = draft.plan;
     return Scaffold(
-      appBar: AppBar(automaticallyImplyLeading: false, title: Text(pending ? 'ממתין לתשלום' : 'בוצע')),
+      appBar: AppBar(automaticallyImplyLeading: false, title: Text(pending ? t('ממתין לתשלום') : t('בוצע'))),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16), children: [
           const SizedBox(height: 12),
@@ -824,8 +834,8 @@ class DoneScreen extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             sub == null
-                ? 'התשלום התקבל'
-                : (pending ? 'המנוי נפתח וממתין לתשלום' : '${draft.customer!.name} – מנוי פעיל'),
+                ? t('התשלום התקבל')
+                : (pending ? t('המנוי נפתח וממתין לתשלום') : t('{0} – מנוי פעיל', [draft.customer!.name])),
             key: const Key('doneTitle'),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -841,7 +851,7 @@ class DoneScreen extends StatelessWidget {
               child: Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${draft.store.settings.businessName} · כרטיס מנוי',
+                    Text(t('{0} · כרטיס מנוי', [draft.store.settings.businessName]),
                         style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text(draft.customer!.name,
@@ -866,10 +876,10 @@ class DoneScreen extends StatelessWidget {
                 Navigator.pop(context);
                 startCheckout(context, draft.flow);
               },
-              child: Text(draft.isSubscription ? 'מנוי נוסף' : 'תשלום נוסף'),
+              child: Text(draft.isSubscription ? t('מנוי נוסף') : t('תשלום נוסף')),
             ),
             const SizedBox(height: 8),
-            OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('חזרה למסך הראשי')),
+            OutlinedButton(onPressed: () => Navigator.pop(context), child: Text(t('חזרה למסך הראשי'))),
           ]),
         ),
       ),
