@@ -57,8 +57,18 @@ jobs:
           status=$?
           tail -5 test.log
           if [ $status -ne 0 ]; then
-            grep -nE "Expected:|Actual:|Bad state|was thrown|Exception|\[E\]|Error:|Which:" test.log | head -40 | while IFS= read -r l; do echo "::error::$l"; done
-            { echo '### Test failures'; echo '```'; grep -nE -A6 "EXCEPTION CAUGHT|\[E\]" test.log | head -250; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            python3 - <<'PY'
+          import re
+          log=open('test.log',encoding='utf-8',errors='replace').read().split('\n')
+          out=[]
+          for i,l in enumerate(log):
+              if 'EXCEPTION CAUGHT' in l:
+                  block=[x.strip() for x in log[i+1:i+16] if x.strip() and not x.startswith('═')]
+                  msg=' | '.join(block)[:900]
+                  if msg not in out: out.append(msg)
+          for m in out[:9]:
+              print('::error::'+m.replace('%','%25'))
+          PY
             exit 1
           fi
 
