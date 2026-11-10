@@ -1,0 +1,239 @@
+import 'package:flutter/material.dart';
+
+import '../domain/checkout.dart';
+import '../domain/models.dart';
+import 'checkout/checkout_screens.dart';
+import 'links.dart';
+import 'theme.dart';
+import 'widgets.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key, required this.goTo});
+
+  /// Switches the bottom navigation tab (1 = members, 2 = to collect).
+  final ValueChanged<int> goTo;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final collect = store.toCollect;
+    final overdue = collect.where((c) => !c.dueDate.isAfter(store.today)).toList();
+    final waiting = store.links.where((l) => l.status == LinkStatus.waiting).toList();
+    final expiring = store.expiringSoon;
+
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: false,
+        title: Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: Aura.ink, borderRadius: BorderRadius.circular(10)),
+            child: const Text('A', style: TextStyle(color: Aura.goldLight, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 10),
+          Text(store.settings.businessName),
+        ]),
+      ),
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        Row(children: [
+          _Kpi(label: 'מנויים פעילים', value: '${store.activeCount}'),
+          const SizedBox(width: 8),
+          _Kpi(label: 'הכנסות היום', value: money(store.todayRevenue)),
+          const SizedBox(width: 8),
+          _Kpi(label: 'חוב פתוח', value: money(store.openDebt), alert: store.openDebt > 0, onTap: () => goTo(2)),
+        ]),
+        const SizedBox(height: 14),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.45,
+          children: [
+            _Tile(
+              key: const Key('tileNewSub'),
+              primary: true,
+              icon: Icons.add,
+              title: 'מנוי חדש',
+              sub: 'לקוח בקבלה',
+              onTap: () => startCheckout(context, CheckoutFlow.subscription),
+            ),
+            _Tile(
+              key: const Key('tileQuickPay'),
+              icon: Icons.point_of_sale,
+              title: 'תשלום מהיר',
+              sub: 'מוצרים, אימון אישי או סכום חופשי',
+              onTap: () => startCheckout(context, CheckoutFlow.quickPay),
+            ),
+            _Tile(
+              key: const Key('tileLink'),
+              icon: Icons.ios_share,
+              title: 'לינק הרשמה',
+              sub: 'הלקוח בוחר מסלול ומשלם לבד',
+              onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
+            ),
+            _Tile(
+              key: const Key('tileCollect'),
+              icon: Icons.receipt_long,
+              title: 'לגבייה',
+              sub: collect.isEmpty ? 'אין תשלומים פתוחים' : '${collect.length} תשלומים · ${money(collect.fold(0.0, (a, c) => a + c.amount))}',
+              onTap: () => goTo(2),
+            ),
+          ],
+        ),
+        if (overdue.isNotEmpty || waiting.isNotEmpty || expiring.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const SectionLabel('דורש טיפול'),
+          for (final c in overdue)
+            _Alert(
+              icon: Icons.warning_amber_rounded,
+              tone: PillTone.bad,
+              title: store.customer(c.customerId)!.name,
+              text: c.manual
+                  ? 'גבייה ידנית · ${money(c.amount)} · באיחור של ${c.daysOverdue(store.today)} ימים'
+                  : 'חיוב באשראי נכשל · ${money(c.amount)} · ${c.attempts} ניסיונות',
+              onTap: () => goTo(2),
+            ),
+          for (final l in waiting)
+            _Alert(
+              icon: Icons.link,
+              tone: PillTone.wait,
+              title: l.sentTo,
+              text: l.planId == null
+                  ? 'לינק הרשמה נשלח · ממתין לתשלום'
+                  : 'לינק לתשלום ${money(l.amount ?? 0)} · ממתין',
+              onTap: () => openCustomerPreview(context, l),
+            ),
+          for (final s in expiring)
+            _Alert(
+              icon: Icons.event_busy,
+              tone: PillTone.info,
+              title: store.customer(s.customerId)!.name,
+              text: '${store.plan(s.planId)!.name} מסתיים ב-${fmtDate(s.end!)} · להציע חידוש',
+              onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
+            ),
+        ],
+        const SizedBox(height: 8),
+        const SectionLabel('תשלומים אחרונים'),
+        for (final r in store.receipts.reversed.take(5))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Panel(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(r.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text('${r.description} · ${r.lines.map((l) => l.method.label).join(' + ')}',
+                        style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                  ]),
+                ),
+                Text(money(r.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+class _Kpi extends StatelessWidget {
+  const _Kpi({required this.label, required this.value, this.alert = false, this.onTap});
+  final String label;
+  final String value;
+  final bool alert;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Panel(
+          onTap: onTap,
+          color: alert ? Aura.warnBg : Colors.white,
+          borderColor: alert ? Aura.warnBg : null,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: TextStyle(fontSize: 11.5, color: alert ? Aura.warn : Aura.muted)),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: alert ? Aura.warn : Aura.ink)),
+            ),
+          ]),
+        ),
+      );
+}
+
+class _Tile extends StatelessWidget {
+  const _Tile({super.key, required this.icon, required this.title, required this.sub, this.onTap, this.primary = false});
+  final IconData icon;
+  final String title;
+  final String sub;
+  final VoidCallback? onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = primary ? Colors.white : Aura.ink;
+    return Opacity(
+      opacity: onTap == null ? .45 : 1,
+      child: Panel(
+        onTap: onTap,
+        color: primary ? Aura.ink : Colors.white,
+        borderColor: primary ? Aura.ink : null,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(color: primary ? Aura.goldLight : Aura.goldBg, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 20, color: primary ? Aura.ink : Aura.gold),
+          ),
+          const Spacer(),
+          Text(title, style: TextStyle(color: fg, fontSize: 15.5, fontWeight: FontWeight.w600)),
+          Text(sub, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: primary ? Aura.goldLight : Aura.muted, fontSize: 12)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _Alert extends StatelessWidget {
+  const _Alert({required this.icon, required this.tone, required this.title, required this.text, this.onTap});
+  final IconData icon;
+  final PillTone tone;
+  final String title;
+  final String text;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (tone) {
+      PillTone.bad => Aura.warn,
+      PillTone.wait => Aura.gold,
+      PillTone.info => Aura.blue,
+      _ => Aura.muted,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Panel(
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+              Text(text, style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+            ]),
+          ),
+          const Icon(Icons.chevron_left, color: Aura.muted),
+        ]),
+      ),
+    );
+  }
+}

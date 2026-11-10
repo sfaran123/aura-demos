@@ -1,0 +1,76 @@
+name: AURA Gym – test and build APK
+
+on:
+  push:
+    paths:
+      - 'gym_subscriptions/**'
+      - '.github/workflows/gym-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gym-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gym_subscriptions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+
+      - name: Generate the Android project
+        run: |
+          flutter create --org tech.aura --project-name aura_gym --platforms android .
+          git checkout -- lib pubspec.yaml analysis_options.yaml test
+          rm -f test/widget_test.dart
+          sed -i 's/android:label="aura_gym"/android:label="AURA Gym"/' android/app/src/main/AndroidManifest.xml
+
+      - run: flutter pub get
+
+      - name: Launcher icon
+        run: dart run flutter_launcher_icons
+        continue-on-error: true
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
+      - name: Build APK
+        run: |
+          flutter build apk --release --build-number=${{ github.run_number }}
+          cp build/app/outputs/flutter-apk/app-release.apk ../AURA-Gym.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AURA-Gym-apk
+          path: AURA-Gym.apk
+
+      - name: Publish as a GitHub release (download link for the phone)
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete gym-latest --yes --cleanup-tag || true
+          gh release create gym-latest AURA-Gym.apk \
+            --prerelease \
+            --target "${{ github.sha }}" \
+            --title "AURA Gym – build ${{ github.run_number }}" \
+            --notes "גרסת בדיקה של מודול המנויים לחדר כושר. נבנה מ-${{ github.ref_name }} (${{ github.sha }}). להתקנה: להוריד את AURA-Gym.apk בטלפון אנדרואיד ולאשר התקנה ממקור לא ידוע."
