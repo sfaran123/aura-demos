@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'guide_screen.dart';
+import 'help.dart';
+import 'plans_screen.dart';
+import 'sales_screen.dart';
+import 'receipt_view.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
@@ -35,8 +41,17 @@ class HomeScreen extends StatelessWidget {
             child: const Text('A', style: TextStyle(color: Aura.goldLight, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 10),
-          Text(store.settings.businessName),
+          Expanded(child: Text(store.settings.businessName, overflow: TextOverflow.ellipsis)),
         ]),
+        actions: [
+          IconButton(
+            key: const Key('openGuide'),
+            tooltip: t('מדריך למשתמש'),
+            icon: const Icon(Icons.menu_book_outlined),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuideScreen())),
+          ),
+          HelpButton.topic(HelpTopic.home),
+        ],
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Row(children: [
@@ -81,10 +96,41 @@ class HomeScreen extends StatelessWidget {
                   : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]),
               onTap: () => goTo(2),
             )),
+        const SizedBox(height: 10),
+        Panel(
+          padding: EdgeInsets.zero,
+          child: Column(children: [
+            _LinkRow(
+              key: const Key('homeSales'),
+              icon: Icons.receipt_outlined,
+              title: t('מכירות וחשבוניות'),
+              sub: t('{0} מסמכים החודש', [
+                store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length
+              ]),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen())),
+            ),
+            const Divider(height: 1),
+            _LinkRow(
+              key: const Key('homePrices'),
+              icon: Icons.sell_outlined,
+              title: t('מחירון'),
+              sub: t('{0} מוצרים ו-{1} מסלולים', [store.items.length, store.plans.length]),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PriceListScreen())),
+            ),
+            const Divider(height: 1),
+            _LinkRow(
+              key: const Key('homePlans'),
+              icon: Icons.view_list,
+              title: t('מסלולי מנוי'),
+              sub: t('{0} מסלולים פעילים · הגדרת מסלול חדש', [store.activePlans.length]),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
+            ),
+          ]),
+        ),
         if (overdue.isNotEmpty || expiring.isNotEmpty) ...[
           const SizedBox(height: 8),
           SectionLabel(t('דורש טיפול')),
-          for (final c in overdue)
+          for (final c in overdue.take(4))
             _Alert(
               icon: Icons.warning_amber_rounded,
               tone: PillTone.bad,
@@ -94,7 +140,16 @@ class HomeScreen extends StatelessWidget {
                   : t('חיוב באשראי נכשל · {0} · {1} ניסיונות', [money(c.amount), c.attempts]),
               onTap: () => goTo(2),
             ),
-          for (final s in expiring)
+          if (overdue.length > 4)
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                key: const Key('homeAllOverdue'),
+                onPressed: () => goTo(2),
+                child: Text(t('עוד {0} באיחור · לרשימת הגבייה', [overdue.length - 4])),
+              ),
+            ),
+          for (final s in expiring.take(3))
             _Alert(
               icon: Icons.event_busy,
               tone: PillTone.info,
@@ -119,6 +174,8 @@ class HomeScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Panel(
+              key: Key('receipt-${r.number}'),
+              onTap: () => showReceiptSheet(context, r),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(children: [
                 Expanded(
@@ -255,4 +312,31 @@ class _Alert extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LinkRow extends StatelessWidget {
+  const _LinkRow({super.key, required this.icon, required this.title, required this.sub, required this.onTap});
+  final IconData icon;
+  final String title;
+  final String sub;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            Icon(icon, color: Aura.gold),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(sub, style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+              ]),
+            ),
+            const ForwardChevron(),
+          ]),
+        ),
+      );
 }

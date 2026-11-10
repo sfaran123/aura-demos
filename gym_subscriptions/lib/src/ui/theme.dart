@@ -43,9 +43,11 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
+      titleTextStyle: TextStyle(
+          fontFamily: font, fontFamilyFallback: fb, fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
     ),
-    textTheme: base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: font, fontFamilyFallback: fb),
+    textTheme:
+        base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: font, fontFamilyFallback: fb),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: Aura.ink,
@@ -87,7 +89,8 @@ ThemeData auraTheme([AppLang lang = AppLang.he]) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       indicatorColor: Aura.goldBg,
-      labelTextStyle: WidgetStateProperty.all(TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 12, fontWeight: FontWeight.w500)),
+      labelTextStyle: WidgetStateProperty.all(
+          TextStyle(fontFamily: font, fontFamilyFallback: fb, fontSize: 12, fontWeight: FontWeight.w500)),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.all(Colors.white),

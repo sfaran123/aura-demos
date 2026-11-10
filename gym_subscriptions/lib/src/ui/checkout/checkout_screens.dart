@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/help.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/checkout.dart';
@@ -7,6 +8,9 @@ import '../../domain/settings.dart';
 import '../../state/gym_store.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import '../plans_screen.dart' show PlanEditor;
+import '../receipt_view.dart';
+import '../sales_screen.dart' show PriceListScreen;
 import 'card_sheet.dart';
 import 'draft.dart';
 import '../../domain/l10n.dart';
@@ -47,6 +51,7 @@ class _CustomerStepState extends State<CustomerStep> {
     final d = widget.draft;
     return FlowScaffold(
       title: d.isSubscription ? t('למי פותחים מנוי?') : t('למי התשלום?'),
+      help: HelpTopic.customer,
       step: 0,
       children: [
         TextField(
@@ -221,6 +226,7 @@ class PlanStep extends StatelessWidget {
         final s = store.settings;
         return FlowScaffold(
           title: t('בחירת מסלול'),
+          help: HelpTopic.plan,
           step: 1,
           bottom: FilledButton(
             key: const Key('toPayment'),
@@ -251,6 +257,21 @@ class PlanStep extends StatelessWidget {
                     ),
                   ),
               ],
+            OutlinedButton.icon(
+              key: const Key('planStepNew'),
+              onPressed: () async {
+                final created = await Navigator.push<SubscriptionPlan>(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => PlanEditor(
+                          plan: SubscriptionPlan(
+                              id: '', name: '', kind: PlanKind.recurring, price: 0, freezeDaysPerYear: 14))),
+                );
+                if (created != null) draft.setPlan(created);
+              },
+              icon: const Icon(Icons.add),
+              label: Text(t('מסלול חדש')),
+            ),
             if (p != null) ...[
               SectionLabel(t('אפשרויות')),
               Panel(
@@ -315,10 +336,12 @@ class _ItemsStepState extends State<ItemsStep> {
   @override
   Widget build(BuildContext context) {
     final d = widget.draft;
+    StoreScope.of(context); // rebuild when the price list changes
     return ListenableBuilder(
       listenable: d,
       builder: (context, _) => FlowScaffold(
         title: t('מה משלמים?'),
+        help: HelpTopic.items,
         step: 1,
         bottom: FilledButton(
           key: const Key('itemsToPayment'),
@@ -331,8 +354,18 @@ class _ItemsStepState extends State<ItemsStep> {
           child: Text(d.due <= 0 ? t('בחרו מוצר או סכום') : t('המשך לתשלום · {0}', [money(d.due)])),
         ),
         children: [
-          Text(d.walkIn ? t('לקוח מזדמן') : t('עבור {0}', [d.customer!.name]),
-              style: const TextStyle(color: Aura.muted)),
+          Row(children: [
+            Expanded(
+              child: Text(d.walkIn ? t('לקוח מזדמן') : t('עבור {0}', [d.customer!.name]),
+                  style: const TextStyle(color: Aura.muted)),
+            ),
+            TextButton.icon(
+              key: const Key('editPriceList'),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PriceListScreen())),
+              icon: const Icon(Icons.sell_outlined, size: 18),
+              label: Text(t('עריכת מחירון')),
+            ),
+          ]),
           LayoutBuilder(
             builder: (context, box) => Wrap(
               spacing: 8,
@@ -436,6 +469,7 @@ class PaymentStep extends StatelessWidget {
         final pct = d.due <= 0 ? 0.0 : (d.assigned / d.due).clamp(0.0, 1.0);
         return FlowScaffold(
           title: t('תשלום'),
+          help: HelpTopic.payment,
           step: 2,
           bottom: Column(mainAxisSize: MainAxisSize.min, children: [
             if (problem != null)
@@ -688,6 +722,8 @@ class _LineEditorState extends State<_LineEditor> {
                     [l.cheques, money(l.amount / l.cheques)]),
                 style: const TextStyle(fontSize: 12.5, color: Aura.muted, height: 1.4)),
           ),
+          const SizedBox(height: 8),
+          PaymentDetailsFields(line: l, index: d.lines.indexOf(l), onChanged: d.detailsChanged),
         ],
         if (l.method == PayMethod.cash)
           Padding(
@@ -699,6 +735,10 @@ class _LineEditorState extends State<_LineEditor> {
               padding: EdgeInsets.only(top: 6),
               child: Text(t('החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.'),
                   style: TextStyle(fontSize: 12.5, color: Aura.muted))),
+        if (l.method == PayMethod.bank) ...[
+          const SizedBox(height: 8),
+          PaymentDetailsFields(line: l, index: d.lines.indexOf(l), onChanged: d.detailsChanged),
+        ],
         if (l.method == PayMethod.link)
           Padding(
               padding: EdgeInsets.only(top: 6),
@@ -722,6 +762,7 @@ class SummaryStep extends StatelessWidget {
       if (l.installments > 1) b.write(t(' · {0} תשלומים', [l.installments]));
     }
     if (l.method == PayMethod.cheque) b.write(t(' · {0} שיקים', [l.cheques]));
+    if (l.detailsText.isNotEmpty) b.write('\n${l.detailsText}');
     if (l.method.isDeferred) b.write(t(' · ממתין'));
     return b.toString();
   }
@@ -755,6 +796,7 @@ class SummaryStep extends StatelessWidget {
     final channel = store.settings.receiptChannels.map((c) => c.label).join(' / ');
     return FlowScaffold(
       title: t('סיכום ואישור'),
+      help: HelpTopic.summary,
       step: 3,
       bottom: FilledButton(
         key: const Key('confirm'),
@@ -843,6 +885,16 @@ class DoneScreen extends StatelessWidget {
           const SizedBox(height: 6),
           Text('${draft.store.settings.docType.label} ${receipt.number} · ${money(receipt.total)}',
               textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
+          Center(
+            child: TextButton.icon(
+              key: const Key('viewReceipt'),
+              onPressed: () => showReceiptSheet(context, receipt),
+              icon: const Icon(Icons.receipt_long_outlined, size: 18),
+              label: Text(t('הצגת הקבלה')),
+            ),
+          ),
+          const SizedBox(height: 6),
+          ReceiptSendPanel(receipt: receipt),
           if (sub != null && p != null) ...[
             const SizedBox(height: 18),
             Container(
@@ -883,6 +935,107 @@ class DoneScreen extends StatelessWidget {
           ]),
         ),
       ),
+    );
+  }
+}
+
+/// Basic details for a cheque (number, bank, branch, account, first date) or a
+/// bank transfer (reference, paying bank, date). Used at checkout and when
+/// collecting a monthly payment.
+class PaymentDetailsFields extends StatelessWidget {
+  const PaymentDetailsFields({super.key, required this.line, required this.index, required this.onChanged});
+  final PaymentLine line;
+  final int index;
+  final VoidCallback onChanged;
+
+  Widget _f(String key, String label, String value, ValueChanged<String> set,
+          {int max = 10, bool digits = true, String? helper}) =>
+      TextFormField(
+        key: Key('$key-$index'),
+        initialValue: value,
+        keyboardType: digits ? TextInputType.number : TextInputType.text,
+        inputFormatters: [
+          if (digits) FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(max),
+        ],
+        decoration: InputDecoration(isDense: true, labelText: label, helperText: helper),
+        onChanged: (v) {
+          set(v.trim());
+          onChanged();
+        },
+      );
+
+  Widget _grid(List<Widget> c) => LayoutBuilder(builder: (context, box) {
+        final w = (box.maxWidth - 8) / 2;
+        return Wrap(spacing: 8, runSpacing: 8, children: [for (final x in c) SizedBox(width: w, child: x)]);
+      });
+
+  Future<void> _pickDate(BuildContext context, DateTime current, ValueChanged<DateTime> set) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: current.subtract(const Duration(days: 365)),
+      lastDate: current.add(const Duration(days: 730)),
+    );
+    if (d != null) {
+      set(d);
+      onChanged();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final today = dateOnly(DateTime.now());
+    final problem = line.detailsProblem;
+    final isCheque = line.method == PayMethod.cheque;
+    final c = line.cheque, tr = line.transfer;
+    final bank = bankName(isCheque ? c.bank : tr.bank);
+    final date = (isCheque ? c.firstDate : tr.date) ?? today;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: problem == null ? Aura.okBg : Aura.paper,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: problem == null ? Aura.okBg : Aura.line),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(isCheque ? t('פרטי השיק') : t('פרטי ההעברה'),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        if (isCheque)
+          _grid([
+            _f('chq-number', t('מספר שיק'), c.number, (v) => c.number = v),
+            _f('chq-bank', t('בנק (קוד)'), c.bank, (v) => c.bank = v, max: 2, helper: bank.isEmpty ? null : bank),
+            _f('chq-branch', t('סניף'), c.branch, (v) => c.branch = v, max: 3),
+            _f('chq-account', t('מספר חשבון'), c.account, (v) => c.account = v, max: 9),
+          ])
+        else
+          _grid([
+            _f('tr-ref', t('אסמכתא'), tr.reference, (v) => tr.reference = v, max: 20, digits: false),
+            _f('tr-bank', t('בנק משלם (קוד)'), tr.bank, (v) => tr.bank = v, max: 2, helper: bank.isEmpty ? null : bank),
+          ]),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: Text(isCheque ? t('תאריך השיק הראשון') : t('תאריך ההעברה'),
+                style: const TextStyle(fontSize: 13, color: Aura.muted)),
+          ),
+          TextButton.icon(
+            key: Key('${isCheque ? 'chq' : 'tr'}-date-$index'),
+            onPressed: () => _pickDate(context, date, (d) => isCheque ? c.firstDate = d : tr.date = d),
+            icon: const Icon(Icons.event, size: 18),
+            label: Text(fmtDate(date)),
+          ),
+        ]),
+        if (isCheque && line.cheques > 1 && c.number.isNotEmpty)
+          Text(t('{0} שיקים: {1} עד {2}, אחד בכל חודש', [line.cheques, c.numberAt(0), c.numberAt(line.cheques - 1)]),
+              style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+        if (problem != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(problem, style: const TextStyle(fontSize: 12.5, color: Aura.warn)),
+          ),
+      ]),
     );
   }
 }

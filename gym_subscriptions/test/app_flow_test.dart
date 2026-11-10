@@ -7,6 +7,8 @@ import 'package:aura_gym/src/domain/models.dart';
 import 'package:aura_gym/src/state/reports.dart';
 import 'package:aura_gym/src/state/gym_store.dart';
 
+final _vertical = find.byWidgetPredicate((w) => w is Scrollable && w.axisDirection == AxisDirection.down).first;
+
 void main() {
   late GymStore store;
 
@@ -21,7 +23,11 @@ void main() {
 
   Future<void> tap(WidgetTester t, Finder f) async {
     if (f.evaluate().isEmpty) {
-      await t.scrollUntilVisible(f, 250, scrollable: find.byType(Scrollable).first);
+      try {
+        await t.scrollUntilVisible(f, 250, scrollable: _vertical, maxScrolls: 40);
+      } on StateError {
+        await t.scrollUntilVisible(f, -250, scrollable: _vertical, maxScrolls: 60);
+      }
     }
     await t.ensureVisible(f.first);
     await t.pumpAndSettle();
@@ -34,7 +40,7 @@ void main() {
   /// Scrolls the current screen until [f] is built and on screen.
   Future<Finder> seen(WidgetTester t, Finder f) async {
     if (f.evaluate().isEmpty) {
-      await t.scrollUntilVisible(f, 250, scrollable: find.byType(Scrollable).first);
+      await t.scrollUntilVisible(f, 250, scrollable: _vertical);
     }
     return f;
   }
@@ -45,7 +51,9 @@ void main() {
     expect(find.text('תשלום מהיר'), findsOneWidget);
     expect(find.text('לינק הרשמה'), findsOneWidget);
     expect(await seen(t, find.text('דורש טיפול')), findsOneWidget);
-    expect(await seen(t, find.textContaining('גבייה ידנית')), findsWidgets);
+    await t.drag(find.byType(ListView).first, const Offset(0, -500));
+    await t.pumpAndSettle();
+    expect(find.textContaining(RegExp('גבייה ידנית|חיוב באשראי נכשל')), findsWidgets);
   });
 
   testWidgets('existing customer with a saved card: subscription in 5 taps', (t) async {
@@ -106,7 +114,7 @@ void main() {
   testWidgets('collect a manual monthly payment from the list', (t) async {
     await boot(t);
     await tapKey(t, 'navCollect');
-    expect(find.text('אלון ברק'), findsWidgets);
+    expect(await seen(t, find.text('אלון ברק')), findsWidgets);
     await tapKey(t, 'collect-ch1');
     await tapKey(t, 'collectWith-cash');
     expect(find.textContaining('הופקה'), findsOneWidget);
@@ -256,4 +264,203 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+
+  testWidgets('every main screen has a ? that explains it', (t) async {
+    await boot(t);
+    for (final tab in ['navHome', 'navMembers', 'navCollect', 'navReports', 'navSettings']) {
+      await tapKey(t, tab);
+      await t.tap(find.byKey(const Key('help')).last);
+      await t.pumpAndSettle();
+      expect(find.text('למה זה עוזר'), findsOneWidget, reason: tab);
+      expect(find.text('מה זה נותן לך'), findsOneWidget, reason: tab);
+      await t.tap(find.byKey(const Key('helpClose')));
+      await t.pumpAndSettle();
+    }
+    await tapKey(t, 'navReports');
+    await tapKey(t, 'report-debts');
+    await t.tap(find.byKey(const Key('help')).last);
+    await t.pumpAndSettle();
+    expect(find.text('כל החייבים לפי ותק החוב'), findsOneWidget);
+  });
+
+  testWidgets('business summary shows the whole business with a trend', (t) async {
+    await boot(t);
+    await tapKey(t, 'navReports');
+    await tapKey(t, 'report-summary');
+    expect(find.text('סיכום העסק'), findsWidgets);
+    expect(await seen(t, find.text('מגמה – 6 חודשים')), findsOneWidget);
+    for (final p in ['היום', '7 ימים', 'חודש קודם']) {
+      await tap(t, find.text(p));
+      expect(t.takeException(), isNull, reason: p);
+    }
+  });
+
+  testWidgets('a debt is collected straight from the debts report', (t) async {
+    await boot(t);
+    await tapKey(t, 'navReports');
+    await tapKey(t, 'report-debts');
+    final open = store.charges.where((c) => c.isOpen() && c.daysOverdue(store.today) > 0 && c.manual).first;
+    await tapKey(t, 'payRow-${open.id}');
+    await t.tap(find.byKey(Key('collect-${open.id}')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('collectWith-cash')));
+    await t.pumpAndSettle();
+    expect(open.status, ChargeStatus.paid);
+    expect(store.receipts.last.lines.single.method, PayMethod.cash);
+  });
+
+  testWidgets('cheque payment needs number, bank, branch and account', (t) async {
+    await boot(t);
+    await tapKey(t, 'tileNewSub');
+    await tap(t, find.text('נועה לוי'));
+    await tapKey(t, 'plan-p4');
+    await tapKey(t, 'toPayment');
+    await tap(t, find.byTooltip('הסרה')); // the saved card is prefilled
+    await tapKey(t, 'add-cheque');
+    expect(await seen(t, find.textContaining('חסרים פרטי שיק')), findsWidgets);
+    await t.enterText(find.byKey(const Key('chq-number-0')), '5001');
+    await t.enterText(find.byKey(const Key('chq-bank-0')), '12');
+    await t.enterText(find.byKey(const Key('chq-branch-0')), '614');
+    await t.enterText(find.byKey(const Key('chq-account-0')), '338210');
+    await t.pumpAndSettle();
+    expect(find.textContaining('חסרים פרטי שיק'), findsNothing);
+    expect(find.text('הפועלים'), findsOneWidget);
+    await tapKey(t, 'toSummary');
+    await tapKey(t, 'confirm');
+    final line = store.receipts.last.lines.single;
+    expect(line.method, PayMethod.cheque);
+    expect(line.cheque.number, '5001');
+    expect(line.cheque.branch, '614');
+  });
+
+  testWidgets('collecting a monthly payment by transfer asks for the reference', (t) async {
+    await boot(t);
+    await tapKey(t, 'navCollect');
+    await tapKey(t, 'collect-ch1');
+    await tapKey(t, 'collectWith-bank');
+    await t.enterText(find.byKey(const Key('tr-ref-0')), '7788123');
+    await t.enterText(find.byKey(const Key('tr-bank-0')), '10');
+    await t.pumpAndSettle();
+    await tapKey(t, 'detailsSave');
+    final ch = store.charges.firstWhere((c) => c.id == 'ch1');
+    expect(ch.status, ChargeStatus.paid);
+    expect(store.receipts.last.lines.single.transfer.reference, '7788123');
+  });
+
+  testWidgets('receipt is sent by SMS after a quick payment', (t) async {
+    await boot(t);
+    await tapKey(t, 'tileQuickPay');
+    await tap(t, find.text('נועה לוי'));
+    await tapKey(t, 'item-water');
+    await tapKey(t, 'itemsToPayment');
+    await tapKey(t, 'add-cash');
+    await tapKey(t, 'toSummary');
+    await tapKey(t, 'confirm');
+    expect(t.widget<TextField>(find.byKey(const Key('sendPhone'))).controller!.text, '052-7781024');
+    await tapKey(t, 'sendSms');
+    expect(store.receipts.last.sent.single.$1, 'SMS');
+    await tapKey(t, 'viewReceipt');
+    expect(find.byKey(const Key('receiptCard')), findsOneWidget);
+  });
+
+  testWidgets('a new plan can be created inside the new-membership flow', (t) async {
+    await boot(t);
+    await tapKey(t, 'tileNewSub');
+    await tap(t, find.text('נועה לוי'));
+    await tapKey(t, 'planStepNew');
+    await t.enterText(find.byKey(const Key('pe-name')), 'בוקר בלבד');
+    await t.enterText(find.byKey(const Key('pe-price')), '119');
+    await t.pumpAndSettle();
+    await tapKey(t, 'savePlan');
+    final p = store.plans.last;
+    expect(p.name, 'בוקר בלבד');
+    expect(find.text('המשך לתשלום · 119 ₪'), findsOneWidget);
+  });
+
+  testWidgets('plans are reachable from home', (t) async {
+    await boot(t);
+    await tapKey(t, 'homePlans');
+    expect(find.byKey(const Key('newPlan')), findsOneWidget);
+  });
+
+  testWidgets('business type sets the recommended reports, and reports can be turned off', (t) async {
+    await boot(t);
+    await tapKey(t, 'navSettings');
+    await tapKey(t, 'businessType');
+    await tapKey(t, 'bt-beauty');
+    expect(store.settings.enabledReports.contains('frozen'), isFalse);
+    await tapKey(t, 'navReports');
+    expect(find.byKey(const Key('report-frozen')), findsNothing);
+    await tapKey(t, 'pickReports');
+    await tapKey(t, 'rep-revenue');
+    expect(store.settings.enabledReports.contains('revenue'), isFalse);
+    await tapKey(t, 'reportsAll');
+    expect(store.settings.enabledReports.length, allReports.length);
+  });
+
+
+  testWidgets('the guide finds a topic and takes you there', (t) async {
+    await boot(t);
+    await tapKey(t, 'openGuide');
+    expect(find.text('מה רוצים לעשות?'), findsOneWidget);
+    await t.enterText(find.byKey(const Key('guideSearch')), 'שיק');
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('guide-cheque')), findsOneWidget);
+    expect(find.byKey(const Key('guide-freeze')), findsNothing);
+    await t.enterText(find.byKey(const Key('guideSearch')), 'מזומן חודשי');
+    await t.pumpAndSettle();
+    await tapKey(t, 'guideGo-collectCash');
+    expect(find.byKey(const Key('guideSearch')), findsNothing);
+    expect(find.text('חוב פתוח עד היום'), findsOneWidget);
+  });
+
+  testWidgets('the ? sheet opens the full guide', (t) async {
+    await boot(t);
+    await tapKey(t, 'navMembers');
+    await t.tap(find.byKey(const Key('help')).last);
+    await t.pumpAndSettle();
+    await tapKey(t, 'helpGuide');
+    expect(find.byKey(const Key('guideSearch')), findsOneWidget);
+  });
+
+
+  testWidgets('sales list finds an invoice and resends it', (t) async {
+    await boot(t);
+    await tapKey(t, 'homeSales');
+    expect(find.text('מכירות וחשבוניות'), findsOneWidget);
+    final last = store.receipts.last;
+    await t.enterText(find.byKey(const Key('salesSearch')), '${last.number}');
+    await t.pumpAndSettle();
+    await tapKey(t, 'sale-${last.number}');
+    expect(find.byKey(const Key('receiptCard')), findsOneWidget);
+    expect(find.textContaining('חשבונית מס קבלה'), findsWidgets);
+  });
+
+  testWidgets('price list: change a price and it is used at the desk', (t) async {
+    await boot(t);
+    await tapKey(t, 'homePrices');
+    await tapKey(t, 'price-shake');
+    await t.enterText(find.byKey(const Key('itemPrice')), '25');
+    await tapKey(t, 'itemSave');
+    expect(store.items.firstWhere((x) => x.id == 'shake').price, 25);
+    await tapKey(t, 'newItem');
+    await t.enterText(find.byKey(const Key('itemName')), 'חטיף חלבון');
+    await t.enterText(find.byKey(const Key('itemPrice')), '12');
+    await tapKey(t, 'itemSave');
+    expect(store.items.any((x) => x.name == 'חטיף חלבון' && x.price == 12), isTrue);
+  });
+
+  testWidgets('quick-pay products are edited from the quick-pay screen', (t) async {
+    await boot(t);
+    await tapKey(t, 'tileQuickPay');
+    await tapKey(t, 'walkIn');
+    await tapKey(t, 'editPriceList');
+    await tapKey(t, 'price-water');
+    await t.enterText(find.byKey(const Key('itemPrice')), '10');
+    await tapKey(t, 'itemSave');
+    await t.tap(find.byType(BackButton).last);
+    await t.pumpAndSettle();
+    expect(find.text('10 ₪'), findsWidgets);
+  });
 }

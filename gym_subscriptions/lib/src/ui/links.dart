@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/checkout.dart';
@@ -167,8 +168,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
     final banner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(color: Aura.blueBg, borderRadius: BorderRadius.circular(10)),
-      child:
-          Text(t('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו'), style: TextStyle(color: Aura.blue, fontSize: 12.5)),
+      child: Text(t('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו'), style: TextStyle(color: Aura.blue, fontSize: 12.5)),
     );
 
     if (step == 3) {
@@ -186,8 +186,11 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text(t('קבלה וכרטיס מנוי נשלחו ב-{0}. בכניסה מציגים את הקוד.', [s.receiptChannels.map((c) => c.label).join(' / ')]),
-              textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
+          Text(
+              t('קבלה וכרטיס מנוי נשלחו ב-{0}. בכניסה מציגים את הקוד.',
+                  [s.receiptChannels.map((c) => c.label).join(' / ')]),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Aura.muted)),
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(16),
@@ -195,7 +198,8 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             child: Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(t('{0} · כרטיס מנוי', [s.businessName]), style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
+                  Text(t('{0} · כרטיס מנוי', [s.businessName]),
+                      style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
                   Text(name.text,
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                   Text(plan!.name, style: const TextStyle(color: Colors.white70)),
@@ -218,6 +222,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
       final plans = store.activePlans.where((p) => p.onlineSignup).toList();
       return FlowScaffold(
         title: t('{0} · הצטרפות', [s.businessName]),
+        help: HelpTopic.customerLink,
         step: 0,
         steps: 3,
         children: [

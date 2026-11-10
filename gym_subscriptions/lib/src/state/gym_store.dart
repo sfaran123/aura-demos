@@ -8,6 +8,7 @@ import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/notifier.dart';
 import '../domain/settings.dart';
+import 'demo_data.dart';
 
 class GymStore extends SimpleNotifier {
   GymStore({DateTime Function()? clock, bool seed = true}) : _clock = clock ?? DateTime.now {
@@ -39,6 +40,22 @@ class GymStore extends SimpleNotifier {
   ];
 
   void touch() => notifyListeners();
+
+  /// Adds a product to the price list, or updates the one with the same id.
+  void saveItem(ShopItem item) {
+    final i = items.indexWhere((x) => x.id == item.id);
+    if (i >= 0) {
+      items[i] = item;
+    } else {
+      items.add(ShopItem(item.id.isEmpty ? _next('item') : item.id, item.name, item.price));
+    }
+    notifyListeners();
+  }
+
+  void removeItem(String id) {
+    items.removeWhere((x) => x.id == id);
+    notifyListeners();
+  }
 
   AppLang get language => L10n.lang;
 
@@ -125,20 +142,25 @@ class GymStore extends SimpleNotifier {
     return c;
   }
 
-  void savePlan(SubscriptionPlan p) {
+  /// Saves a plan and returns the stored copy (new plans get an id).
+  SubscriptionPlan savePlan(SubscriptionPlan p) {
     if (!p.isRecurring) p.prepayLastMonth = false;
     final i = plans.indexWhere((x) => x.id == p.id);
+    late SubscriptionPlan saved;
     if (i >= 0) {
-      plans[i] = p;
+      plans[i] = saved = p;
     } else {
-      plans.add(p.copy(id: _next('p')));
+      plans.add(saved = p.copy(id: _next('p')));
     }
     notifyListeners();
+    return saved;
   }
 
-  Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind, {DateTime? at}) {
+  Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind,
+      {DateTime? at, String? customerId}) {
     final r = Receipt(
         number: ++_receiptNo,
+        customerId: customerId,
         customerName: name,
         description: desc,
         kind: kind,
@@ -148,7 +170,9 @@ class GymStore extends SimpleNotifier {
                 amount: l.amount,
                 cardSource: l.cardSource,
                 installments: l.installments,
-                cheques: l.cheques))
+                cheques: l.cheques,
+                cheque: l.cheque,
+                transfer: l.transfer))
             .toList(),
         date: at ?? now);
     receipts.add(r);
@@ -213,7 +237,7 @@ class GymStore extends SimpleNotifier {
     );
     subscriptions.add(sub);
     if (plan.isRecurring) _schedule(sub, addMonths(s0, 1), monthly!, recurring == RecurringMethod.manual);
-    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription);
+    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription, customerId: customer.id);
     if (lines.any((l) => l.method == PayMethod.link)) {
       final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
       links.insert(
@@ -231,13 +255,15 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt quickPay({Customer? customer, required String description, required List<PaymentLine> lines}) {
-    final r = _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay);
+    final r =
+        _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay, customerId: customer?.id);
     notifyListeners();
     return r;
   }
 
   /// Marks a manual (or failed) monthly charge as collected and schedules the next one.
-  Receipt collect(Charge c, PayMethod method) {
+  /// Marks a monthly charge as paid. [line] carries cheque or transfer details.
+  Receipt collect(Charge c, PayMethod method, {PaymentLine? line}) {
     c.status = ChargeStatus.paid;
     c.paidWith = method;
     c.paidAt = now;
@@ -251,9 +277,17 @@ class GymStore extends SimpleNotifier {
     final hasLater = charges.any((x) => x.subscriptionId == sub.id && x.dueDate.isAfter(c.dueDate));
     if (!hasLater) _schedule(sub, next, c.amount, c.manual);
     final r = _receipt(cust.name, '${plan(sub.planId)?.name ?? t('מנוי')} · ${c.dueDate.month}/${c.dueDate.year}',
-        [PaymentLine(method: method, amount: c.amount)], ReceiptKind.collection);
+        [line ?? PaymentLine(method: method, amount: c.amount)], ReceiptKind.collection,
+        customerId: cust.id);
     notifyListeners();
     return r;
+  }
+
+  /// Records that a receipt was sent. In the AURA app this calls the SMS /
+  /// WhatsApp / email provider with a link to the receipt PDF.
+  void sendReceipt(Receipt r, Channel channel, String to) {
+    r.sent.add((channel.label, to, now));
+    notifyListeners();
   }
 
   void remind(Charge c) {
@@ -431,7 +465,7 @@ class GymStore extends SimpleNotifier {
         PaymentLine(method: PayMethod.card, amount: amount, installments: installments, cardSource: CardSource.newCard);
     if (existing != null) {
       existing.status = SubStatus.active;
-      _receipt(c.name, t('{0} · לינק', [plan.name]), [line], ReceiptKind.link);
+      _receipt(c.name, t('{0} · לינק', [plan.name]), [line], ReceiptKind.link, customerId: c.id);
       notifyListeners();
       return existing;
     }
@@ -459,6 +493,7 @@ class GymStore extends SimpleNotifier {
         description: r.receipt.description,
         lines: r.receipt.lines,
         date: r.receipt.date,
+        customerId: r.receipt.customerId,
         kind: ReceiptKind.link));
     return r.sub;
   }
@@ -699,7 +734,18 @@ class GymStore extends SimpleNotifier {
           ReceiptKind.subscription),
       rec(30163, t('יעל אורן'), t('חודשי + חודש אחרון מראש'), [pc(method: PayMethod.card, amount: 358)], ago(18),
           ReceiptKind.link),
-      rec(30166, t('לינה סעד'), t('3 חודשים'), [pc(method: PayMethod.cheque, amount: 640, cheques: 3)], ago(12),
+      rec(
+          30166,
+          t('לינה סעד'),
+          t('3 חודשים'),
+          [
+            pc(
+                method: PayMethod.cheque,
+                amount: 640,
+                cheques: 3,
+                cheque: ChequeDetails(number: '0041', bank: '12', branch: '614', account: '338210', firstDate: ago(12)))
+          ],
+          ago(12),
           ReceiptKind.subscription),
       rec(30170, t('אלון ברק'), t('פעמיים בשבוע · {0}/{1}', [addMonths(ago(3), -1).month, addMonths(ago(3), -1).year]),
           [pc(method: PayMethod.cash, amount: 149)], addMonths(ago(3), -1), ReceiptKind.collection),
@@ -712,5 +758,25 @@ class GymStore extends SimpleNotifier {
       rec(30181, t('לקוח מזדמן'), t('כניסה חד-פעמית'), [pc(method: PayMethod.cash, amount: 60)],
           now.subtract(const Duration(hours: 1)), ReceiptKind.quickPay),
     ]);
+    seedDemoHistory(this);
+    // Number every receipt in date order, as a real receipt book would be.
+    receipts.sort((a, b) => a.date.compareTo(b.date));
+    final numbered = [
+      for (var i = 0; i < receipts.length; i++)
+        Receipt(
+          number: 28001 + i,
+          customerId:
+              receipts[i].customerId ?? customers.where((c) => c.name == receipts[i].customerName).firstOrNull?.id,
+          customerName: receipts[i].customerName,
+          description: receipts[i].description,
+          lines: receipts[i].lines,
+          date: receipts[i].date,
+          kind: receipts[i].kind,
+        )
+    ];
+    receipts
+      ..clear()
+      ..addAll(numbered);
+    _receiptNo = 28000 + receipts.length;
   }
 }

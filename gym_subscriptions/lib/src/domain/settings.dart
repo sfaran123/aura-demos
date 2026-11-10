@@ -33,9 +33,75 @@ extension ChannelLabel on Channel {
       };
 }
 
+/// What kind of business uses the app. It picks a recommended set of reports;
+/// the owner can still turn any report on or off.
+enum BusinessType { gym, studio, crossfit, martialArts, pool, dance, beauty, clinic, classes, kids }
+
+extension BusinessTypeInfo on BusinessType {
+  String get label => switch (this) {
+        BusinessType.gym => t('חדר כושר'),
+        BusinessType.studio => t('סטודיו יוגה / פילאטיס'),
+        BusinessType.crossfit => t('קרוספיט / אימוני כוח'),
+        BusinessType.martialArts => t('אומנויות לחימה'),
+        BusinessType.pool => t('בריכה / קאנטרי'),
+        BusinessType.dance => t('בית ספר לריקוד'),
+        BusinessType.beauty => t('קוסמטיקה / פדיקור / ציפורניים'),
+        BusinessType.clinic => t('קליניקה / פיזיותרפיה'),
+        BusinessType.classes => t('חוגים ושיעורים פרטיים'),
+        BusinessType.kids => t('מועדון / חוגי ילדים'),
+      };
+
+  String get hint => switch (this) {
+        BusinessType.gym => t('מנויים חודשיים, כרטיסיות, הקפאות וגבייה חודשית'),
+        BusinessType.studio => t('מנוי לפי מספר שיעורים בשבוע וכרטיסיות'),
+        BusinessType.crossfit => t('מנויים חודשיים בהתחייבות ואימונים אישיים'),
+        BusinessType.martialArts => t('מנוי חודשי לחוג, הרבה תשלום במזומן ושיקים'),
+        BusinessType.pool => t('מנוי עונתי או שנתי, משפחות'),
+        BusinessType.dance => t('שנת לימודים בתשלומים או בשיקים'),
+        BusinessType.beauty => t('סדרות טיפולים (כרטיסייה) ומנוי חודשי לטיפול קבוע'),
+        BusinessType.clinic => t('סדרות טיפולים וחבילות'),
+        BusinessType.classes => t('תשלום חודשי ידני, שיקים ותזכורות'),
+        BusinessType.kids => t('שנת פעילות, שיקים ותשלום חודשי מההורים'),
+      };
+
+  /// Reports that matter most for this kind of business.
+  Set<String> get recommendedReports {
+    const all = {
+      'summary', 'revenue', 'forecast', 'cheques', 'deposits', 'manual', 'debts', 'failed', //
+      'active', 'expiring', 'joins', 'frozen', 'links'
+    };
+    return switch (this) {
+      BusinessType.gym || BusinessType.crossfit => all,
+      BusinessType.studio || BusinessType.pool => all.difference({'cheques'}),
+      BusinessType.martialArts ||
+      BusinessType.classes ||
+      BusinessType.kids ||
+      BusinessType.dance =>
+        all.difference({'deposits', 'frozen'}),
+      BusinessType.beauty || BusinessType.clinic => {
+          'summary',
+          'revenue',
+          'forecast',
+          'manual',
+          'debts',
+          'expiring',
+          'links',
+          'active'
+        },
+    };
+  }
+}
+
 class BusinessSettings {
   // Business
   String businessName = 'Fit Club';
+
+  /// Company / dealer number printed on every invoice. Empty until the owner sets it.
+  String businessId = '';
+  BusinessType businessType = BusinessType.gym;
+
+  /// Reports shown in the reports tab for this business.
+  Set<String> enabledReports = BusinessType.gym.recommendedReports;
   DocType docType = DocType.taxInvoiceReceipt;
   double vatPct = 18;
 

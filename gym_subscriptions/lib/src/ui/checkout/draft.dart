@@ -152,6 +152,9 @@ class CheckoutDraft extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cheque or transfer details were typed.
+  void detailsChanged() => notifyListeners();
+
   void setCheques(PaymentLine l, int n) {
     l.cheques = n;
     notifyListeners();

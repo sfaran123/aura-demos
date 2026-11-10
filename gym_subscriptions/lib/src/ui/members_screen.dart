@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'help.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
@@ -58,7 +60,7 @@ class _MembersScreenState extends State<MembersScreen> {
       ..sort((a, b) => store.customer(a.customerId)!.name.compareTo(store.customer(b.customerId)!.name));
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('מנויים'))),
+      appBar: AppBar(title: Text(t('מנויים')), actions: [HelpButton.topic(HelpTopic.members)]),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'newSubFab',
         backgroundColor: Aura.goldLight,
@@ -265,7 +267,8 @@ class _MemberSheet extends StatelessWidget {
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final d in opts)
-                ActionChip(key: Key('freeze-$d'), label: Text(t('{0} ימים', [d])), onPressed: () => Navigator.pop(ctx, d)),
+                ActionChip(
+                    key: Key('freeze-$d'), label: Text(t('{0} ימים', [d])), onPressed: () => Navigator.pop(ctx, d)),
             ]),
           ]),
         ),

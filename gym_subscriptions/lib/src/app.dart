@@ -71,15 +71,25 @@ class GymModule extends StatefulWidget {
 
 class _GymModuleState extends State<GymModule> {
   final _nav = GlobalKey<NavigatorState>();
+  final _tab = ValueNotifier<int>(0);
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => StoreScope(
         store: widget.store,
-        child: NavigatorPopHandler<Object?>(
-          onPopWithResult: (_) => _nav.currentState?.maybePop(),
-          child: Navigator(
-            key: _nav,
-            onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => const _Shell()),
+        child: ShellTabs(
+          tab: _tab,
+          child: NavigatorPopHandler<Object?>(
+            onPopWithResult: (_) => _nav.currentState?.maybePop(),
+            child: Navigator(
+              key: _nav,
+              onGenerateRoute: (_) => MaterialPageRoute(builder: (_) => const _Shell()),
+            ),
           ),
         ),
       );
@@ -92,14 +102,17 @@ class _Shell extends StatefulWidget {
 }
 
 class _ShellState extends State<_Shell> {
-  int tab = 0;
-
   @override
   Widget build(BuildContext context) {
+    final tabs = ShellTabs.of(context);
+    return ValueListenableBuilder<int>(valueListenable: tabs, builder: (context, tab, _) => _build(context, tab, tabs));
+  }
+
+  Widget _build(BuildContext context, int tab, ValueNotifier<int> tabs) {
     final store = StoreScope.of(context);
     final toCollect = store.toCollect.length;
     final pages = [
-      HomeScreen(goTo: (i) => setState(() => tab = i)),
+      HomeScreen(goTo: (i) => tabs.value = i),
       const MembersScreen(),
       const CollectScreen(),
       const ReportsScreen(),
@@ -109,7 +122,7 @@ class _ShellState extends State<_Shell> {
       body: IndexedStack(index: tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
-        onDestinationSelected: (i) => setState(() => tab = i),
+        onDestinationSelected: (i) => tabs.value = i,
         destinations: [
           NavigationDestination(
               key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: t('ראשי')),

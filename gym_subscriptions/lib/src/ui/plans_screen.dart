@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'help.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/models.dart';
@@ -13,7 +15,7 @@ class PlansScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(t('מסלולי מנוי'))),
+      appBar: AppBar(title: Text(t('מסלולי מנוי')), actions: [HelpButton.topic(HelpTopic.plans)]),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('newPlan'),
         heroTag: 'newPlanFab',
@@ -29,8 +31,8 @@ class PlansScreen extends StatelessWidget {
         label: Text(t('מסלול חדש')),
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
-        Note(t(
-            t('כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'))),
+        Note(t(t(
+            'כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'))),
         const SizedBox(height: 12),
         for (final p in store.plans)
           Padding(
@@ -83,6 +85,7 @@ class _PlanEditorState extends State<PlanEditor> {
     final isNew = p.id.isEmpty;
     return FlowScaffold(
       title: isNew ? t('מסלול חדש') : t('עריכת מסלול'),
+      help: HelpTopic.planEditor,
       bottom: Column(mainAxisSize: MainAxisSize.min, children: [
         if (error != null)
           Padding(
@@ -96,8 +99,8 @@ class _PlanEditorState extends State<PlanEditor> {
             }
             final e = p.validate();
             if (e != null) return setState(() => error = e);
-            store.savePlan(p);
-            Navigator.pop(context);
+            final saved = store.savePlan(p);
+            Navigator.pop(context, saved);
             showDone(context, t('המסלול "{0}" נשמר', [p.name]));
           },
           child: Text(t('שמירת המסלול')),

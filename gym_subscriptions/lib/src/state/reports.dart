@@ -2,6 +2,7 @@
 // neutral structure (KPIs + sections of rows) that one screen renders.
 
 import '../domain/checkout.dart';
+import '../domain/help.dart';
 import '../domain/models.dart';
 import 'gym_store.dart';
 import '../domain/l10n.dart';
@@ -28,19 +29,29 @@ extension PeriodLabel on Period {
 enum Tone { ok, warn, bad, info, plain }
 
 class Kpi {
-  const Kpi(this.label, this.value, {this.tone = Tone.plain});
+  const Kpi(this.label, this.value, {this.tone = Tone.plain, this.sub, this.subTone = Tone.plain});
   final String label;
   final String value;
   final Tone tone;
+
+  /// Small line under the value, e.g. the change from the previous period.
+  final String? sub;
+  final Tone subTone;
 }
 
 class ReportRow {
-  const ReportRow(this.title, {this.subtitle, this.value, this.tag, this.tone = Tone.plain});
+  const ReportRow(this.title, {this.subtitle, this.value, this.tag, this.tone = Tone.plain, this.bar, this.chargeId});
   final String title;
   final String? subtitle;
   final String? value;
   final String? tag;
   final Tone tone;
+
+  /// 0..1: draws a bar under the row (share of the largest row).
+  final double? bar;
+
+  /// An open charge behind this row: the report offers to collect it.
+  final String? chargeId;
 }
 
 class ReportSection {
@@ -74,10 +85,11 @@ class ReportData {
   }
 }
 
-enum ReportGroup { money, collection, members, links }
+enum ReportGroup { overview, money, collection, members, links }
 
 extension ReportGroupLabel on ReportGroup {
   String get label => switch (this) {
+        ReportGroup.overview => t('סיכום'),
         ReportGroup.money => t('כספים'),
         ReportGroup.collection => t('גבייה וחובות'),
         ReportGroup.members => t('מנויים'),
@@ -97,6 +109,8 @@ class ReportDef {
 
   /// The number shown on the report's card in the hub.
   final String Function(GymStore s)? headline;
+
+  HelpContent get help => reportHelp(id, title);
 }
 
 bool _inRange(DateTime d, (DateTime, DateTime) r) => !d.isBefore(r.$1) && d.isBefore(r.$2);
@@ -110,6 +124,185 @@ String _receiptKind(ReceiptKind k) => switch (k) {
       ReceiptKind.quickPay => t('תשלום מהיר'),
       ReceiptKind.link => t('תשלום בלינק'),
     };
+
+// ------------------------------------------------------------------ summary
+/// The period just before [p], of the same length (month to date compares with
+/// the same days of last month).
+(DateTime, DateTime) previousRange(Period p, DateTime today) {
+  final r = p.range(today);
+  return switch (p) {
+    Period.today => (today.subtract(const Duration(days: 1)), today),
+    Period.week => (r.$1.subtract(const Duration(days: 7)), r.$1),
+    Period.month => (
+        DateTime(today.year, today.month - 1, 1),
+        DateTime(today.year, today.month - 1, 1).add(Duration(days: today.day))
+      ),
+    Period.lastMonth => (DateTime(today.year, today.month - 2, 1), DateTime(today.year, today.month - 1, 1)),
+  };
+}
+
+String _delta(double now, double before) {
+  if (before == 0) return now == 0 ? '—' : t('חדש');
+  final pct = ((now - before) / before * 100).round();
+  return pct >= 0 ? '+$pct%' : '−${-pct}%';
+}
+
+Tone _deltaTone(double now, double before, {bool upIsGood = true}) {
+  if (now == before) return Tone.plain;
+  return (now > before) == upIsGood ? Tone.ok : Tone.bad;
+}
+
+double _revenueIn(GymStore s, (DateTime, DateTime) r) =>
+    _sum(s.receipts.where((x) => _inRange(x.date, r)).map((x) => x.collectedNow));
+
+ReportData summaryReport(GymStore s, Period p) {
+  final r = p.range(s.today);
+  final prev = previousRange(p, s.today);
+  final cut = r.$2.isAfter(s.now) ? (r.$1, s.today.add(const Duration(days: 1))) : r;
+
+  final revenue = _revenueIn(s, r), revenuePrev = _revenueIn(s, prev);
+  final receipts = s.receipts.where((x) => _inRange(x.date, r)).toList();
+  final joins = s.subscriptions.where((x) => _inRange(x.joinedAt, r)).length;
+  final joinsPrev = s.subscriptions.where((x) => _inRange(x.joinedAt, prev)).length;
+  final cancels = s.subscriptions.where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, r)).length;
+  final cancelsPrev = s.subscriptions.where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, prev)).length;
+  final live = s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).toList();
+
+  // Monthly charges that fell due in the period (up to today) and how many were collected.
+  final due = s.charges.where((c) => c.status != ChargeStatus.covered && _inRange(c.dueDate, cut)).toList();
+  final dueSum = _sum(due.map((c) => c.amount));
+  final paidSum = _sum(due.where((c) => c.status == ChargeStatus.paid).map((c) => c.amount));
+  final openSum = _sum(due.where((c) => c.isOpen()).map((c) => c.amount));
+  final failedSum = _sum(due.where((c) => c.status == ChargeStatus.failed).map((c) => c.amount));
+  final rate = dueSum == 0 ? 100 : (paidSum / dueSum * 100).round();
+
+  final sent = s.links.where((l) => _inRange(l.createdAt, r)).toList();
+  final linkPaid = sent.where((l) => l.stage == LinkStage.paid).length;
+
+  // Six-month trend.
+  final months = [for (var i = 5; i >= 0; i--) DateTime(s.today.year, s.today.month - i, 1)];
+  final trend = [
+    for (final m in months)
+      (
+        m,
+        _revenueIn(s, (m, DateTime(m.year, m.month + 1, 1))),
+        s.subscriptions.where((x) => _inRange(x.joinedAt, (m, DateTime(m.year, m.month + 1, 1)))).length,
+        s.subscriptions
+            .where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, (m, DateTime(m.year, m.month + 1, 1))))
+            .length,
+      )
+  ];
+  final maxTrend = trend.fold(0.0, (a, x) => x.$2 > a ? x.$2 : a);
+
+  final byKind = <ReceiptKind, double>{};
+  final byMethod = <PayMethod, double>{};
+  for (final x in receipts) {
+    byKind[x.kind] = round2((byKind[x.kind] ?? 0) + x.collectedNow);
+    for (final l in x.lines.where((l) => !l.method.isDeferred)) {
+      byMethod[l.method] = round2((byMethod[l.method] ?? 0) + l.amount);
+    }
+  }
+
+  // Best sellers at the counter.
+  final sold = <String, int>{};
+  final soldSum = <String, double>{};
+  for (final x in receipts.where((x) => x.kind == ReceiptKind.quickPay)) {
+    final parts = x.description.split(', ');
+    for (final part in parts) {
+      sold[part] = (sold[part] ?? 0) + 1;
+      soldSum[part] = round2((soldSum[part] ?? 0) + x.collectedNow / parts.length);
+    }
+  }
+  final top = sold.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final maxSold = top.isEmpty ? 1 : top.first.value;
+
+  final overdue = s.charges.where((c) => c.isOpen() && c.daysOverdue(s.today) > 0).toList();
+  final failed = s.charges.where((c) => c.status == ChargeStatus.failed).length;
+  final blocked = s.customers.where((c) => s.entryBlocked(c.id)).length;
+  final waitingLinks = s.links.where((l) => l.stage != LinkStage.paid && l.stage != LinkStage.failed).length;
+  final ending = s.subscriptions
+      .where((x) =>
+          x.status == SubStatus.active &&
+          x.end != null &&
+          !x.end!.isBefore(s.today) &&
+          x.end!.difference(s.today).inDays <= 30)
+      .length;
+  final cancelling =
+      s.subscriptions.where((x) => x.cancelEffective != null && x.cancelEffective!.isAfter(s.today)).length;
+
+  Tone n(int v) => v > 0 ? Tone.warn : Tone.ok;
+  return ReportData(kpis: [
+    Kpi(t('הכנסות'), money(revenue),
+        tone: Tone.ok,
+        sub: t('{0} מול התקופה הקודמת', [_delta(revenue, revenuePrev)]),
+        subTone: _deltaTone(revenue, revenuePrev)),
+    Kpi(t('מנויים פעילים'), '${live.length}',
+        sub: t('{0} מוקפאים', [live.where((x) => x.status == SubStatus.frozen).length])),
+    Kpi(t('הצטרפו'), '$joins',
+        tone: Tone.ok,
+        sub: t('{0} בתקופה הקודמת', [joinsPrev]),
+        subTone: _deltaTone(joins.toDouble(), joinsPrev.toDouble())),
+    Kpi(t('ביטלו'), '$cancels',
+        tone: cancels > 0 ? Tone.warn : Tone.plain,
+        sub: t('{0} בתקופה הקודמת', [cancelsPrev]),
+        subTone: _deltaTone(cancels.toDouble(), cancelsPrev.toDouble(), upIsGood: false)),
+    Kpi(t('אחוז גבייה'), '$rate%',
+        tone: rate >= 90 ? Tone.ok : (rate >= 75 ? Tone.warn : Tone.bad),
+        sub: t('{0} מתוך {1}', [money(paidSum), money(dueSum)])),
+    Kpi(t('חוב פתוח'), money(_sum(overdue.map((c) => c.amount))),
+        tone: overdue.isEmpty ? Tone.ok : Tone.bad,
+        sub: t('{0} לקוחות', [overdue.map((c) => c.customerId).toSet().length])),
+    Kpi(t('קבלות'), '${receipts.length}',
+        sub: t('ממוצע {0}', [money(receipts.isEmpty ? 0 : revenue / receipts.length)])),
+    Kpi(t('המרת לינקים'), sent.isEmpty ? '—' : '${(linkPaid / sent.length * 100).round()}%',
+        tone: Tone.info, sub: t('{0} מתוך {1} שילמו', [linkPaid, sent.length])),
+  ], sections: [
+    ReportSection(t('דורש טיפול עכשיו'), [
+      ReportRow(t('לקוחות באיחור'),
+          value: '${overdue.map((c) => c.customerId).toSet().length}',
+          tone: n(overdue.length),
+          tag: overdue.isEmpty ? null : money(_sum(overdue.map((c) => c.amount)))),
+      ReportRow(t('חיובי אשראי שנכשלו'), value: '$failed', tone: failed > 0 ? Tone.bad : Tone.ok),
+      ReportRow(t('כניסה חסומה'), value: '$blocked', tone: blocked > 0 ? Tone.bad : Tone.ok),
+      ReportRow(t('מסתיימים ב-30 יום – להציע חידוש'), value: '$ending', tone: n(ending)),
+      ReportRow(t('בתהליך ביטול'), value: '$cancelling', tone: n(cancelling)),
+      ReportRow(t('לינקים שעוד לא שולמו'), value: '$waitingLinks', tone: n(waitingLinks)),
+    ]),
+    ReportSection(t('מגמה – 6 חודשים'), [
+      for (final m in trend.reversed)
+        ReportRow('${m.$1.month.toString().padLeft(2, '0')}/${m.$1.year}',
+            subtitle: t('+{0} הצטרפו · {1} ביטלו', [m.$3, m.$4]),
+            value: money(m.$2),
+            bar: maxTrend == 0 ? 0 : m.$2 / maxTrend,
+            tone: m.$1.month == s.today.month && m.$1.year == s.today.year ? Tone.info : Tone.plain),
+    ]),
+    ReportSection(t('גבייה חודשית בתקופה'), [
+      ReportRow(t('היה לגבות'), value: money(dueSum)),
+      ReportRow(t('נגבה'), value: money(paidSum), tone: Tone.ok, bar: dueSum == 0 ? 0 : paidSum / dueSum),
+      ReportRow(t('פתוח'), value: money(openSum), tone: openSum > 0 ? Tone.warn : Tone.ok),
+      ReportRow(t('מתוכו חיובים שנכשלו'), value: money(failedSum), tone: failedSum > 0 ? Tone.bad : Tone.ok),
+    ]),
+    ReportSection(t('מאיפה הגיע הכסף'), [
+      for (final e in byKind.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
+        ReportRow(_receiptKind(e.key),
+            value: money(e.value),
+            tag: revenue == 0 ? null : '${(e.value / revenue * 100).round()}%',
+            bar: revenue == 0 ? 0 : e.value / revenue),
+    ]),
+    ReportSection(t('לפי אמצעי תשלום'), [
+      for (final e in byMethod.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
+        ReportRow(e.key.label,
+            value: money(e.value),
+            tag: revenue == 0 ? null : '${(e.value / revenue * 100).round()}%',
+            bar: revenue == 0 ? 0 : e.value / revenue),
+    ]),
+    ReportSection(t('הנמכרים ביותר בקבלה'), [
+      for (final e in top.take(6))
+        ReportRow(e.key,
+            subtitle: money(soldSum[e.key] ?? 0), value: t('{0} פעמים', [e.value]), bar: e.value / maxSold),
+    ]),
+  ], note: t('השוואה לתקופה באורך זהה שלפניה. "החודש" מושווה לאותם ימים בחודש הקודם.'));
+}
 
 // ------------------------------------------------------------------ money
 ReportData revenueReport(GymStore s, Period p) {
@@ -132,16 +325,20 @@ ReportData revenueReport(GymStore s, Period p) {
   ], sections: [
     ReportSection(t('לפי אמצעי תשלום'), [
       for (final e in byMethod.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
-        ReportRow(e.key.label, value: money(e.value), tag: total == 0 ? null : '${(e.value / total * 100).round()}%'),
+        ReportRow(e.key.label,
+            value: money(e.value),
+            tag: total == 0 ? null : '${(e.value / total * 100).round()}%',
+            bar: total == 0 ? 0 : e.value / total),
     ]),
     ReportSection(t('לפי מקור'), [
       for (final e in byKind.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
-        ReportRow(_receiptKind(e.key), value: money(e.value)),
+        ReportRow(_receiptKind(e.key), value: money(e.value), bar: total == 0 ? 0 : e.value / total),
     ]),
     ReportSection(t('קבלות'), [
       for (final x in list)
         ReportRow(x.customerName,
-            subtitle: '${fmtDate(x.date)} · ${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
+            subtitle: '${fmtDate(x.date)} · ${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}'
+                '${x.lines.where((l) => l.detailsText.isNotEmpty).map((l) => '\n${l.detailsText}').join()}',
             value: money(x.total),
             tag: '${x.number}'),
     ]),
@@ -175,14 +372,17 @@ ReportData forecastReport(GymStore s, Period _) {
   ], note: t('לא כולל מנויים חדשים ותשלומים מהירים שעוד לא בוצעו.'));
 }
 
-/// (date, customer, amount) for every post-dated cheque, from receipts.
-List<(DateTime, String, double)> _chequeSchedule(GymStore s) {
-  final out = <(DateTime, String, double)>[];
+/// (date, customer, amount, details) for every post-dated cheque, from receipts.
+List<(DateTime, String, double, String)> _chequeSchedule(GymStore s) {
+  final out = <(DateTime, String, double, String)>[];
   for (final r in s.receipts) {
     for (final l in r.lines.where((l) => l.method == PayMethod.cheque)) {
       final each = round2(l.amount / l.cheques);
+      final first = dateOnly(l.cheque.firstDate ?? r.date);
       for (var i = 0; i < l.cheques; i++) {
-        out.add((addMonths(dateOnly(r.date), i), r.customerName, each));
+        final c = l.cheque;
+        final det = c.number.isEmpty ? '' : t('שיק {0} · בנק {1} · סניף {2}', [c.numberAt(i), c.bank, c.branch]);
+        out.add((addMonths(first, i), r.customerName, each, det));
       }
     }
   }
@@ -202,13 +402,15 @@ ReportData chequesReport(GymStore s, Period _) {
     ReportSection(t('לפירעון'), [
       for (final c in future)
         ReportRow(c.$2,
-            subtitle: fmtDate(c.$1),
+            subtitle: c.$4.isEmpty ? fmtDate(c.$1) : '${fmtDate(c.$1)} · ${c.$4}',
             value: money(c.$3),
             tag: c.$1.difference(s.today).inDays <= 7 ? t('השבוע') : null,
             tone: c.$1.difference(s.today).inDays <= 7 ? Tone.warn : Tone.plain),
     ]),
-    ReportSection(
-        t('נפרעו'), [for (final c in deposited) ReportRow(c.$2, subtitle: fmtDate(c.$1), value: money(c.$3))]),
+    ReportSection(t('נפרעו'), [
+      for (final c in deposited.reversed)
+        ReportRow(c.$2, subtitle: c.$4.isEmpty ? fmtDate(c.$1) : '${fmtDate(c.$1)} · ${c.$4}', value: money(c.$3))
+    ]),
   ]);
 }
 
@@ -260,7 +462,8 @@ ReportData manualMonthlyReport(GymStore s, Period p) {
                 tag: c.daysOverdue(s.today) > 0
                     ? t('באיחור {0} ימים', [c.daysOverdue(s.today)])
                     : t('ב-{0}', [fmtDate(c.dueDate)]),
-                tone: c.daysOverdue(s.today) > 0 ? Tone.bad : Tone.info),
+                tone: c.daysOverdue(s.today) > 0 ? Tone.bad : Tone.info,
+                chargeId: c.id),
         ],
         empty: t('כולם שילמו')),
     ReportSection(t('שילמו'), [
@@ -294,7 +497,8 @@ ReportData debtsReport(GymStore s, Period _) {
                     [c.manual ? t('גבייה ידנית') : t('אשראי נכשל'), fmtDate(c.dueDate), c.reminders]),
                 value: money(c.amount),
                 tag: s.entryBlocked(c.customerId) ? t('כניסה חסומה') : t('{0} ימים', [c.daysOverdue(s.today)]),
-                tone: s.entryBlocked(c.customerId) ? Tone.bad : Tone.warn),
+                tone: s.entryBlocked(c.customerId) ? Tone.bad : Tone.warn,
+                chargeId: c.id),
         ],
         empty: t('אין חובות')),
   ]);
@@ -317,7 +521,8 @@ ReportData failedReport(GymStore s, Period _) {
                         [fmtDate(c.dueDate), c.attempts, s.customer(c.customerId)?.savedCardLast4 ?? '—']),
                     value: money(c.amount),
                     tag: t('לשלוח לינק לעדכון כרטיס'),
-                    tone: Tone.bad),
+                    tone: Tone.bad,
+                    chargeId: c.id),
             ],
             empty: t('אין חיובים שנכשלו')),
       ],
@@ -456,6 +661,9 @@ ReportData linksReport(GymStore s, Period p) {
 }
 
 List<ReportDef> get allReports => [
+      ReportDef(
+          'summary', ReportGroup.overview, t('סיכום העסק'), t('כל הפעילות במבט אחד, מול התקופה הקודמת'), summaryReport,
+          usesPeriod: true, headline: (s) => summaryReport(s, Period.month).kpis.first.value),
       ReportDef('revenue', ReportGroup.money, t('הכנסות'), t('נגבה לפי תקופה, אמצעי תשלום ומקור'), revenueReport,
           usesPeriod: true, headline: (s) => revenueReport(s, Period.month).kpis.first.value),
       ReportDef('forecast', ReportGroup.money, t('צפי ל-30 יום'), t('חיובים, גבייה ידנית ושיקים שצפויים להיכנס'),

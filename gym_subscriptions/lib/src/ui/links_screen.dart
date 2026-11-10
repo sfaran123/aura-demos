@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'help.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/checkout.dart';
@@ -66,7 +68,7 @@ class _LinksScreenState extends State<LinksScreen> {
     final store = StoreScope.of(context);
     final list = store.links.where(f.matches).toList();
     return Scaffold(
-      appBar: AppBar(title: Text(t('לינקים שנשלחו'))),
+      appBar: AppBar(title: Text(t('לינקים שנשלחו')), actions: [HelpButton.topic(HelpTopic.links)]),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'sendLinkFab',
         backgroundColor: Aura.goldLight,

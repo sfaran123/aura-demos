@@ -125,7 +125,10 @@ const Map<String, (String, String)> strings = {
   'חיובים חודשיים': ('خصومات شهرية', 'Monthly charges'),
   'אשראי / הוראת קבע': ('بطاقة / أمر ثابت', 'Card / standing order'),
   'שיקים לפירעון': ('شيكات للصرف', 'Cheques to clear'),
-  'לא כולל מנויים חדשים ותשלומים מהירים שעוד לא בוצעו.': ('لا يشمل اشتراكات جديدة ودفعات سريعة لم تتم بعد.', 'Excludes new memberships and quick payments not made yet.'),
+  'לא כולל מנויים חדשים ותשלומים מהירים שעוד לא בוצעו.': (
+    'لا يشمل اشتراكات جديدة ودفعات سريعة لم تتم بعد.',
+    'Excludes new memberships and quick payments not made yet.'
+  ),
   'סכום עתידי': ('مبلغ مستقبلي', 'Future amount'),
   'כבר נפרעו': ('صُرفت', 'Already cleared'),
   'לפירעון': ('للصرف', 'To clear'),
@@ -135,9 +138,15 @@ const Map<String, (String, String)> strings = {
   'סכום מוחזק': ('المبلغ المحتجز', 'Amount held'),
   'מנויים עם חודש אחרון משולם': ('اشتراكات شهرها الأخير مدفوع', 'Memberships with last month paid'),
   '{0} · הצטרף {1}': ('{0} · انضم {1}', '{0} · joined {1}'),
-  'חודשים אחרונים שכוסו מהתשלום מראש': ('أشهر أخيرة غُطّيت من الدفع المسبق', 'Last months covered by the upfront payment'),
+  'חודשים אחרונים שכוסו מהתשלום מראש': (
+    'أشهر أخيرة غُطّيت من الدفع المسبق',
+    'Last months covered by the upfront payment'
+  ),
   'לא חויב': ('لم يُخصم', 'Not charged'),
-  'בביטול מנוי כזה צריך הודעה חודש מראש, והחודש האחרון לא מחויב כי כבר שולם.': ('عند إلغاء اشتراك كهذا يجب إبلاغ قبل شهر، والشهر الأخير لا يُخصم لأنه مدفوع مسبقًا.', "Cancelling needs a month's notice, and the last month isn't charged because it was paid upfront."),
+  'בביטול מנוי כזה צריך הודעה חודש מראש, והחודש האחרון לא מחויב כי כבר שולם.': (
+    'عند إلغاء اشتراك كهذا يجب إبلاغ قبل شهر، والشهر الأخير لا يُخصم لأنه مدفوع مسبقًا.',
+    "Cancelling needs a month's notice, and the last month isn't charged because it was paid upfront."
+  ),
   'לגבות בחודש': ('للتحصيل هذا الشهر', 'Due this month'),
   'נשאר': ('متبقٍ', 'Remaining'),
   'לקוחות': ('زبائن', 'Customers'),
@@ -148,7 +157,10 @@ const Map<String, (String, String)> strings = {
   'כולם שילמו': ('الجميع دفع', 'Everyone paid'),
   'שילמו': ('دفعوا', 'Paid'),
   '{0} · שולם {1}': ('{0} · دُفع {1}', '{0} · paid {1}'),
-  'מנויים חודשיים שמשלמים בעצמם (מזומן, שיק או העברה) ולא בחיוב אוטומטי.': ('اشتراكات شهرية يدفعها الزبون بنفسه (نقدًا أو بشيك أو تحويل) وليس بخصم تلقائي.', 'Monthly members who pay themselves (cash, cheque or transfer), not by automatic charge.'),
+  'מנויים חודשיים שמשלמים בעצמם (מזומן, שיק או העברה) ולא בחיוב אוטומטי.': (
+    'اشتراكات شهرية يدفعها الزبون بنفسه (نقدًا أو بشيك أو تحويل) وليس بخصم تلقائي.',
+    'Monthly members who pay themselves (cash, cheque or transfer), not by automatic charge.'
+  ),
   'חוב פתוח': ('دين مفتوح', 'Open debt'),
   '1–7 ימים': ('1–7 أيام', '1–7 days'),
   '8–30 ימים': ('8–30 يومًا', '8–30 days'),
@@ -165,14 +177,20 @@ const Map<String, (String, String)> strings = {
   '{0} · {1} ניסיונות · כרטיס {2}': ('{0} · {1} محاولات · بطاقة {2}', '{0} · {1} attempts · card {2}'),
   'לשלוח לינק לעדכון כרטיס': ('إرسال رابط لتحديث البطاقة', 'Send a link to update the card'),
   'אין חיובים שנכשלו': ('لا توجد خصومات فاشلة', 'No failed charges'),
-  'ניסיונות חוזרים אוטומטיים לפי ההגדרות: {0}.': ('محاولات إعادة تلقائية حسب الإعدادات: {0}.', 'Automatic retries per settings: {0}.'),
+  'ניסיונות חוזרים אוטומטיים לפי ההגדרות: {0}.': (
+    'محاولات إعادة تلقائية حسب الإعدادات: {0}.',
+    'Automatic retries per settings: {0}.'
+  ),
   'יום {0}': ('اليوم {0}', 'day {0}'),
   '{0} · {1} בחודש': ('{0} · {1} بالشهر', '{0} · {1} a month'),
   'מנויים פעילים': ('المشتركون الفعّالون', 'Active members'),
   'הכנסה חודשית חוזרת': ('دخل شهري متكرر', 'Monthly recurring revenue'),
   'ממוצע למנוי': ('المعدل لكل مشترك', 'Average per member'),
   'לפי מסלול': ('حسب المسار', 'By plan'),
-  'במסלולי תקופה ההכנסה מחולקת לפי מספר החודשים.': ('في مسارات الفترة يُقسَّم الدخل على عدد الأشهر.', 'Fixed-term plans are spread over their months.'),
+  'במסלולי תקופה ההכנסה מחולקת לפי מספר החודשים.': (
+    'في مسارات الفترة يُقسَّم الدخل على عدد الأشهر.',
+    'Fixed-term plans are spread over their months.'
+  ),
   'מסתיימים ב-30 יום': ('ينتهون خلال 30 يومًا', 'Ending in 30 days'),
   'בתהליך ביטול': ('قيد الإلغاء', 'Being cancelled'),
   'להציע חידוש': ('اقتراح تجديد', 'Offer a renewal'),
@@ -195,20 +213,35 @@ const Map<String, (String, String)> strings = {
   'נכשלו': ('فشلت', 'Failed'),
   'משפך': ('المسار المتتابع', 'Funnel'),
   'הכנסות': ('الإيرادات', 'Revenue'),
-  'נגבה לפי תקופה, אמצעי תשלום ומקור': ('المحصّل حسب الفترة وطريقة الدفع والمصدر', 'Collected by period, method and source'),
+  'נגבה לפי תקופה, אמצעי תשלום ומקור': (
+    'المحصّل حسب الفترة وطريقة الدفع والمصدر',
+    'Collected by period, method and source'
+  ),
   'צפי ל-30 יום': ('توقعات 30 يومًا', '30-day forecast'),
-  'חיובים, גבייה ידנית ושיקים שצפויים להיכנס': ('خصومات وتحصيل يدوي وشيكات متوقع دخولها', 'Charges, manual collection and cheques expected'),
+  'חיובים, גבייה ידנית ושיקים שצפויים להיכנס': (
+    'خصومات وتحصيل يدوي وشيكات متوقع دخولها',
+    'Charges, manual collection and cheques expected'
+  ),
   'שיקים דחויים לפי תאריך': ('شيكات مؤجلة حسب التاريخ', 'Post-dated cheques by date'),
   'חודש אחרון ששולם מראש': ('الشهر الأخير المدفوع مسبقًا', 'Last month paid upfront'),
   'כספים שמוחזקים עד סוף מנוי': ('أموال محتجزة حتى نهاية الاشتراك', 'Money held until a membership ends'),
   'גבייה ידנית חודשית': ('التحصيل اليدوي الشهري', 'Monthly manual collection'),
-  'ממי צריך לגבות במזומן / שיק / העברה החודש': ('ممن يجب التحصيل نقدًا / بشيك / تحويل هذا الشهر', 'Who to collect from in cash / cheque / transfer this month'),
+  'ממי צריך לגבות במזומן / שיק / העברה החודש': (
+    'ممن يجب التحصيل نقدًا / بشيك / تحويل هذا الشهر',
+    'Who to collect from in cash / cheque / transfer this month'
+  ),
   'חובות ופיגורים': ('الديون والتأخيرات', 'Debts and arrears'),
   'מי חייב, כמה ימים ומי חסום': ('من مدين، كم يومًا ومن محظور', 'Who owes, how late, who is blocked'),
   'כרטיסים שנדחו ומה לעשות': ('بطاقات مرفوضة وماذا نفعل', 'Declined cards and what to do'),
-  'כמה בכל מסלול והכנסה חודשית חוזרת': ('كم في كل مسار والدخل الشهري المتكرر', 'Members per plan and recurring revenue'),
+  'כמה בכל מסלול והכנסה חודשית חוזרת': (
+    'كم في كل مسار والدخل الشهري المتكرر',
+    'Members per plan and recurring revenue'
+  ),
   'מסתיימים וחידושים': ('المنتهون والتجديدات', 'Ending and renewals'),
-  'מנויים שנגמרים ב-30 יום וביטולים': ('اشتراكات تنتهي خلال 30 يومًا وإلغاءات', 'Memberships ending in 30 days and cancellations'),
+  'מנויים שנגמרים ב-30 יום וביטולים': (
+    'اشتراكات تنتهي خلال 30 يومًا وإلغاءات',
+    'Memberships ending in 30 days and cancellations'
+  ),
   'הצטרפויות וביטולים': ('الانضمامات والإلغاءات', 'Joins and cancellations'),
   'גידול, ביטולים ואחוז נטישה': ('النمو والإلغاءات ونسبة التسرب', 'Growth, cancellations and churn'),
   'מי מוקפא ועד מתי': ('من مجمّد وحتى متى', 'Who is frozen and until when'),
@@ -217,25 +250,37 @@ const Map<String, (String, String)> strings = {
   'שדה מאובטח של חברת הסליקה': ('حقل آمن لشركة المقاصة', "Card processor's secure field"),
   'מספר כרטיס': ('رقم البطاقة', 'Card number'),
   'גרסת בדיקה: מילוי כרטיס בדיקה': ('نسخة تجريبية: تعبئة بطاقة تجريبية', 'Test build: fill a test card'),
-  'בחיבור לחברת הסליקה, ההקלדה נעשית ברכיב המאובטח שלה והמערכת מקבלת רק טוקן וארבע ספרות אחרונות.': ('عند الربط بشركة المقاصة، يتم الإدخال في المكوّن الآمن لديها ويستلم النظام رمزًا وآخر أربعة أرقام فقط.', 'With the processor connected, entry happens in its secure component and the system gets only a token and the last four digits.'),
+  'בחיבור לחברת הסליקה, ההקלדה נעשית ברכיב המאובטח שלה והמערכת מקבלת רק טוקן וארבע ספרות אחרונות.': (
+    'عند الربط بشركة المقاصة، يتم الإدخال في المكوّن الآمن لديها ويستلم النظام رمزًا وآخر أربعة أرقام فقط.',
+    'With the processor connected, entry happens in its secure component and the system gets only a token and the last four digits.'
+  ),
   'שמירת הכרטיס': ('حفظ البطاقة', 'Save card'),
   'למי פותחים מנוי?': ('لمن نفتح الاشتراك؟', 'Who is the membership for?'),
   'למי התשלום?': ('لمن الدفع؟', 'Who is paying?'),
   'חיפוש לפי שם או טלפון': ('بحث بالاسم أو الهاتف', 'Search by name or phone'),
   'לקוחות אחרונים': ('زبائن أخيرون', 'Recent customers'),
   'תוצאות': ('النتائج', 'Results'),
-  'לא נמצא לקוח. אפשר להוסיף לקוח חדש.': ('لم يُعثر على زبون. يمكن إضافة زبون جديد.', 'No customer found. You can add a new one.'),
+  'לא נמצא לקוח. אפשר להוסיף לקוח חדש.': (
+    'لم يُعثر على زبون. يمكن إضافة زبون جديد.',
+    'No customer found. You can add a new one.'
+  ),
   ' · כרטיס שמור': (' · بطاقة محفوظة', ' · saved card'),
   'ללא מנוי': ('بدون اشتراك', 'No membership'),
   'צריך שם מלא': ('يجب إدخال الاسم الكامل', 'Enter the full name'),
   'מספר הטלפון לא תקין': ('رقم الهاتف غير صحيح', "The phone number isn't valid"),
   'צריך תעודת זהות': ('يجب إدخال رقم الهوية', 'ID number is required'),
-  'תעודת הזהות לא עוברת בדיקת ספרת ביקורת': ('رقم الهوية لا يجتاز فحص رقم التحقق', 'The ID number fails the check digit'),
+  'תעודת הזהות לא עוברת בדיקת ספרת ביקורת': (
+    'رقم الهوية لا يجتاز فحص رقم التحقق',
+    'The ID number fails the check digit'
+  ),
   'שם מלא': ('الاسم الكامل', 'Full name'),
   'טלפון נייד': ('الهاتف المحمول', 'Mobile phone'),
   'תעודת זהות': ('رقم الهوية', 'ID number'),
   'תעודת זהות (לא חובה)': ('رقم الهوية (غير إلزامي)', 'ID number (optional)'),
-  'הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.': ('يمكن استكمال التصريح الصحي وتفاصيل أخرى لاحقًا، أو يعبّئها الزبون في الرابط.', 'Health declaration and other details can be completed later, or by the customer in the link.'),
+  'הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.': (
+    'يمكن استكمال التصريح الصحي وتفاصيل أخرى لاحقًا، أو يعبّئها الزبون في الرابط.',
+    'Health declaration and other details can be completed later, or by the customer in the link.'
+  ),
   'שמירה והמשך': ('حفظ ومتابعة', 'Save and continue'),
   'בחירת מסלול': ('اختيار المسار', 'Choose a plan'),
   'בחרו מסלול': ('اختاروا مسارًا', 'Choose a plan'),
@@ -266,11 +311,23 @@ const Map<String, (String, String)> strings = {
   'החיוב החודשי · {0} כל חודש': ('الخصم الشهري · {0} كل شهر', 'Monthly charge · {0} every month'),
   'כרטיס שמור •••• {0}': ('بطاقة محفوظة •••• {0}', 'Saved card •••• {0}'),
   'כרטיס •••• {0}': ('بطاقة •••• {0}', 'Card •••• {0}'),
-  'בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי {0} ימי איחור הכניסה נחסמת.': ('كل شهر ستظهر الدفعة في قائمة "للتحصيل" مع تذكير للزبون. بعد {0} أيام تأخير يُحظر الدخول.', 'Each month the payment shows in "To collect" with a reminder to the customer. After {0} days late, entry is blocked.'),
-  'החיוב יעבור דרך הבנק. יש להחתים את הלקוח על טופס הרשאה לחיוב חשבון.': ('سيمر الخصم عبر البنك. يجب توقيع الزبون على نموذج تفويض خصم من الحساب.', 'The charge goes through the bank. The customer signs a direct-debit authorization form.'),
+  'בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי {0} ימי איחור הכניסה נחסמת.': (
+    'كل شهر ستظهر الدفعة في قائمة "للتحصيل" مع تذكير للزبون. بعد {0} أيام تأخير يُحظر الدخول.',
+    'Each month the payment shows in "To collect" with a reminder to the customer. After {0} days late, entry is blocked.'
+  ),
+  'החיוב יעבור דרך הבנק. יש להחתים את הלקוח על טופס הרשאה לחיוב חשבון.': (
+    'سيمر الخصم عبر البنك. يجب توقيع الزبون على نموذج تفويض خصم من الحساب.',
+    'The charge goes through the bank. The customer signs a direct-debit authorization form.'
+  ),
   'בחרו איך ייגבה החודש הבא.': ('اختاروا كيف سيُحصَّل الشهر القادم.', 'Choose how next month is collected.'),
-  'חיוב אוטומטי כל חודש · התחייבות ל-{0} חודשים.': ('خصم تلقائي كل شهر · التزام لـ {0} أشهر.', 'Automatic charge every month · {0}-month commitment.'),
-  'חיוב אוטומטי כל חודש · ביטול בהודעה של {0} יום מראש.': ('خصم تلقائي كل شهر · الإلغاء بإشعار قبل {0} يومًا.', "Automatic charge every month · cancel with {0} days' notice."),
+  'חיוב אוטומטי כל חודש · התחייבות ל-{0} חודשים.': (
+    'خصم تلقائي كل شهر · التزام لـ {0} أشهر.',
+    'Automatic charge every month · {0}-month commitment.'
+  ),
+  'חיוב אוטומטי כל חודש · ביטול בהודעה של {0} יום מראש.': (
+    'خصم تلقائي كل شهر · الإلغاء بإشعار قبل {0} يومًا.',
+    "Automatic charge every month · cancel with {0} days' notice."
+  ),
   'הסרה': ('إزالة', 'Remove'),
   'שמור •••• {0}': ('محفوظة •••• {0}', 'Saved •••• {0}'),
   'חדש •••• {0}': ('جديدة •••• {0}', 'New •••• {0}'),
@@ -278,10 +335,22 @@ const Map<String, (String, String)> strings = {
   '{0} תשלומים': ('{0} دفعات', '{0} installments'),
   'שיק אחד': ('شيك واحد', 'One cheque'),
   '{0} שיקים': ('{0} شيكات', '{0} cheques'),
-  '{0} × {1} · הראשון היום והשאר בכל חודש. מספרי השיקים נרשמים בקבלה.': ('{0} × {1} · الأول اليوم والباقي كل شهر. أرقام الشيكات تُسجل في الإيصال.', '{0} × {1} · first today, the rest monthly. Cheque numbers go on the receipt.'),
-  'המזומן נרשם בקופה, והקבלה תציין "מזומן".': ('النقد يُسجل في الصندوق، والإيصال يذكر "نقدًا".', 'Cash goes in the till; the receipt says "cash".'),
-  'החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.': ('هذا الجزء يُؤكد عندما يظهر التحويل في الحساب. حتى ذلك الحين الاشتراك بالانتظار.', 'This part is confirmed when the transfer arrives. Until then the membership waits.'),
-  'החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.': ('هذا الجزء يُرسل للزبون برابط دفع. حتى يدفع، الاشتراك بالانتظار.', 'This part goes to the customer as a payment link. Until they pay, the membership waits.'),
+  '{0} × {1} · הראשון היום והשאר בכל חודש. מספרי השיקים נרשמים בקבלה.': (
+    '{0} × {1} · الأول اليوم والباقي كل شهر. أرقام الشيكات تُسجل في الإيصال.',
+    '{0} × {1} · first today, the rest monthly. Cheque numbers go on the receipt.'
+  ),
+  'המזומן נרשם בקופה, והקבלה תציין "מזומן".': (
+    'النقد يُسجل في الصندوق، والإيصال يذكر "نقدًا".',
+    'Cash goes in the till; the receipt says "cash".'
+  ),
+  'החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.': (
+    'هذا الجزء يُؤكد عندما يظهر التحويل في الحساب. حتى ذلك الحين الاشتراك بالانتظار.',
+    'This part is confirmed when the transfer arrives. Until then the membership waits.'
+  ),
+  'החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.': (
+    'هذا الجزء يُرسل للزبون برابط دفع. حتى يدفع، الاشتراك بالانتظار.',
+    'This part goes to the customer as a payment link. Until they pay, the membership waits.'
+  ),
   ' · כרטיס {0}': (' · بطاقة {0}', ' · card {0}'),
   ' · {0} תשלומים': (' · {0} دفعات', ' · {0} installments'),
   ' · {0} שיקים': (' · {0} شيكات', ' · {0} cheques'),
@@ -299,9 +368,15 @@ const Map<String, (String, String)> strings = {
   'פתיחת המנוי': ('فتح الاشتراك', 'Open membership'),
   'ביצוע התשלום': ('تنفيذ الدفع', 'Take payment'),
   'סה״כ היום': ('المجموع اليوم', 'Total today'),
-  'מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.': ('من الشهر القادم: {0} بتحصيل يدوي. ستظهر الدفعة في قائمة "للتحصيل" كل شهر.', 'From next month: {0} by manual collection. It shows in "To collect" every month.'),
+  'מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.': (
+    'من الشهر القادم: {0} بتحصيل يدوي. ستظهر الدفعة في قائمة "للتحصيل" كل شهر.',
+    'From next month: {0} by manual collection. It shows in "To collect" every month.'
+  ),
   'מהחודש הבא: {0} ב{1}.': ('من الشهر القادم: {0} عبر {1}.', 'From next month: {0} by {1}.'),
-  'המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.': ('سيُفتح الاشتراك بحالة "بانتظار الدفع" ويتفعّل تلقائيًا عند تأكيد جزء الرابط أو التحويل.', 'The membership opens as "awaiting payment" and activates when the link or transfer part is confirmed.'),
+  'המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.': (
+    'سيُفتح الاشتراك بحالة "بانتظار الدفع" ويتفعّل تلقائيًا عند تأكيد جزء الرابط أو التحويل.',
+    'The membership opens as "awaiting payment" and activates when the link or transfer part is confirmed.'
+  ),
   '{0} אחת עם כל אמצעי התשלום{1}.': ('{0} واحدة مع كل طرق الدفع{1}.', 'One {0} with every payment method{1}.'),
   ' תודפס או תישלח ב-SMS': (' ستُطبع أو تُرسل بـ SMS', ' will be printed or sent by SMS'),
   ' תישלח ב-{0} ל-{1}': (' ستُرسل عبر {0} إلى {1}', ' will be sent by {0} to {1}'),
@@ -315,11 +390,21 @@ const Map<String, (String, String)> strings = {
   'חזרה למסך הראשי': ('العودة للشاشة الرئيسية', 'Back to home'),
   'חוב פתוח עד היום': ('دين مفتوح حتى اليوم', 'Open debt to date'),
   'אין חובות פתוחים': ('لا توجد ديون مفتوحة', 'No open debt'),
-  'תזכורת {0} ימים לפני מועד התשלום · {1}': ('تذكير قبل {0} أيام من موعد الدفع · {1}', 'Reminder {0} days before due · {1}'),
+  'תזכורת {0} ימים לפני מועד התשלום · {1}': (
+    'تذكير قبل {0} أيام من موعد الدفع · {1}',
+    'Reminder {0} days before due · {1}'
+  ),
   'חסימת כניסה אחרי {0} ימי איחור': ('حظر الدخول بعد {0} أيام تأخير', 'Entry blocked after {0} days late'),
   'בלי חסימת כניסה': ('بدون حظر دخول', 'No entry blocking'),
-  'כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.': ('كل الدفعات الشهرية حُصّلت. الاشتراكات بالتحصيل اليدوي ستظهر هنا قبل موعد الدفع ببضعة أيام.', 'All monthly payments are collected. Manual-collection members show up here a few days before the due date.'),
-  'מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.': ('الاشتراك الشهري بالتحصيل اليدوي (نقدًا أو بشيك أو تحويل) يظهر هنا كل شهر. الضغط على "استُلم" يُصدر إيصالًا ويفتح الشهر التالي. خصم البطاقة الفاشل يظهر هنا بعد المحاولة الأولى.', 'Monthly members on manual collection (cash, cheque or transfer) show here every month. Tapping "Received" issues a receipt and opens the next month. Failed card charges show here after the first attempt.'),
+  'כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.': (
+    'كل الدفعات الشهرية حُصّلت. الاشتراكات بالتحصيل اليدوي ستظهر هنا قبل موعد الدفع ببضعة أيام.',
+    'All monthly payments are collected. Manual-collection members show up here a few days before the due date.'
+  ),
+  'מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.':
+      (
+    'الاشتراك الشهري بالتحصيل اليدوي (نقدًا أو بشيك أو تحويل) يظهر هنا كل شهر. الضغط على "استُلم" يُصدر إيصالًا ويفتح الشهر التالي. خصم البطاقة الفاشل يظهر هنا بعد المحاولة الأولى.',
+    'Monthly members on manual collection (cash, cheque or transfer) show here every month. Tapping "Received" issues a receipt and opens the next month. Failed card charges show here after the first attempt.'
+  ),
   'חיוב נכשל · {0} ניסיונות': ('فشل الخصم · {0} محاولات', 'Charge failed · {0} attempts'),
   'נשלחו {0} תזכורות': ('أُرسلت {0} تذكيرات', '{0} reminders sent'),
   'התקבל': ('استُلم', 'Received'),
@@ -339,13 +424,22 @@ const Map<String, (String, String)> strings = {
   'אין תשלומים פתוחים': ('لا توجد دفعات مفتوحة', 'No open payments'),
   '{0} תשלומים · {1}': ('{0} دفعات · {1}', '{0} payments · {1}'),
   'דורש טיפול': ('بحاجة لمعالجة', 'Needs attention'),
-  'גבייה ידנית · {0} · באיחור של {1} ימים': ('تحصيل يدوي · {0} · متأخر {1} أيام', 'Manual collection · {0} · {1} days late'),
-  'חיוב באשראי נכשל · {0} · {1} ניסיונות': ('فشل خصم البطاقة · {0} · {1} محاولات', 'Card charge failed · {0} · {1} attempts'),
+  'גבייה ידנית · {0} · באיחור של {1} ימים': (
+    'تحصيل يدوي · {0} · متأخر {1} أيام',
+    'Manual collection · {0} · {1} days late'
+  ),
+  'חיוב באשראי נכשל · {0} · {1} ניסיונות': (
+    'فشل خصم البطاقة · {0} · {1} محاولات',
+    'Card charge failed · {0} · {1} attempts'
+  ),
   '{0} מסתיים ב-{1} · להציע חידוש': ('{0} ينتهي في {1} · اقتراح تجديد', '{0} ends {1} · offer a renewal'),
   'לינקים פתוחים ({0})': ('روابط مفتوحة ({0})', 'Open links ({0})'),
   'כל הלינקים': ('كل الروابط', 'All links'),
   'תשלומים אחרונים': ('دفعات أخيرة', 'Recent payments'),
-  'הלקוח בוחר מסלול, ממלא פרטים{0} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.': ('الزبون يختار مسارًا، يعبّئ التفاصيل{0} ويدفع بالبطاقة. الاشتراك يُفتح تلقائيًا بعد الدفع.', 'The customer picks a plan, fills in details{0} and pays by card. The membership opens automatically after payment.'),
+  'הלקוח בוחר מסלול, ממלא פרטים{0} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.': (
+    'الزبون يختار مسارًا، يعبّئ التفاصيل{0} ويدفع بالبطاقة. الاشتراك يُفتح تلقائيًا بعد الدفع.',
+    'The customer picks a plan, fills in details{0} and pays by card. The membership opens automatically after payment.'
+  ),
   ', חותם על הצהרת בריאות': ('، يوقّع على التصريح الصحي', ', signs the health declaration'),
   'מסלולים בלינק: {0}': ('المسارات في الرابط: {0}', 'Plans on the link: {0}'),
   'הלינק הועתק': ('تم نسخ الرابط', 'Link copied'),
@@ -354,25 +448,46 @@ const Map<String, (String, String)> strings = {
   'הלינק נשלח ל{0}': ('أُرسل الرابط إلى {0}', 'Link sent to {0}'),
   'שליחה': ('إرسال', 'Send'),
   'איך הלקוח רואה': ('كيف يراه الزبون', 'Customer view'),
-  'תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו': ('معاينة لما يراه الزبون في هاتفه', 'Preview of what the customer sees on their phone'),
+  'תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו': (
+    'معاينة لما يراه الزبون في هاتفه',
+    'Preview of what the customer sees on their phone'
+  ),
   'המנוי שלך פעיל': ('اشتراكك فعّال', 'Your membership is active'),
-  'קבלה וכרטיס מנוי נשלחו ב-{0}. בכניסה מציגים את הקוד.': ('أُرسل الإيصال وبطاقة الاشتراك عبر {0}. عند الدخول يُعرض الرمز.', 'Receipt and membership card sent by {0}. Show the code at the entrance.'),
+  'קבלה וכרטיס מנוי נשלחו ב-{0}. בכניסה מציגים את הקוד.': (
+    'أُرسل الإيصال وبطاقة الاشتراك عبر {0}. عند الدخول يُعرض الرمز.',
+    'Receipt and membership card sent by {0}. Show the code at the entrance.'
+  ),
   'חזרה לאפליקציית העסק': ('العودة لتطبيق المصلحة', 'Back to the business app'),
   '{0} · הצטרפות': ('{0} · انضمام', '{0} · Join'),
   'הפרטים שלך': ('تفاصيلك', 'Your details'),
   'המשך לתשלום': ('متابعة للدفع', 'Continue to payment'),
   ' לחודש': (' بالشهر', ' a month'),
   'מספר לא תקין': ('رقم غير صحيح', 'Invalid number'),
-  'אני מצהיר/ה שמצב בריאותי מאפשר פעילות גופנית (הצהרת בריאות)': ('أصرّح بأن حالتي الصحية تسمح بالنشاط البدني (تصريح صحي)', 'I declare my health allows physical activity (health declaration)'),
-  'קראתי ואני מסכים/ה לתקנון ולהתחייבות ל-{0} חודשים': ('قرأت وأوافق على النظام وعلى الالتزام لـ {0} أشهر', 'I have read and agree to the terms and a {0}-month commitment'),
-  'קראתי ואני מסכים/ה לתקנון ולחיוב חודשי עד ביטול ({0} יום הודעה מראש)': ('قرأت وأوافق على النظام وعلى الخصم الشهري حتى الإلغاء (إشعار قبل {0} يومًا)', "I have read and agree to the terms and a monthly charge until cancelled ({0} days' notice)"),
+  'אני מצהיר/ה שמצב בריאותי מאפשר פעילות גופנית (הצהרת בריאות)': (
+    'أصرّح بأن حالتي الصحية تسمح بالنشاط البدني (تصريح صحي)',
+    'I declare my health allows physical activity (health declaration)'
+  ),
+  'קראתי ואני מסכים/ה לתקנון ולהתחייבות ל-{0} חודשים': (
+    'قرأت وأوافق على النظام وعلى الالتزام لـ {0} أشهر',
+    'I have read and agree to the terms and a {0}-month commitment'
+  ),
+  'קראתי ואני מסכים/ה לתקנון ולחיוב חודשי עד ביטול ({0} יום הודעה מראש)': (
+    'قرأت وأوافق على النظام وعلى الخصم الشهري حتى الإلغاء (إشعار قبل {0} يومًا)',
+    "I have read and agree to the terms and a monthly charge until cancelled ({0} days' notice)"
+  ),
   'קראתי ואני מסכים/ה לתקנון': ('قرأت وأوافق على النظام', 'I have read and agree to the terms'),
   'תשלום {0}': ('دفع {0}', 'Pay {0}'),
   ' / חודש': (' / شهر', ' / month'),
   'דמי רישום (חד-פעמי)': ('رسوم التسجيل (لمرة واحدة)', 'Sign-up fee (one-time)'),
   'לתשלום עכשיו': ('للدفع الآن', 'To pay now'),
-  'מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס, בהתחייבות ל-{1} חודשים.': ('من الشهر القادم سيُخصم {0} كل شهر من نفس البطاقة، مع التزام لـ {1} أشهر.', 'From next month {0} is charged monthly to the same card, with a {1}-month commitment.'),
-  'מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס. אפשר לבטל בהודעה של {1} יום.': ('من الشهر القادم سيُخصم {0} كل شهر من نفس البطاقة. يمكن الإلغاء بإشعار قبل {1} يومًا.', "From next month {0} is charged monthly to the same card. Cancel with {1} days' notice."),
+  'מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס, בהתחייבות ל-{1} חודשים.': (
+    'من الشهر القادم سيُخصم {0} كل شهر من نفس البطاقة، مع التزام لـ {1} أشهر.',
+    'From next month {0} is charged monthly to the same card, with a {1}-month commitment.'
+  ),
+  'מהחודש הבא יחויבו {0} בכל חודש באותו כרטיס. אפשר לבטל בהודעה של {1} יום.': (
+    'من الشهر القادم سيُخصم {0} كل شهر من نفس البطاقة. يمكن الإلغاء بإشعار قبل {1} يومًا.',
+    "From next month {0} is charged monthly to the same card. Cancel with {1} days' notice."
+  ),
   'הזנת כרטיס אשראי': ('إدخال بطاقة ائتمان', 'Enter a card'),
   'הכל': ('الكل', 'All'),
   'שולם': ('مدفوع', 'Paid'),
@@ -409,34 +524,59 @@ const Map<String, (String, String)> strings = {
   'הצהרת בריאות': ('تصريح صحي', 'Health declaration'),
   'נחתמה': ('موقّع', 'Signed'),
   'חסרה': ('ناقص', 'Missing'),
-  'הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.': ('الدخول محظور: هناك دفعة متأخرة بعد أيام السماح.', 'Entry blocked: a payment is overdue past the grace days.'),
+  'הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.': (
+    'الدخول محظور: هناك دفعة متأخرة بعد أيام السماح.',
+    'Entry blocked: a payment is overdue past the grace days.'
+  ),
   'הקפאה': ('تجميد', 'Freeze'),
   'ההקפאה הסתיימה, המנוי פעיל': ('انتهى التجميد، الاشتراك فعّال', 'Freeze ended, membership active'),
   'סיום הקפאה': ('إنهاء التجميد', 'End freeze'),
   'חידוש / החלפת מסלול': ('تجديد / تغيير المسار', 'Renew / change plan'),
   'ביטול מנוי': ('إلغاء الاشتراك', 'Cancel membership'),
   'כמה ימים להקפיא?': ('كم يومًا للتجميد؟', 'How many days to freeze?'),
-  'נשארו {0} ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.': ('بقي {0} أيام هذه السنة. التجميد يمدد الاشتراك ويؤجل الخصم القادم.', '{0} days left this year. Freezing extends the membership and delays the next charge.'),
+  'נשארו {0} ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.': (
+    'بقي {0} أيام هذه السنة. التجميد يمدد الاشتراك ويؤجل الخصم القادم.',
+    '{0} days left this year. Freezing extends the membership and delays the next charge.'
+  ),
   'דמי הקפאה: {0} לחודש': ('رسوم التجميد: {0} بالشهر', 'Freeze fee: {0} a month'),
   'המנוי הוקפא ל-{0} ימים': ('جُمّد الاشتراك لـ {0} أيام', 'Membership frozen for {0} days'),
   'הביטול ייכנס לתוקף ב-{0}.': ('الإلغاء يسري في {0}.', 'Cancellation takes effect on {0}.'),
-  'המסלול בהתחייבות ל-{0} חודשים, ולכן החיובים ממשיכים עד סוף ההתחייבות.': ('المسار مع التزام لـ {0} أشهر، لذلك تستمر الخصومات حتى نهاية الالتزام.', 'The plan has a {0}-month commitment, so charges continue until it ends.'),
+  'המסלול בהתחייבות ל-{0} חודשים, ולכן החיובים ממשיכים עד סוף ההתחייבות.': (
+    'المسار مع التزام لـ {0} أشهر، لذلك تستمر الخصومات حتى نهاية الالتزام.',
+    'The plan has a {0}-month commitment, so charges continue until it ends.'
+  ),
   'הודעה מראש: {0} יום.': ('إشعار مسبق: {0} يومًا.', 'Notice: {0} days.'),
-  'אחרי התאריך הזה לא יהיו חיובים נוספים.': ('بعد هذا التاريخ لن تكون خصومات إضافية.', 'No more charges after this date.'),
+  'אחרי התאריך הזה לא יהיו חיובים נוספים.': (
+    'بعد هذا التاريخ لن تكون خصومات إضافية.',
+    'No more charges after this date.'
+  ),
   'חזרה': ('رجوع', 'Back'),
   'ביטול המנוי': ('إلغاء الاشتراك', 'Cancel membership'),
   'המנוי יבוטל ב-{0}': ('سيُلغى الاشتراك في {0}', 'Membership will be cancelled on {0}'),
   'מסלולי מנוי': ('مسارات الاشتراك', 'Membership plans'),
   'מסלול חדש': ('مسار جديد', 'New plan'),
-  'כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.': ('كل مسار يُحفظ كمنتج مُعلَّم كاشتراك. التغيير هنا يؤثر على الاشتراكات الجديدة وعلى رابط التسجيل. الاشتراكات القائمة تحتفظ بشروطها.', 'Each plan is saved as a product marked as a membership. Changes affect new memberships and the sign-up link; existing members keep their terms.'),
+  'כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.':
+      (
+    'كل مسار يُحفظ كمنتج مُعلَّم كاشتراك. التغيير هنا يؤثر على الاشتراكات الجديدة وعلى رابط التسجيل. الاشتراكات القائمة تحتفظ بشروطها.',
+    'Each plan is saved as a product marked as a membership. Changes affect new memberships and the sign-up link; existing members keep their terms.'
+  ),
   'עריכת מסלול': ('تعديل المسار', 'Edit plan'),
   'המסלול "{0}" נשמר': ('حُفظ المسار "{0}"', 'Plan "{0}" saved'),
   'שמירת המסלול': ('حفظ المسار', 'Save plan'),
   'שם המסלול': ('اسم المسار', 'Plan name'),
   'לדוגמה: חודשי סטודנטים': ('مثلًا: شهري للطلاب', 'e.g. Monthly – students'),
-  'חיוב אוטומטי כל חודש עד ביטול. מתאים למנוי "חודשי ללא הגבלה".': ('خصم تلقائي كل شهر حتى الإلغاء. مناسب لاشتراك "شهري غير محدود".', 'Automatic monthly charge until cancelled. Suits "monthly unlimited".'),
-  'משלמים מראש על תקופה קבועה (3, 6, 12 חודשים), אפשר בתשלומים או בשיקים.': ('يدفعون مسبقًا عن فترة ثابتة (3، 6، 12 شهرًا)، ممكن بالتقسيط أو بشيكات.', 'Paid upfront for a fixed period (3, 6, 12 months), in installments or cheques.'),
-  'מספר כניסות קבוע עם תוקף. כל כניסה מורידה אחת.': ('عدد ثابت من مرات الدخول مع صلاحية. كل دخول يُنقص واحدة.', 'A fixed number of entries with an expiry. Each visit uses one.'),
+  'חיוב אוטומטי כל חודש עד ביטול. מתאים למנוי "חודשי ללא הגבלה".': (
+    'خصم تلقائي كل شهر حتى الإلغاء. مناسب لاشتراك "شهري غير محدود".',
+    'Automatic monthly charge until cancelled. Suits "monthly unlimited".'
+  ),
+  'משלמים מראש על תקופה קבועה (3, 6, 12 חודשים), אפשר בתשלומים או בשיקים.': (
+    'يدفعون مسبقًا عن فترة ثابتة (3، 6، 12 شهرًا)، ممكن بالتقسيط أو بشيكات.',
+    'Paid upfront for a fixed period (3, 6, 12 months), in installments or cheques.'
+  ),
+  'מספר כניסות קבוע עם תוקף. כל כניסה מורידה אחת.': (
+    'عدد ثابت من مرات الدخول مع صلاحية. كل دخول يُنقص واحدة.',
+    'A fixed number of entries with an expiry. Each visit uses one.'
+  ),
   'מחיר ומשך': ('السعر والمدة', 'Price and length'),
   'מחיר לחודש': ('السعر الشهري', 'Price per month'),
   'מחיר כולל': ('السعر الإجمالي', 'Total price'),
@@ -454,19 +594,34 @@ const Map<String, (String, String)> strings = {
   'מקס׳ תשלומים באשראי': ('أقصى دفعات بالبطاقة', 'Max card installments'),
   'מקס׳ שיקים': ('أقصى شيكات', 'Max cheques'),
   'חידוש אוטומטי בסוף התקופה': ('تجديد تلقائي بنهاية الفترة', 'Auto-renew at the end'),
-  'אם כבוי, נשלחת ללקוח תזכורת לחידוש': ('إذا أُطفئ، يُرسل للزبون تذكير بالتجديد', 'If off, the customer gets a renewal reminder'),
+  'אם כבוי, נשלחת ללקוח תזכורת לחידוש': (
+    'إذا أُطفئ، يُرسل للزبون تذكير بالتجديد',
+    'If off, the customer gets a renewal reminder'
+  ),
   'תשלום מראש על החודש האחרון': ('دفع مسبق عن الشهر الأخير', 'Pay the last month upfront'),
-  'בהצטרפות משלמים חודש ראשון + חודש אחרון. ביטול בהודעה של חודש, והחודש האחרון לא מחויב': ('عند الانضمام يُدفع الشهر الأول + الشهر الأخير. الإلغاء بإشعار شهر، والشهر الأخير لا يُخصم', "Joining pays the first + last month. Cancel with a month's notice; the last month isn't charged"),
+  'בהצטרפות משלמים חודש ראשון + חודש אחרון. ביטול בהודעה של חודש, והחודש האחרון לא מחויב': (
+    'عند الانضمام يُدفع الشهر الأول + الشهر الأخير. الإلغاء بإشعار شهر، والشهر الأخير لا يُخصم',
+    "Joining pays the first + last month. Cancel with a month's notice; the last month isn't charged"
+  ),
   'מותר מזומן': ('النقد مسموح', 'Cash allowed'),
-  'בתשלום הראשון ובגבייה ידנית חודשית': ('في الدفعة الأولى وفي التحصيل اليدوي الشهري', 'On the first payment and monthly manual collection'),
+  'בתשלום הראשון ובגבייה ידנית חודשית': (
+    'في الدفعة الأولى وفي التحصيل اليدوي الشهري',
+    'On the first payment and monthly manual collection'
+  ),
   'בתשלום בקבלה': ('عند الدفع في الاستقبال', 'When paying at the desk'),
   'מותר שיקים': ('الشيكات مسموحة', 'Cheques allowed'),
   'זמין בלינק ההרשמה': ('متاح في رابط التسجيل', 'Available on the sign-up link'),
   'הלקוח יכול לבחור אותו לבד': ('الزبون يمكنه اختياره بنفسه', 'Customers can choose it themselves'),
   'מסלול פעיל': ('مسار فعّال', 'Active plan'),
-  'כבוי = לא מוצג בפתיחת מנוי חדש': ('مُطفأ = لا يظهر عند فتح اشتراك جديد', 'Off = hidden when opening a new membership'),
+  'כבוי = לא מוצג בפתיחת מנוי חדש': (
+    'مُطفأ = لا يظهر عند فتح اشتراك جديد',
+    'Off = hidden when opening a new membership'
+  ),
   'העתקה לאקסל': ('نسخ إلى إكسل', 'Copy to Excel'),
-  'הדוח הועתק. אפשר להדביק באקסל או בגוגל שיטס': ('نُسخ التقرير. يمكن لصقه في إكسل أو جوجل شيتس', 'Report copied. Paste it into Excel or Google Sheets'),
+  'הדוח הועתק. אפשר להדביק באקסל או בגוגל שיטס': (
+    'نُسخ التقرير. يمكن لصقه في إكسل أو جوجل شيتس',
+    'Report copied. Paste it into Excel or Google Sheets'
+  ),
   'הגדרות העסק': ('إعدادات المصلحة', 'Business settings'),
   '{0} מסלולים · עריכה והוספה': ('{0} مسارات · تعديل وإضافة', '{0} plans · edit and add'),
   'שפה · Language · اللغة': ('שפה · Language · اللغة', 'שפה · Language · اللغة'),
@@ -477,19 +632,31 @@ const Map<String, (String, String)> strings = {
   'מסמך שמופק בכל תשלום': ('المستند الصادر عند كل دفع', 'Document issued on each payment'),
   'מע״מ': ('ضريبة القيمة المضافة', 'VAT'),
   'אמצעי תשלום': ('طرق الدفع', 'Payment methods'),
-  'מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.': ('ما يمكن للاستقبال قبوله. يمكن التقييد أيضًا لكل مسار.', 'What the desk can accept. You can also restrict per plan.'),
+  'מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.': (
+    'ما يمكن للاستقبال قبوله. يمكن التقييد أيضًا لكل مسار.',
+    'What the desk can accept. You can also restrict per plan.'
+  ),
   'אמצעים פעילים': ('طرق فعّالة', 'Enabled methods'),
   'מקסימום תשלומים באשראי': ('أقصى دفعات بالبطاقة', 'Max card installments'),
   'מקסימום שיקים': ('أقصى شيكات', 'Max cheques'),
   'מנוי חודשי מתחדש': ('اشتراك شهري متجدد', 'Monthly recurring membership'),
-  'איך גובים את החודשים שאחרי התשלום הראשון.': ('كيف تُحصَّل الأشهر بعد الدفعة الأولى.', 'How months after the first payment are collected.'),
+  'איך גובים את החודשים שאחרי התשלום הראשון.': (
+    'كيف تُحصَّل الأشهر بعد الدفعة الأولى.',
+    'How months after the first payment are collected.'
+  ),
   'חיוב חשבון בנק עם טופס הרשאה': ('خصم من الحساب البنكي مع نموذج تفويض', 'Bank debit with an authorization form'),
-  'ללקוחות שמשלמים במזומן, בשיק או בהעברה. התשלום מופיע ב"לגבייה" כל חודש, עם תזכורות ומעקב חוב.': ('للزبائن الذين يدفعون نقدًا أو بشيك أو تحويل. الدفعة تظهر في "للتحصيل" كل شهر مع تذكيرات ومتابعة دين.', 'For customers paying cash, cheque or transfer. It shows in "To collect" every month, with reminders and debt tracking.'),
+  'ללקוחות שמשלמים במזומן, בשיק או בהעברה. התשלום מופיע ב"לגבייה" כל חודש, עם תזכורות ומעקב חוב.': (
+    'للزبائن الذين يدفعون نقدًا أو بشيك أو تحويل. الدفعة تظهر في "للتحصيل" كل شهر مع تذكيرات ومتابعة دين.',
+    'For customers paying cash, cheque or transfer. It shows in "To collect" every month, with reminders and debt tracking.'
+  ),
   'יום החיוב החודשי': ('يوم الخصم الشهري', 'Monthly charge day'),
   'תזכורת לפני גבייה ידנית': ('تذكير قبل التحصيل اليدوي', 'Reminder before manual collection'),
   ' ימים': (' أيام', ' days'),
   'חיוב שנכשל וחובות': ('الخصم الفاشل والديون', 'Failed charges and debt'),
-  'מה קורה כשכרטיס נדחה או שתשלום ידני לא הגיע.': ('ماذا يحدث عندما تُرفض بطاقة أو لا تصل دفعة يدوية.', "What happens when a card is declined or a manual payment doesn't arrive."),
+  'מה קורה כשכרטיס נדחה או שתשלום ידני לא הגיע.': (
+    'ماذا يحدث عندما تُرفض بطاقة أو لا تصل دفعة يدوية.',
+    "What happens when a card is declined or a manual payment doesn't arrive."
+  ),
   'ניסיונות חיוב חוזרים': ('محاولات خصم متكررة', 'Charge retries'),
   'מרווחים: {0}': ('الفواصل: {0}', 'Spacing: {0}'),
   'ימי חסד לפני חסימה': ('أيام سماح قبل الحظر', 'Grace days before blocking'),
@@ -510,9 +677,855 @@ const Map<String, (String, String)> strings = {
   'כתובת הלינק': ('عنوان الرابط', 'Link address'),
   'כתובת הלינק (אנגלית בלבד)': ('عنوان الرابط (بالإنجليزية فقط)', 'Link address (English letters only)'),
   'שליחת קבלה ללקוח': ('إرسال الإيصال للزبون', 'Send the receipt to the customer'),
-  'ההגדרות נשמרות במכשיר בגרסת ההדגמה. בחיבור למערכת AURA הן נשמרות בשרת לכל הסניפים.': ('الإعدادات تُحفظ على الجهاز في نسخة العرض. عند الربط بنظام AURA تُحفظ على الخادم لكل الفروع.', "In the demo, settings stay on this device. Connected to AURA, they're saved on the server for every branch."),
+  'ההגדרות נשמרות במכשיר בגרסת ההדגמה. בחיבור למערכת AURA הן נשמרות בשרת לכל הסניפים.': (
+    'الإعدادات تُحفظ على الجهاز في نسخة العرض. عند الربط بنظام AURA تُحفظ على الخادم لكل الفروع.',
+    "In the demo, settings stay on this device. Connected to AURA, they're saved on the server for every branch."
+  ),
   'אמצעי תשלום פעילים: {0}': ('طرق الدفع الفعّالة: {0}', 'Enabled methods: {0}'),
   'ביטול': ('إلغاء', 'Cancel'),
   'שמירה': ('حفظ', 'Save'),
   'לא פעיל': ('غير فعّال', 'Inactive'),
+  '{0} מסלולים פעילים · הגדרת מסלול חדש': (
+    '{0} مسارات فعّالة · إضافة مسار جديد',
+    '{0} active plans · set up a new plan'
+  ),
+  'עוד {0} באיחור · לרשימת הגבייה': (
+    '{0} آخرون متأخرون · إلى قائمة التحصيل',
+    '{0} more overdue · open the collection list'
+  ),
+  'כתובת המייל לא תקינה': ('البريد الإلكتروني غير صحيح', "The email address isn't valid"),
+  'הקבלה נשלחה ב-{0} ל-{1}': ('أُرسل الإيصال عبر {0} إلى {1}', 'Receipt sent by {0} to {1}'),
+  'שליחת הקבלה ללקוח': ('إرسال الإيصال للزبون', 'Send the receipt to the customer'),
+  'נשלח ב-{0} · {1}': ('أُرسل عبر {0} · {1}', 'Sent by {0} · {1}'),
+  'בגרסת ההדגמה ההודעה לא יוצאת בפועל. בחיבור לספק ה-SMS נשלחת הודעה עם לינק לקבלה.': (
+    'في نسخة العرض لا تُرسل الرسالة فعليًا. عند الربط بمزوّد SMS تُرسل رسالة مع رابط للإيصال.',
+    "In the demo the message isn't actually sent. Once an SMS provider is connected, a message with a link to the receipt goes out."
+  ),
+  'לפני מע״מ': ('قبل الضريبة', 'Before VAT'),
+  'מע״מ {0}%': ('ضريبة القيمة المضافة {0}%', 'VAT {0}%'),
+  'סה״כ': ('المجموع', 'Total'),
+  'אישור והפקת קבלה': ('تأكيد وإصدار إيصال', 'Confirm and issue receipt'),
+  'בחירת דוחות': ('اختيار التقارير', 'Choose reports'),
+  'חוב פתוח {0}': ('دين مفتوح {0}', 'Open debt {0}'),
+  '{0} לקוחות · גבייה, לינק או תזכורת': (
+    '{0} زبائن · تحصيل أو رابط أو تذكير',
+    '{0} customers · collect, link or reminder'
+  ),
+  'לגבות': ('تحصيل', 'Collect'),
+  'לא נבחרו דוחות. אפשר לבחור בכפתור ההגדרות למעלה.': (
+    'لم تُختر تقارير. يمكن الاختيار من زر الإعدادات في الأعلى.',
+    'No reports selected. Choose them with the settings button above.'
+  ),
+  '{0} · החודש': ('{0} · هذا الشهر', '{0} · this month'),
+  'אחוז גבייה': ('نسبة التحصيل', 'Collection rate'),
+  'שולם. הקבלה הופקה.': ('دُفع. صدر الإيصال.', 'Paid. The receipt was issued.'),
+  'לגבות {0}': ('تحصيل {0}', 'Collect {0}'),
+  '{0} פתוחים לגבייה · {1}': ('{0} مفتوحة للتحصيل · {1}', '{0} open to collect · {1}'),
+  'לגבות הכל': ('تحصيل الكل', 'Collect all'),
+  'הצגת כל {0}': ('عرض كل الـ {0}', 'Show all {0}'),
+  '{0} מתוך {1} דוחות מוצגים': ('{0} من {1} تقارير معروضة', '{0} of {1} reports shown'),
+  'מומלץ ל{0}': ('مُوصى به لـ{0}', 'Recommended for {0}'),
+  'סוג העסק': ('نوع المصلحة', 'Business type'),
+  'הוגדר {0} · הדוחות עודכנו לסט המומלץ': (
+    'تم ضبط {0} · حُدّثت التقارير للمجموعة الموصى بها',
+    'Set to {0} · reports updated to the recommended set'
+  ),
+  'מה המסך הזה נותן?': ('ماذا تعطي هذه الشاشة؟', 'What does this screen give you?'),
+  'למה זה עוזר': ('لماذا يفيد', 'Why it helps'),
+  'מה זה נותן לך': ('ماذا يعطيك', 'What you get'),
+  'הבנתי': ('فهمت', 'Got it'),
+  'דוחות לעסק': ('تقارير المصلحة', 'Business reports'),
+  'הצגת הקבלה': ('عرض الإيصال', 'View receipt'),
+  'פרטי השיק': ('تفاصيل الشيك', 'Cheque details'),
+  'פרטי ההעברה': ('تفاصيل التحويل', 'Transfer details'),
+  'מספר השיק הראשון': ('رقم الشيك الأول', 'First cheque number'),
+  'מספר שיק': ('رقم الشيك', 'Cheque number'),
+  'בנק (קוד)': ('البنك (رمز)', 'Bank (code)'),
+  'סניף': ('الفرع', 'Branch'),
+  'מספר חשבון': ('رقم الحساب', 'Account number'),
+  'אסמכתא': ('رقم المرجع', 'Reference'),
+  'בנק משלם (קוד)': ('البنك المحوِّل (رمز)', 'Paying bank (code)'),
+  'תאריך השיק הראשון': ('تاريخ الشيك الأول', 'First cheque date'),
+  'תאריך ההעברה': ('تاريخ التحويل', 'Transfer date'),
+  '{0} שיקים: {1} עד {2}, אחד בכל חודש': (
+    '{0} شيكات: {1} حتى {2}، واحد كل شهر',
+    '{0} cheques: {1} to {2}, one a month'
+  ),
+  'סיכום': ('ملخص', 'Overview'),
+  'חדש': ('جديد', 'New'),
+  '{0} מול התקופה הקודמת': ('{0} مقارنة بالفترة السابقة', '{0} vs previous period'),
+  '{0} מוקפאים': ('{0} مجمّدون', '{0} frozen'),
+  '{0} בתקופה הקודמת': ('{0} في الفترة السابقة', '{0} in previous period'),
+  '{0} לקוחות': ('{0} زبائن', '{0} customers'),
+  'ממוצע {0}': ('متوسط {0}', 'Average {0}'),
+  'המרת לינקים': ('تحويل الروابط', 'Link conversion'),
+  '{0} מתוך {1} שילמו': ('{0} من {1} دفعوا', '{0} of {1} paid'),
+  'דורש טיפול עכשיו': ('بحاجة لمعالجة الآن', 'Needs attention now'),
+  'לקוחות באיחור': ('زبائن متأخرون', 'Customers overdue'),
+  'חיובי אשראי שנכשלו': ('خصومات بطاقات فشلت', 'Failed card charges'),
+  'מסתיימים ב-30 יום – להציע חידוש': ('ينتهون خلال 30 يومًا – اقتراح تجديد', 'Ending in 30 days – offer a renewal'),
+  'לינקים שעוד לא שולמו': ('روابط لم تُدفع بعد', 'Links not paid yet'),
+  'מגמה – 6 חודשים': ('الاتجاه – 6 أشهر', 'Trend – 6 months'),
+  '+{0} הצטרפו · {1} ביטלו': ('+{0} انضموا · {1} ألغوا', '+{0} joined · {1} cancelled'),
+  'גבייה חודשית בתקופה': ('التحصيل الشهري في الفترة', 'Monthly collection in the period'),
+  'היה לגבות': ('كان للتحصيل', 'Was due'),
+  'פתוח': ('مفتوح', 'Open'),
+  'מתוכו חיובים שנכשלו': ('منها خصومات فاشلة', 'Of which failed charges'),
+  'מאיפה הגיע הכסף': ('من أين جاء المال', 'Where the money came from'),
+  'הנמכרים ביותר בקבלה': ('الأكثر مبيعًا في الاستقبال', 'Best sellers at the desk'),
+  '{0} פעמים': ('{0} مرات', '{0} times'),
+  'השוואה לתקופה באורך זהה שלפניה. "החודש" מושווה לאותם ימים בחודש הקודם.': (
+    'المقارنة مع فترة بنفس الطول قبلها. "هذا الشهر" يُقارن بنفس الأيام من الشهر السابق.',
+    'Compared with the same-length period before it. "This month" is compared with the same days of last month.'
+  ),
+  'שיק {0} · בנק {1} · סניף {2}': ('شيك {0} · بنك {1} · فرع {2}', 'Cheque {0} · bank {1} · branch {2}'),
+  'סיכום העסק': ('ملخص المصلحة', 'Business summary'),
+  'כל הפעילות במבט אחד, מול התקופה הקודמת': (
+    'كل النشاط بنظرة واحدة، مقارنة بالفترة السابقة',
+    'All activity at a glance, vs the previous period'
+  ),
+  'חדר כושר': ('نادي رياضي', 'Gym'),
+  'סטודיו יוגה / פילאטיס': ('ستوديو يوغا / بيلاتس', 'Yoga / Pilates studio'),
+  'קרוספיט / אימוני כוח': ('كروسفيت / تدريب قوة', 'CrossFit / strength training'),
+  'אומנויות לחימה': ('فنون قتالية', 'Martial arts'),
+  'בריכה / קאנטרי': ('مسبح / نادٍ ريفي', 'Pool / country club'),
+  'בית ספר לריקוד': ('مدرسة رقص', 'Dance school'),
+  'קוסמטיקה / פדיקור / ציפורניים': ('تجميل / باديكير / أظافر', 'Beauty / pedicure / nails'),
+  'קליניקה / פיזיותרפיה': ('عيادة / علاج طبيعي', 'Clinic / physiotherapy'),
+  'חוגים ושיעורים פרטיים': ('دورات ودروس خصوصية', 'Classes and private lessons'),
+  'מועדון / חוגי ילדים': ('نادي / دورات أطفال', 'Kids club / classes'),
+  'מנויים חודשיים, כרטיסיות, הקפאות וגבייה חודשית': (
+    'اشتراكات شهرية، بطاقات دخول، تجميد وتحصيل شهري',
+    'Monthly memberships, punch cards, freezes and monthly collection'
+  ),
+  'מנוי לפי מספר שיעורים בשבוע וכרטיסיות': (
+    'اشتراك حسب عدد الحصص بالأسبوع وبطاقات دخول',
+    'Membership by classes per week and punch cards'
+  ),
+  'מנויים חודשיים בהתחייבות ואימונים אישיים': (
+    'اشتراكات شهرية بالتزام وتدريب شخصي',
+    'Monthly memberships with commitment and personal training'
+  ),
+  'מנוי חודשי לחוג, הרבה תשלום במזומן ושיקים': (
+    'اشتراك شهري للدورة، كثير من الدفع نقدًا وبشيكات',
+    'Monthly class fee, lots of cash and cheques'
+  ),
+  'מנוי עונתי או שנתי, משפחות': ('اشتراك موسمي أو سنوي، عائلات', 'Seasonal or yearly membership, families'),
+  'שנת לימודים בתשלומים או בשיקים': ('سنة دراسية بالتقسيط أو بشيكات', 'School year in installments or cheques'),
+  'סדרות טיפולים (כרטיסייה) ומנוי חודשי לטיפול קבוע': (
+    'سلسلة علاجات (بطاقة) واشتراك شهري لعلاج ثابت',
+    'Treatment series (punch card) and a monthly plan for regular treatment'
+  ),
+  'סדרות טיפולים וחבילות': ('سلاسل علاجات وباقات', 'Treatment series and packages'),
+  'תשלום חודשי ידני, שיקים ותזכורות': (
+    'دفع شهري يدوي، شيكات وتذكيرات',
+    'Manual monthly payment, cheques and reminders'
+  ),
+  'שנת פעילות, שיקים ותשלום חודשי מההורים': (
+    'سنة نشاط، شيكات ودفع شهري من الأهل',
+    'Activity year, cheques and monthly payment from parents'
+  ),
+  'בנק': ('البنك', 'Bank'),
+  'חשבון': ('الحساب', 'Account'),
+  'חסרים פרטי שיק: {0}': ('تنقص تفاصيل الشيك: {0}', 'Cheque details missing: {0}'),
+  'שיק {0} · בנק {1}{2} · סניף {3} · חשבון {4}': (
+    'شيك {0} · بنك {1}{2} · فرع {3} · حساب {4}',
+    'Cheque {0} · bank {1}{2} · branch {3} · account {4}'
+  ),
+  'בנק משלם': ('البنك المحوِّل', 'Paying bank'),
+  'חסרים פרטי העברה: {0}': ('تنقص تفاصيل التحويل: {0}', 'Transfer details missing: {0}'),
+  'העברה · אסמכתא {0} · בנק {1}{2}': ('تحويل · مرجع {0} · بنك {1}{2}', 'Transfer · ref {0} · bank {1}{2}'),
+  'מסך הבית': ('الشاشة الرئيسية', 'Home screen'),
+  'כל מה שקורה בעסק היום, במבט אחד, עם הפעולות הנפוצות בלחיצה אחת.': (
+    'كل ما يحدث في المصلحة اليوم بنظرة واحدة، مع الإجراءات الشائعة بضغطة واحدة.',
+    'Everything happening in the business today at a glance, with the common actions one tap away.'
+  ),
+  'מנויים פעילים, הכנסות היום וחוב פתוח': (
+    'المشتركون الفعّالون، إيرادات اليوم والدين المفتوح',
+    "Active members, today's revenue and open debt"
+  ),
+  'פתיחת מנוי, תשלום מהיר ולינק הרשמה בלחיצה': (
+    'فتح اشتراك، دفع سريع ورابط تسجيل بضغطة',
+    'Open a membership, quick payment and sign-up link in one tap'
+  ),
+  'רשימת "דורש טיפול": מי באיחור, איזה כרטיס נכשל ומי מסתיים': (
+    'قائمة "بحاجة لمعالجة": من متأخر، أي بطاقة فشلت ومن ينتهي',
+    '"Needs attention": who is late, which card failed and who is ending'
+  ),
+  'לינקים פתוחים ותשלומים אחרונים': ('روابط مفتوحة ودفعات أخيرة', 'Open links and recent payments'),
+  'כל המנויים במקום אחד, עם סינון לפי מצב, כדי לטפל בכל לקוח בלי לחפש.': (
+    'كل المشتركين في مكان واحد مع تصفية حسب الحالة، لمعالجة كل زبون دون بحث.',
+    'All members in one place, filtered by status, so you handle each one without searching.'
+  ),
+  'סינון לפי כל סטטוס: פעיל, ממתין לתשלום, חוב, מוקפא, מסתיים ועוד': (
+    'تصفية حسب كل حالة: فعّال، بانتظار الدفع، دين، مجمّد، ينتهي وغيرها',
+    'Filter by every status: active, awaiting payment, debt, frozen, ending and more'
+  ),
+  'כרטיס מנוי: הקפאה, חידוש, תשלום וביטול': (
+    'بطاقة الاشتراك: تجميد، تجديد، دفع وإلغاء',
+    'Member card: freeze, renew, pay and cancel'
+  ),
+  'תשלומים חודשיים שלא נכנסים אוטומטית לא הולכים לאיבוד: הם מחכים כאן עד שגובים אותם.': (
+    'الدفعات الشهرية التي لا تدخل تلقائيًا لا تضيع: تنتظر هنا حتى تُحصَّل.',
+    "Monthly payments that don't come in automatically don't get lost: they wait here until collected."
+  ),
+  'גבייה ידנית (מזומן, שיק, העברה) וחיובי אשראי שנכשלו': (
+    'تحصيل يدوي (نقدًا، شيك، تحويل) وخصومات بطاقات فشلت',
+    'Manual collection (cash, cheque, transfer) and failed card charges'
+  ),
+  '"התקבל" מפיק קבלה ופותח את החודש הבא': (
+    '"استُلم" يُصدر إيصالًا ويفتح الشهر التالي',
+    '"Received" issues a receipt and opens the next month'
+  ),
+  'שליחת לינק לתשלום או תזכורת ללקוח': (
+    'إرسال رابط دفع أو تذكير للزبون',
+    'Send the customer a payment link or a reminder'
+  ),
+  'חסימת כניסה אוטומטית אחרי ימי חסד': (
+    'حظر الدخول تلقائيًا بعد أيام السماح',
+    'Automatic entry block after the grace days'
+  ),
+  'תמונת מצב של הכסף, הגבייה והמנויים, כדי לקבל החלטות על בסיס מספרים ולא תחושה.': (
+    'صورة وضع للمال والتحصيل والاشتراكات، لاتخاذ قرارات بالأرقام لا بالإحساس.',
+    'A picture of money, collection and memberships, so decisions rest on numbers, not gut feeling.'
+  ),
+  'דוח סיכום לכל העסק עם השוואה לתקופה קודמת': (
+    'تقرير ملخص للمصلحة كلها مع مقارنة بالفترة السابقة',
+    'A summary of the whole business compared with the previous period'
+  ),
+  'כל דוח במרחק שתי לחיצות': ('كل تقرير على بعد ضغطتين', 'Every report two taps away'),
+  'גבייה של חובות ישירות מהדוח': ('تحصيل الديون مباشرة من التقرير', 'Collect debts right from the report'),
+  'העתקה לאקסל ובחירת הדוחות שמוצגים': (
+    'نسخ إلى إكسل واختيار التقارير المعروضة',
+    'Copy to Excel and choose which reports are shown'
+  ),
+  'כאן קובעים את החוקים שהקבלה, הלינק והגבייה החודשית עובדים לפיהם, בלי לעדכן גרסה.': (
+    'هنا تُحدَّد القواعد التي يعمل بها الاستقبال والرابط والتحصيل الشهري، دون تحديث النسخة.',
+    'Here you set the rules the desk, the link and monthly collection follow, without an app update.'
+  ),
+  'סוג העסק ומסלולי המנוי': ('نوع المصلحة ومسارات الاشتراك', 'Business type and membership plans'),
+  'אמצעי תשלום, תשלומים ושיקים': ('طرق الدفع، الدفعات والشيكات', 'Payment methods, installments and cheques'),
+  'חיוב חודשי, ניסיונות חוזרים וחסימת כניסה': (
+    'الخصم الشهري، المحاولات المتكررة وحظر الدخول',
+    'Monthly charge, retries and entry blocking'
+  ),
+  'אילו דוחות יוצגו': ('أي تقارير تُعرض', 'Which reports are shown'),
+  'המסלולים הם מה שהקבלה והלקוח בוחרים. מגדירים פעם אחת ומשתמשים בכל מקום.': (
+    'المسارات هي ما يختاره الاستقبال والزبون. تُعرَّف مرة واحدة وتُستخدم في كل مكان.',
+    'Plans are what the desk and the customer choose. Define them once, use them everywhere.'
+  ),
+  'יצירת מסלול חדש: חודשי מתחדש, תקופה או כרטיסייה': (
+    'إنشاء مسار جديد: شهري متجدد، فترة أو بطاقة دخول',
+    'Create a new plan: monthly, fixed term or punch card'
+  ),
+  'מחיר, התחייבות, דמי רישום והקפאות': (
+    'السعر، الالتزام، رسوم التسجيل والتجميد',
+    'Price, commitment, sign-up fee and freezes'
+  ),
+  'הפעלה וכיבוי בלי למחוק': ('تفعيل وإيقاف دون حذف', 'Turn on and off without deleting'),
+  'הגדרת מסלול': ('تعريف مسار', 'Plan setup'),
+  'כל תנאי המנוי מוגדרים כאן, כך שהקבלה לא צריכה לזכור חוקים.': (
+    'كل شروط الاشتراك تُعرَّف هنا، فلا يحتاج الاستقبال لتذكر القواعد.',
+    "All membership terms are set here, so the desk doesn't need to remember rules."
+  ),
+  'סוג: חודשי מתחדש, תקופה קבועה או כרטיסייה': (
+    'النوع: شهري متجدد، فترة ثابتة أو بطاقة دخول',
+    'Type: monthly, fixed term or punch card'
+  ),
+  'מחיר, משך, התחייבות והודעת ביטול': (
+    'السعر، المدة، الالتزام وإشعار الإلغاء',
+    'Price, length, commitment and cancellation notice'
+  ),
+  'אמצעי תשלום מותרים, תשלומים ושיקים': (
+    'طرق الدفع المسموحة، الدفعات والشيكات',
+    'Allowed payment methods, installments and cheques'
+  ),
+  'חודש אחרון מראש וזמינות בלינק': (
+    'الشهر الأخير مسبقًا والإتاحة في الرابط',
+    'Last month upfront and availability on the link'
+  ),
+  'יודעים בכל רגע מה קרה עם כל לינק ששלחתם, בלי להתקשר ללקוח.': (
+    'تعرفون في كل لحظة ماذا حدث مع كل رابط أرسلتموه، دون الاتصال بالزبون.',
+    'Know at any moment what happened with each link you sent, without calling the customer.'
+  ),
+  'שלב בזמן אמת: נשלח, נפתח, מילא פרטים, חתם, שילם': (
+    'المرحلة مباشرة: أُرسل، فُتح، عبّأ، وقّع، دفع',
+    'Live stage: sent, opened, filled in, signed, paid'
+  ),
+  'סינון לפי שלב': ('تصفية حسب المرحلة', 'Filter by stage'),
+  'תזכורת ללקוחות שלא סיימו': ('تذكير للزبائن الذين لم يُنهوا', "Remind customers who didn't finish"),
+  'בחירת לקוח': ('اختيار الزبون', 'Choose the customer'),
+  'מתחילים מהלקוח, כדי שכל תשלום ומנוי יירשמו בכרטיס שלו.': (
+    'نبدأ من الزبون، كي يُسجَّل كل دفع واشتراك في بطاقته.',
+    'Start from the customer, so every payment and membership is recorded on their card.'
+  ),
+  'לקוח חדש בשלושה שדות': ('زبون جديد بثلاثة حقول', 'A new customer in three fields'),
+  'לקוח מזדמן לתשלום מהיר': ('زبون عابر للدفع السريع', 'Walk-in customer for a quick payment'),
+  'בוחרים מסלול מוכן, והמחיר והתנאים מחושבים לבד.': (
+    'تختارون مسارًا جاهزًا، والسعر والشروط تُحسب وحدها.',
+    'Pick a ready plan and the price and terms are worked out for you.'
+  ),
+  'כל המסלולים הפעילים לפי סוג': ('كل المسارات الفعّالة حسب النوع', 'All active plans by type'),
+  'תאריך התחלה, הנחה וויתור על דמי רישום': (
+    'تاريخ البداية، الخصم والإعفاء من رسوم التسجيل',
+    'Start date, discount and sign-up fee waiver'
+  ),
+  '"+ מסלול חדש" אם חסר מסלול': ('"+ مسار جديد" إن كان ينقص مسار', '"+ New plan" if a plan is missing'),
+  'מכירה בקבלה בלי לפתוח מנוי: מוצרים, אימון אישי או כל סכום.': (
+    'بيع في الاستقبال دون فتح اشتراك: منتجات، تدريب شخصي أو أي مبلغ.',
+    'Sell at the desk without a membership: products, personal training or any amount.'
+  ),
+  'מוצרים בלחיצה, כמות בלחיצה נוספת': (
+    'منتجات بضغطة، والكمية بضغطة أخرى',
+    'Products in one tap, quantity with another'
+  ),
+  'סכום חופשי עם תיאור': ('مبلغ حر مع وصف', 'Free amount with a description'),
+  'לקוח יכול לשלם בכמה אמצעים יחד, והמערכת דואגת שהסכום יתאזן.': (
+    'يمكن للزبون الدفع بعدة طرق معًا، والنظام يضمن توازن المبلغ.',
+    'A customer can pay with several methods at once, and the system makes sure it balances.'
+  ),
+  'אשראי, מזומן, שיקים, העברה ולינק – גם בפיצול': (
+    'بطاقة، نقد، شيكات، تحويل ورابط – حتى بالتقسيم',
+    'Card, cash, cheques, transfer and link – even split'
+  ),
+  'תשלומים באשראי ומספר שיקים': ('دفعات بالبطاقة وعدد الشيكات', 'Card installments and number of cheques'),
+  'איך ייגבה החודש הבא במנוי מתחדש': (
+    'كيف يُحصَّل الشهر القادم في الاشتراك المتجدد',
+    'How next month is collected on a monthly plan'
+  ),
+  'בדיקה אחרונה לפני שמפיקים קבלה, כדי שלא יהיו טעויות.': (
+    'فحص أخير قبل إصدار الإيصال، كي لا تكون أخطاء.',
+    'A last check before the receipt is issued, so there are no mistakes.'
+  ),
+  'מה נגבה היום ובאיזה אמצעי': ('ماذا يُحصَّل اليوم وبأي طريقة', 'What is collected today and how'),
+  'מתי החיוב הבא ואיך': ('متى الخصم القادم وكيف', 'When the next charge is and how'),
+  'קבלה אחת לכל אמצעי התשלום': ('إيصال واحد لكل طرق الدفع', 'One receipt for every payment method'),
+  'כל עסק צריך דוחות אחרים. מציגים רק את מה שרלוונטי לעסק הזה.': (
+    'كل مصلحة تحتاج تقارير مختلفة. تُعرض فقط التقارير المهمة لهذه المصلحة.',
+    'Every business needs different reports. Show only the ones that matter here.'
+  ),
+  'הפעלה וכיבוי של כל דוח': ('تفعيل وإيقاف كل تقرير', 'Turn each report on or off'),
+  'סט מומלץ לפי סוג העסק': ('مجموعة موصى بها حسب نوع المصلحة', 'A recommended set by business type'),
+  'הלינק של הלקוח': ('رابط الزبون', "The customer's link"),
+  'הלקוח נרשם ומשלם לבד מהטלפון, בלי לעמוד בתור בקבלה.': (
+    'الزبون يسجّل ويدفع وحده من الهاتف، دون انتظار في الاستقبال.',
+    'The customer signs up and pays from their phone, without queuing at the desk.'
+  ),
+  'בחירת מסלול, פרטים והצהרת בריאות': (
+    'اختيار المسار، التفاصيل والتصريح الصحي',
+    'Plan, details and health declaration'
+  ),
+  'תשלום באשראי ופתיחת מנוי אוטומטית': ('دفع بالبطاقة وفتح الاشتراك تلقائيًا', 'Card payment and automatic membership'),
+  'אתם רואים כל שלב בזמן אמת': ('ترون كل مرحلة مباشرة', 'You see every step live'),
+  'כל הפעילות של העסק בדוח אחד, עם השוואה לתקופה הקודמת, כדי לדעת מיד אם העסק צומח.': (
+    'كل نشاط المصلحة في تقرير واحد، مع مقارنة بالفترة السابقة، لتعرفوا فورًا إن كانت المصلحة تنمو.',
+    'All business activity in one report, compared with the previous period, so you know right away if the business is growing.'
+  ),
+  'הכנסות, מנויים חדשים וביטולים מול התקופה הקודמת': (
+    'الإيرادات، الاشتراكات الجديدة والإلغاءات مقارنة بالفترة السابقة',
+    'Revenue, new memberships and cancellations vs the previous period'
+  ),
+  'אחוז גבייה וחוב פתוח': ('نسبة التحصيل والدين المفتوح', 'Collection rate and open debt'),
+  'מגמה של 6 חודשים': ('اتجاه 6 أشهر', '6-month trend'),
+  'מה דורש טיפול עכשיו': ('ما يحتاج معالجة الآن', 'What needs attention now'),
+  'יודעים כמה כסף נכנס, מאיפה ובאיזה אמצעי.': (
+    'تعرفون كم مالًا دخل، من أين وبأي طريقة.',
+    'Know how much money came in, from where and how.'
+  ),
+  'סכום לפי תקופה': ('المبلغ حسب الفترة', 'Amount by period'),
+  'פילוח לפי אמצעי תשלום ומקור': ('تقسيم حسب طريقة الدفع والمصدر', 'Split by payment method and source'),
+  'כל הקבלות': ('كل الإيصالات', 'All receipts'),
+  'יודעים מראש כמה כסף צפוי להיכנס בחודש הקרוב, כדי לתכנן הוצאות.': (
+    'تعرفون مسبقًا كم مالًا متوقعًا في الشهر القادم، لتخطيط المصاريف.',
+    'Know ahead how much money is expected next month, to plan spending.'
+  ),
+  'חיובים אוטומטיים, גבייה ידנית ושיקים לפי תאריך': (
+    'خصومات تلقائية، تحصيل يدوي وشيكات حسب التاريخ',
+    'Automatic charges, manual collection and cheques by date'
+  ),
+  'אף שיק לא נשכח בתיק.': ('لا يُنسى أي شيك في الدرج.', 'No cheque gets forgotten in the drawer.'),
+  'שיקים לפירעון לפי תאריך': ('شيكات للصرف حسب التاريخ', 'Cheques to clear by date'),
+  'סימון שיקים של השבוע': ('تمييز شيكات هذا الأسبوع', "This week's cheques highlighted"),
+  'כסף ששולם מראש על החודש האחרון הוא לא הכנסה של החודש. כאן רואים כמה מוחזק.': (
+    'المال المدفوع مسبقًا عن الشهر الأخير ليس دخل الشهر. هنا ترون كم محتجز.',
+    "Money paid upfront for the last month isn't this month's income. Here you see how much is held."
+  ),
+  'מי שילם חודש אחרון מראש': ('من دفع الشهر الأخير مسبقًا', 'Who paid the last month upfront'),
+  'אילו חודשים כבר כוסו': ('أي أشهر غُطّيت', 'Which months were covered'),
+  'רשימה ברורה של ממי צריך לגבות החודש במזומן, בשיק או בהעברה.': (
+    'قائمة واضحة بمن يجب التحصيل منه هذا الشهر نقدًا أو بشيك أو تحويل.',
+    'A clear list of who to collect from this month in cash, cheque or transfer.'
+  ),
+  'מי עוד לא שילם ומי באיחור': ('من لم يدفع بعد ومن متأخر', "Who hasn't paid yet and who is late"),
+  'גבייה ישירה מהדוח': ('تحصيل مباشر من التقرير', 'Collect right from the report'),
+  'מי כבר שילם ובאיזה אמצעי': ('من دفع وبأي طريقة', 'Who paid and how'),
+  'חוב שלא מטפלים בו מהר הופך לחוב שלא נגבה.': (
+    'الدين الذي لا يُعالج بسرعة يصبح دينًا لا يُحصَّل.',
+    'Debt not handled fast becomes debt never collected.'
+  ),
+  'כל החייבים לפי ותק החוב': ('كل المدينين حسب عمر الدين', 'All debtors by age of debt'),
+  'מי חסום בכניסה': ('من محظور الدخول', 'Who is blocked at the entrance'),
+  'גבייה, לינק או תזכורת מהדוח': ('تحصيل أو رابط أو تذكير من التقرير', 'Collect, link or reminder from the report'),
+  'כרטיס שנדחה מטופל לפני שהלקוח הופך לחייב.': (
+    'البطاقة المرفوضة تُعالج قبل أن يصبح الزبون مدينًا.',
+    'A declined card is handled before the customer becomes a debtor.'
+  ),
+  'כל החיובים שנכשלו': ('كل الخصومات الفاشلة', 'All failed charges'),
+  'שליחת לינק לעדכון כרטיס או גבייה בדרך אחרת': (
+    'إرسال رابط لتحديث البطاقة أو التحصيل بطريقة أخرى',
+    'Send a link to update the card, or collect another way'
+  ),
+  'כמה מנויים יש בכל מסלול וכמה הכנסה חודשית קבועה הם מביאים.': (
+    'كم مشتركًا في كل مسار وكم دخلًا شهريًا ثابتًا يجلبون.',
+    'How many members are on each plan and how much recurring income they bring.'
+  ),
+  'מנויים לפי מסלול': ('المشتركون حسب المسار', 'Members by plan'),
+  'הכנסה חודשית חוזרת וממוצע למנוי': (
+    'الدخل الشهري المتكرر والمتوسط لكل مشترك',
+    'Recurring monthly revenue and average per member'
+  ),
+  'מנוי שמציעים לו חידוש בזמן נשאר.': (
+    'المشترك الذي يُعرض عليه التجديد في الوقت يبقى.',
+    'A member offered renewal in time stays.'
+  ),
+  'מי מסתיים ב-30 יום': ('من ينتهي خلال 30 يومًا', 'Who ends within 30 days'),
+  'ביטולים שנכנסים לתוקף': ('إلغاءات تدخل حيز التنفيذ', 'Cancellations taking effect'),
+  'האם העסק גדל או מתכווץ.': ('هل المصلحة تنمو أم تتقلص.', 'Is the business growing or shrinking.'),
+  'הצטרפויות מול ביטולים': ('انضمامات مقابل إلغاءات', 'Joins vs cancellations'),
+  'אחוז נטישה': ('نسبة التسرب', 'Churn rate'),
+  'מנוי מוקפא לא משלם. כדאי לדעת מתי הוא חוזר.': (
+    'الاشتراك المجمّد لا يدفع. من المفيد معرفة متى يعود.',
+    "A frozen membership doesn't pay. Worth knowing when it returns."
+  ),
+  'כמה חיוב חודשי מושהה': ('كم من الخصم الشهري معلّق', 'How much monthly charge is paused'),
+  'כמה מהלינקים שנשלחו הפכו לתשלום, ואיפה לקוחות נתקעים.': (
+    'كم من الروابط المرسلة تحوّلت لدفع، وأين يتوقف الزبائن.',
+    'How many sent links turned into payments, and where customers get stuck.'
+  ),
+  'משפך: נשלח, נפתח, מילא, חתם, שילם': (
+    'المسار: أُرسل، فُتح، عبّأ، وقّع، دفع',
+    'Funnel: sent, opened, filled in, signed, paid'
+  ),
+  'אחוז המרה': ('نسبة التحويل', 'Conversion rate'),
+  'אורי דהן': ('أوري دهان', 'Ori Dahan'),
+  'נטע שפירא': ('نيطاع شبيرا', 'Neta Shapira'),
+  'אחמד ג׳בארין': ('أحمد جبارين', 'Ahmad Jabarin'),
+  'שירה אזולאי': ('شيرا أزولاي', 'Shira Azulay'),
+  'יונתן פרץ': ('يوناتان بيرتس', 'Yonatan Peretz'),
+  'רנא אבו ריא': ('رنا أبو ريا', 'Rana Abu Raya'),
+  'עדי ביטון': ('عدي بيطون', 'Adi Biton'),
+  'מיכל רוזן': ('ميخال روزين', 'Michal Rosen'),
+  'עמית גבאי': ('عميت جباي', 'Amit Gabay'),
+  'הדר מלכה': ('هدار ملكا', 'Hadar Malka'),
+  'סאמי חורי': ('سامي خوري', 'Sami Khoury'),
+  'טל אוחיון': ('طال أوحيون', 'Tal Ohayon'),
+  'ליאור כץ': ('ليئور كاتس', 'Lior Katz'),
+  'נור עזאם': ('نور عزام', 'Nour Azzam'),
+  'גיל ברגר': ('غيل برغر', 'Gil Berger'),
+  'דנה וקנין': ('دانا فكنين', 'Dana Vaknin'),
+  'איתי אשכנזי': ('إيتاي أشكنازي', 'Itai Ashkenazi'),
+  'רותם סויסה': ('روتم سويسا', 'Rotem Suissa'),
+  'כרים נסאר': ('كريم نصار', 'Karim Nassar'),
+  'אביגיל חדד': ('أبيجيل حداد', 'Avigail Hadad'),
+  'עידו פרידמן': ('عيدو فريدمان', 'Ido Friedman'),
+  'יאסמין חלבי': ('ياسمين حلبي', 'Yasmin Halabi'),
+  'מתן אלמוג': ('ماتان ألموغ', 'Matan Almog'),
+  'קרן בן דוד': ('كيرن بن دافيد', 'Keren Ben David'),
+  'ראמי סלים': ('رامي سليم', 'Rami Salim'),
+  'אופיר לנדאו': ('أوفير لانداو', 'Ofir Landau'),
+  'שני עמר': ('شاني عمار', 'Shani Amar'),
+  'בשאר זועבי': ('بشار زعبي', 'Bashar Zoabi'),
+  'מאור טייב': ('ماؤور طيب', 'Maor Tayeb'),
+  'ליה שטרן': ('ليا شتيرن', 'Leah Stern'),
+  'פאדי עבאס': ('فادي عباس', 'Fadi Abbas'),
+  'נועם הרשקו': ('نوعم هرشكو', 'Noam Hershko'),
+  'אלה גרינברג': ('إيلا غرينبرغ', 'Ella Greenberg'),
+  'יוסף קעדאן': ('يوسف قعدان', 'Yousef Kadan'),
+  'רוני מימון': ('روني ميمون', 'Roni Maimon'),
+  'טליה בן עמי': ('طاليا بن عامي', 'Talia Ben Ami'),
+  'מוחמד מסארווה': ('محمد مصاروة', 'Mohammad Masarwa'),
+  'ענבל קורן': ('عنبال كورين', 'Inbal Koren'),
+  'אסף יוסף': ('أساف يوسف', 'Asaf Yosef'),
+  'הילה נחום': ('هيلا نحوم', 'Hila Nachum'),
+  'סלים דיאב': ('سليم دياب', 'Salim Diab'),
+  'אור לוין': ('أور ليفين', 'Or Levin'),
+  'מאיה בוזגלו': ('مايا بوزغلو', 'Maya Buzaglo'),
+  'עלי מוסא': ('علي موسى', 'Ali Musa'),
+  'שחר אדלר': ('شاحر أدلر', 'Shahar Adler'),
+  'רעות חזן': ('رعوت حزان', 'Reut Hazan'),
+  'ג׳ורג׳ חדאד': ('جورج حداد', 'George Haddad'),
+  'ספיר אליאס': ('سافير إلياس', 'Sapir Elias'),
+  'יהב': ('يهاف', 'Yahav'),
+  'בנק הדואר': ('بنك البريد', 'Postal Bank'),
+  'לאומי': ('لئومي', 'Leumi'),
+  'דיסקונט': ('ديسكونت', 'Discount'),
+  'הפועלים': ('هبوعليم', 'Hapoalim'),
+  'מרכנתיל': ('مركنتيل', 'Mercantile'),
+  'מזרחי טפחות': ('مزراحي طفحوت', 'Mizrahi Tefahot'),
+  'הבינלאומי': ('البنك الدولي (هبينلئومي)', 'First International'),
+  'מסד': ('مساد', 'Massad'),
+  'פאג"י': ('باجي', 'PAGI'),
+  'ירושלים': ('القدس', 'Jerusalem'),
+  'מדריך למשתמש': ('دليل المستخدم', 'User guide'),
+  'למדריך המלא': ('إلى الدليل الكامل', 'Open the full guide'),
+  'איך עושים כל דבר, צעד אחרי צעד': ('كيف تفعل كل شيء، خطوة بخطوة', 'How to do everything, step by step'),
+  'מה רוצים לעשות?': ('ماذا تريد أن تفعل؟', 'What do you want to do?'),
+  'כותבים מילה אחת, לדוגמה "שיק", "הקפאה" או "קבלה", ומקבלים את הצעדים.': (
+    'اكتب كلمة واحدة، مثل "شيك" أو "تجميد" أو "إيصال"، واحصل على الخطوات.',
+    'Type one word, like "cheque", "freeze" or "receipt", and get the steps.'
+  ),
+  'חיפוש במדריך': ('البحث في الدليل', 'Search the guide'),
+  'לא נמצא. נסו מילה אחרת, או לחצו ? בכל מסך.': (
+    'لم يُعثر على شيء. جرّب كلمة أخرى، أو اضغط ? في أي شاشة.',
+    'Nothing found. Try another word, or tap ? on any screen.'
+  ),
+  'קחו אותי לשם': ('خذني إلى هناك', 'Take me there'),
+  'מתחילים': ('البداية', 'Getting started'),
+  'בקבלה, כל יום': ('في الاستقبال، كل يوم', 'At the desk, every day'),
+  'ניהול מנויים': ('إدارة الاشتراكات', 'Managing members'),
+  'בוחרים את סוג העסק': ('اختيار نوع المصلحة', 'Choose the business type'),
+  'פעם אחת, בהתחלה.': ('مرة واحدة، في البداية.', 'Once, at the start.'),
+  'נכנסים להגדרות (הכפתור האחרון למטה).': (
+    'ادخل إلى الإعدادات (الزر الأخير في الأسفل).',
+    'Open Settings (the last button at the bottom).'
+  ),
+  'לוחצים על "סוג עסק" ובוחרים: חדר כושר, סטודיו, קוסמטיקה, חוגים ועוד.': (
+    'اضغط "نوع المصلحة" واختر: نادي رياضي، ستوديو، تجميل، دورات وغيرها.',
+    'Tap "Business type" and choose: gym, studio, beauty, classes and more.'
+  ),
+  'האפליקציה מציגה מיד את הדוחות שהכי מתאימים לעסק כזה.': (
+    'يعرض التطبيق فورًا التقارير الأنسب لهذا النوع من المصالح.',
+    'The app immediately shows the reports that suit that kind of business.'
+  ),
+  'אפשר לשנות בכל רגע. זה לא מוחק נתונים.': (
+    'يمكن التغيير في أي وقت. لا يحذف أي بيانات.',
+    'You can change it any time. No data is deleted.'
+  ),
+  'יוצרים מסלול מנוי': ('إنشاء مسار اشتراك', 'Create a membership plan'),
+  'לפני שפותחים מנוי ראשון, או כשיש מבצע חדש.': (
+    'قبل فتح أول اشتراك، أو عند وجود عرض جديد.',
+    "Before the first membership, or when there's a new offer."
+  ),
+  'במסך הבית לוחצים על "מסלולי מנוי".': (
+    'في الشاشة الرئيسية اضغط "مسارات الاشتراك".',
+    'On the home screen tap "Membership plans".'
+  ),
+  'לוחצים "מסלול חדש".': ('اضغط "مسار جديد".', 'Tap "New plan".'),
+  'נותנים שם (לדוגמה "חודשי סטודנטים") ובוחרים סוג: חודשי מתחדש, תקופה או כרטיסייה.': (
+    'أعطِ اسمًا (مثل "شهري للطلاب") واختر النوع: شهري متجدد، فترة أو بطاقة دخول.',
+    'Give it a name (e.g. "Monthly – students") and pick a type: monthly, fixed term or punch card.'
+  ),
+  'ממלאים מחיר, ואם צריך: התחייבות, דמי רישום והקפאות.': (
+    'املأ السعر، وإن لزم: الالتزام، رسوم التسجيل والتجميد.',
+    'Fill in the price and, if needed: commitment, sign-up fee and freezes.'
+  ),
+  'לוחצים "שמירת המסלול". הוא מופיע מיד לבחירה.': (
+    'اضغط "حفظ المسار". يظهر فورًا للاختيار.',
+    'Tap "Save plan". It’s ready to choose right away.'
+  ),
+  'שכחתם מסלול באמצע פתיחת מנוי? יש כפתור "מסלול חדש" גם שם.': (
+    'نسيت مسارًا أثناء فتح اشتراك؟ يوجد زر "مسار جديد" هناك أيضًا.',
+    'Missing a plan while opening a membership? There’s a "New plan" button there too.'
+  ),
+  'קובעים אמצעי תשלום': ('تحديد طرق الدفع', 'Set payment methods'),
+  'כדי שהקבלה תציע רק מה שאתם מקבלים.': (
+    'كي يعرض الاستقبال فقط ما تقبلونه.',
+    'So the desk only offers what you accept.'
+  ),
+  'בהגדרות, בחלק "אמצעי תשלום", מסמנים מה מותר: אשראי, מזומן, שיקים, העברה, לינק.': (
+    'في الإعدادات، قسم "طرق الدفع"، حدّد المسموح: بطاقة، نقد، شيكات، تحويل، رابط.',
+    'In Settings, under "Payment methods", mark what’s allowed: card, cash, cheques, transfer, link.'
+  ),
+  'קובעים מקסימום תשלומים באשראי ומקסימום שיקים.': (
+    'حدّد أقصى عدد دفعات بالبطاقة وأقصى عدد شيكات.',
+    'Set the maximum card installments and cheques.'
+  ),
+  'פותחים מנוי ללקוח': ('فتح اشتراك لزبون', 'Open a membership for a customer'),
+  'לקוח עומד מולכם ורוצה להירשם.': ('زبون أمامك ويريد التسجيل.', 'A customer is in front of you and wants to join.'),
+  'במסך הבית לוחצים "מנוי חדש".': (
+    'في الشاشة الرئيسية اضغط "اشتراك جديد".',
+    'On the home screen tap "New membership".'
+  ),
+  'בוחרים לקוח מהרשימה, או "לקוח חדש" וממלאים שם וטלפון.': (
+    'اختر زبونًا من القائمة، أو "زبون جديد" واملأ الاسم والهاتف.',
+    'Pick a customer from the list, or "New customer" and fill in name and phone.'
+  ),
+  'בוחרים מסלול. אפשר לתת הנחה או לוותר על דמי רישום.': (
+    'اختر مسارًا. يمكن إعطاء خصم أو الإعفاء من رسوم التسجيل.',
+    'Choose a plan. You can give a discount or waive the sign-up fee.'
+  ),
+  'בוחרים איך משלמים היום, ובמנוי חודשי גם איך ייגבה החודש הבא.': (
+    'اختر كيف يُدفع اليوم، وفي الاشتراك الشهري أيضًا كيف يُحصَّل الشهر القادم.',
+    'Choose how today is paid and, on a monthly plan, how next month is collected.'
+  ),
+  'בודקים את הסיכום ולוחצים "פתיחת המנוי". הקבלה מופקת לבד.': (
+    'راجع الملخص واضغط "فتح الاشتراك". يصدر الإيصال تلقائيًا.',
+    'Check the summary and tap "Open membership". The receipt is issued automatically.'
+  ),
+  'לקוח עם כרטיס שמור? האשראי כבר ממולא, נשאר רק לאשר.': (
+    'زبون لديه بطاقة محفوظة؟ البطاقة معبأة مسبقًا، يبقى التأكيد فقط.',
+    'Customer with a saved card? The card is already filled in; just confirm.'
+  ),
+  'מוכרים מוצר או אימון': ('بيع منتج أو تدريب', 'Sell a product or a session'),
+  'שייק, מגבת, אימון אישי או כל סכום, בלי מנוי.': (
+    'شيك بروتين، منشفة، تدريب شخصي أو أي مبلغ، بدون اشتراك.',
+    'Shake, towel, personal training or any amount, without a membership.'
+  ),
+  'במסך הבית לוחצים "תשלום מהיר".': ('في الشاشة الرئيسية اضغط "دفع سريع".', 'On the home screen tap "Quick payment".'),
+  'בוחרים לקוח, או "לקוח מזדמן".': ('اختر زبونًا، أو "زبون عابر".', 'Pick a customer, or "Walk-in customer".'),
+  'לוחצים על המוצרים (כל לחיצה מוסיפה אחד) או רושמים סכום חופשי.': (
+    'اضغط على المنتجات (كل ضغطة تضيف واحدًا) أو اكتب مبلغًا حرًا.',
+    'Tap products (each tap adds one) or type any amount.'
+  ),
+  'בוחרים אמצעי תשלום ומאשרים.': ('اختر طريقة الدفع وأكّد.', 'Choose the payment method and confirm.'),
+  'מקבלים שיקים': ('استلام شيكات', 'Take cheques'),
+  'לקוח משלם תקופה מראש בשיקים.': ('زبون يدفع فترة مسبقًا بشيكات.', 'A customer pays a period upfront by cheque.'),
+  'בשלב התשלום לוחצים "שיקים" ובוחרים כמה שיקים.': (
+    'في خطوة الدفع اضغط "شيكات" واختر عددها.',
+    'At the payment step tap "Cheques" and choose how many.'
+  ),
+  'רושמים את מספר השיק הראשון, קוד בנק, סניף ומספר חשבון. שם הבנק מופיע לבד.': (
+    'اكتب رقم الشيك الأول، رمز البنك، الفرع ورقم الحساب. اسم البنك يظهر تلقائيًا.',
+    'Enter the first cheque number, bank code, branch and account number. The bank name shows by itself.'
+  ),
+  'בוחרים את תאריך השיק הראשון. השאר נרשמים אחד בכל חודש.': (
+    'اختر تاريخ الشيك الأول. البقية تُسجَّل واحدًا كل شهر.',
+    "Pick the first cheque's date. The rest are recorded one a month."
+  ),
+  'כל השיקים מופיעים בדוח "שיקים לפירעון" לפי תאריך.': (
+    'كل الشيكات تظهر في تقرير "شيكات للصرف" حسب التاريخ.',
+    'All cheques appear in the "Cheques to clear" report by date.'
+  ),
+  'מקבלים העברה בנקאית': ('استلام تحويل بنكي', 'Take a bank transfer'),
+  'לקוח העביר כסף לחשבון של העסק.': (
+    'زبون حوّل المال لحساب المصلحة.',
+    'A customer transferred money to the business account.'
+  ),
+  'בשלב התשלום, או ב"לגבייה", בוחרים "העברה בנקאית".': (
+    'في خطوة الدفع، أو في "للتحصيل"، اختر "تحويل بنكي".',
+    'At the payment step, or in "To collect", choose "Transfer".'
+  ),
+  'רושמים את האסמכתא ואת קוד הבנק שממנו הועבר.': (
+    'اكتب رقم المرجع ورمز البنك الذي حُوِّل منه.',
+    'Enter the reference and the code of the bank it came from.'
+  ),
+  'בוחרים את תאריך ההעברה ומאשרים.': ('اختر تاريخ التحويل وأكّد.', 'Pick the transfer date and confirm.'),
+  'מחלקים תשלום לכמה אמצעים': ('تقسيم الدفع على عدة طرق', 'Split a payment across methods'),
+  'חלק במזומן וחלק באשראי, למשל.': ('جزء نقدًا وجزء بالبطاقة، مثلًا.', 'Part cash, part card, for example.'),
+  'בשלב התשלום מוסיפים את האמצעי הראשון ומשנים את הסכום שלו.': (
+    'في خطوة الدفع أضف الطريقة الأولى وغيّر مبلغها.',
+    'At the payment step add the first method and change its amount.'
+  ),
+  'מוסיפים אמצעי נוסף. הוא מקבל את היתרה לבד.': (
+    'أضف طريقة أخرى. تأخذ الباقي تلقائيًا.',
+    'Add another method. It takes the rest automatically.'
+  ),
+  'הפס הירוק מתמלא כשהסכום מאוזן.': (
+    'يمتلئ الشريط الأخضر عندما يتوازن المبلغ.',
+    'The green bar fills when the amount balances.'
+  ),
+  'שולחים קבלה ב-SMS': ('إرسال إيصال بـ SMS', 'Send a receipt by SMS'),
+  'אחרי כל תשלום, או כשלקוח מבקש עותק.': (
+    'بعد كل دفع، أو عندما يطلب زبون نسخة.',
+    'After each payment, or when a customer asks for a copy.'
+  ),
+  'במסך "בוצע" שאחרי התשלום, הטלפון של הלקוח כבר ממולא.': (
+    'في شاشة "تم" بعد الدفع، هاتف الزبون معبأ مسبقًا.',
+    'On the "Done" screen after payment, the customer’s phone is already filled in.'
+  ),
+  'לוחצים SMS או WhatsApp. למייל לוחצים על @ ורושמים כתובת.': (
+    'اضغط SMS أو WhatsApp. للبريد اضغط @ واكتب العنوان.',
+    'Tap SMS or WhatsApp. For email tap @ and type the address.'
+  ),
+  'קבלה ישנה? במסך הבית לוחצים על התשלום ברשימת "תשלומים אחרונים".': (
+    'إيصال قديم؟ في الشاشة الرئيسية اضغط على الدفعة في قائمة "دفعات أخيرة".',
+    'An older receipt? On the home screen tap the payment under "Recent payments".'
+  ),
+  'שולחים ללקוח לינק להרשמה': ('إرسال رابط تسجيل للزبون', 'Send a customer a sign-up link'),
+  'הלקוח לא בעסק, או שיש תור בקבלה.': (
+    'الزبون ليس في المصلحة، أو هناك طابور في الاستقبال.',
+    "The customer isn't there, or there's a queue at the desk."
+  ),
+  'במסך הבית לוחצים "לינק הרשמה".': ('في الشاشة الرئيسية اضغط "رابط تسجيل".', 'On the home screen tap "Sign-up link".'),
+  'רושמים שם או טלפון ולוחצים "שליחה".': (
+    'اكتب اسمًا أو هاتفًا واضغط "إرسال".',
+    'Type a name or phone and tap "Send".'
+  ),
+  'רואים בזמן אמת אם הלקוח פתח, מילא, חתם ושילם.': (
+    'ترى مباشرة إن كان الزبون فتح، عبّأ، وقّع ودفع.',
+    'See live whether the customer opened, filled in, signed and paid.'
+  ),
+  'כל הלינקים נמצאים ב"כל הלינקים", עם סינון לפי שלב.': (
+    'كل الروابط في "كل الروابط"، مع تصفية حسب المرحلة.',
+    'All links are under "All links", filtered by stage.'
+  ),
+  'גובים תשלום חודשי במזומן': ('تحصيل دفعة شهرية نقدًا', 'Collect a monthly payment in cash'),
+  'מנוי שמשלם בעצמו כל חודש.': ('مشترك يدفع بنفسه كل شهر.', 'A member who pays by hand every month.'),
+  'לוחצים "לגבייה" בתפריט למטה.': ('اضغط "للتحصيل" في القائمة السفلية.', 'Tap "To collect" in the bottom menu.'),
+  'ליד שם הלקוח לוחצים "התקבל".': ('بجانب اسم الزبون اضغط "استُلم".', 'Next to the customer’s name tap "Received".'),
+  'בוחרים איך שילם. הקבלה מופקת והחודש הבא נפתח לבד.': (
+    'اختر كيف دفع. يصدر الإيصال ويُفتح الشهر التالي تلقائيًا.',
+    'Choose how they paid. The receipt is issued and next month opens automatically.'
+  ),
+  'מי צריך לשלם החודש? דוח "גבייה ידנית חודשית".': (
+    'من يجب أن يدفع هذا الشهر؟ تقرير "التحصيل اليدوي الشهري".',
+    'Who needs to pay this month? The "Monthly manual collection" report.'
+  ),
+  'מטפלים בחוב': ('معالجة دين', 'Handle a debt'),
+  'לקוח באיחור.': ('زبون متأخر.', 'A customer is late.'),
+  'בדוחות לוחצים על "חוב פתוח", או נכנסים לדוח "חובות ופיגורים".': (
+    'في التقارير اضغط "دين مفتوح"، أو افتح تقرير "الديون والتأخيرات".',
+    'In Reports tap "Open debt", or open the "Debts and arrears" report.'
+  ),
+  'ליד כל חייב יש כפתור "לגבות": גובים, שולחים לינק לתשלום או תזכורת.': (
+    'بجانب كل مدين زر "تحصيل": تحصيل، رابط دفع أو تذكير.',
+    'Each debtor has a "Collect" button: collect, send a payment link or a reminder.'
+  ),
+  'אחרי ימי החסד הכניסה של הלקוח נחסמת לבד, עד שמשלם.': (
+    'بعد أيام السماح يُحظر دخول الزبون تلقائيًا حتى يدفع.',
+    "After the grace days the customer's entry is blocked automatically until they pay."
+  ),
+  'כרטיס אשראי נדחה': ('بطاقة ائتمان مرفوضة', 'A card was declined'),
+  'החיוב החודשי לא עבר.': ('الخصم الشهري لم يمر.', "The monthly charge didn't go through."),
+  'המערכת מנסה שוב לבד לפי ההגדרות.': (
+    'يعيد النظام المحاولة وحده حسب الإعدادات.',
+    'The system retries by itself, per the settings.'
+  ),
+  'ב"לגבייה" שולחים ללקוח לינק לעדכון כרטיס, או גובים בדרך אחרת.': (
+    'في "للتحصيل" أرسل للزبون رابطًا لتحديث البطاقة، أو حصّل بطريقة أخرى.',
+    'In "To collect" send the customer a link to update the card, or collect another way.'
+  ),
+  'מוצאים מנוי': ('إيجاد مشترك', 'Find a member'),
+  'צריך לבדוק מצב של לקוח.': ('تحتاج لفحص وضع زبون.', "You need to check a customer's status."),
+  'לוחצים "מנויים" בתפריט למטה.': ('اضغط "المشتركون" في القائمة السفلية.', 'Tap "Members" in the bottom menu.'),
+  'מחפשים לפי שם או טלפון, או מסננים לפי מצב: פעיל, חוב, מוקפא, מסתיים.': (
+    'ابحث بالاسم أو الهاتف، أو صفِّ حسب الحالة: فعّال، دين، مجمّد، ينتهي.',
+    'Search by name or phone, or filter by status: active, debt, frozen, ending.'
+  ),
+  'לוחצים על הלקוח כדי לראות הכל.': ('اضغط على الزبون لرؤية كل شيء.', 'Tap the customer to see everything.'),
+  'מקפיאים מנוי': ('تجميد اشتراك', 'Freeze a membership'),
+  'לקוח בחופשה, במילואים או פצוע.': (
+    'زبون في إجازة، في الاحتياط أو مصاب.',
+    'A customer on holiday, on reserve duty or injured.'
+  ),
+  'ב"מנויים" לוחצים על הלקוח.': ('في "المشتركون" اضغط على الزبون.', 'In "Members" tap the customer.'),
+  'לוחצים "הקפאה" ובוחרים כמה ימים.': ('اضغط "تجميد" واختر عدد الأيام.', 'Tap "Freeze" and choose the number of days.'),
+  'המנוי מוארך והחיוב הבא נדחה לבד.': (
+    'يُمدَّد الاشتراك ويؤجَّل الخصم القادم تلقائيًا.',
+    'The membership is extended and the next charge moves automatically.'
+  ),
+  'מבטלים מנוי': ('إلغاء اشتراك', 'Cancel a membership'),
+  'לקוח רוצה להפסיק.': ('زبون يريد التوقف.', 'A customer wants to stop.'),
+  'ב"מנויים" לוחצים על הלקוח ואז "ביטול מנוי".': (
+    'في "المشتركون" اضغط على الزبون ثم "إلغاء الاشتراك".',
+    'In "Members" tap the customer, then "Cancel membership".'
+  ),
+  'המערכת מראה מתי הביטול נכנס לתוקף, לפי ההודעה המוקדמת וההתחייבות.': (
+    'يعرض النظام متى يسري الإلغاء، حسب الإشعار المسبق والالتزام.',
+    'The system shows when the cancellation takes effect, based on notice and commitment.'
+  ),
+  'במנוי עם חודש אחרון מראש, החודש האחרון לא מחויב.': (
+    'في الاشتراك مع الشهر الأخير مسبقًا، لا يُخصم الشهر الأخير.',
+    "On a plan with the last month upfront, the last month isn't charged."
+  ),
+  'מנוי עם חודש אחרון מראש': ('اشتراك مع الشهر الأخير مسبقًا', 'Membership with the last month upfront'),
+  'לקוח משלם בהצטרפות גם את החודש האחרון.': (
+    'الزبون يدفع عند الانضمام الشهر الأخير أيضًا.',
+    'The customer also pays the last month when joining.'
+  ),
+  'בעריכת מסלול מדליקים "תשלום מראש על החודש האחרון".': (
+    'في تعديل المسار فعّل "دفع مسبق عن الشهر الأخير".',
+    'In the plan editor turn on "Pay the last month upfront".'
+  ),
+  'בהצטרפות הלקוח משלם חודש ראשון ועוד חודש אחרון.': (
+    'عند الانضمام يدفع الزبون الشهر الأول والشهر الأخير.',
+    'On joining, the customer pays the first and the last month.'
+  ),
+  'כשהוא מבטל, הוא נותן הודעה חודש מראש והחודש האחרון לא מחויב.': (
+    'عند الإلغاء يبلّغ قبل شهر ولا يُخصم الشهر الأخير.',
+    "When cancelling, they give a month's notice and the last month isn't charged."
+  ),
+  'רואים איך העסק עובד': ('كيف تعمل المصلحة', 'See how the business is doing'),
+  'פעם בשבוע, או לפני החלטה.': ('مرة في الأسبوع، أو قبل قرار.', 'Once a week, or before a decision.'),
+  'לוחצים "דוחות" בתפריט למטה.': ('اضغط "التقارير" في القائمة السفلية.', 'Tap "Reports" in the bottom menu.'),
+  'הכרטיס הכהה למעלה הוא סיכום העסק: הכנסות, מנויים, גבייה וחוב.': (
+    'البطاقة الداكنة في الأعلى هي ملخص المصلحة: إيرادات، مشتركون، تحصيل ودين.',
+    'The dark card at the top is the business summary: revenue, members, collection and debt.'
+  ),
+  'לוחצים עליו לפרטים: השוואה לתקופה קודמת ומגמה של 6 חודשים.': (
+    'اضغط عليها للتفاصيل: مقارنة بالفترة السابقة واتجاه 6 أشهر.',
+    'Tap it for details: comparison with the previous period and a 6-month trend.'
+  ),
+  'בכל דוח יש ? שמסביר מה הוא נותן, וכפתור העתקה לאקסל.': (
+    'في كل تقرير ? يشرح ماذا يعطي، وزر نسخ إلى إكسل.',
+    'Every report has a ? explaining what it gives, and a copy-to-Excel button.'
+  ),
+  'בוחרים אילו דוחות להציג': ('اختيار التقارير المعروضة', 'Choose which reports to show'),
+  'יש דוחות שלא רלוונטיים לעסק שלכם.': ('بعض التقارير لا تهم مصلحتك.', "Some reports don't matter for your business."),
+  'בדוחות לוחצים על כפתור ההגדרות למעלה, או בהגדרות על "דוחות לעסק".': (
+    'في التقارير اضغط زر الإعدادات في الأعلى، أو في الإعدادات اضغط "تقارير المصلحة".',
+    'In Reports tap the settings button at the top, or in Settings tap "Business reports".'
+  ),
+  'מדליקים ומכבים כל דוח. "מומלץ" מחזיר לסט שמתאים לסוג העסק.': (
+    'فعّل وأوقف كل تقرير. "مُوصى به" يعيد المجموعة المناسبة لنوع المصلحة.',
+    'Turn each report on or off. "Recommended" restores the set for your business type.'
+  ),
+  'מחליפים שפה': ('تغيير اللغة', 'Change the language'),
+  'עובד שמעדיף ערבית או אנגלית.': ('موظف يفضّل العربية أو الإنجليزية.', 'A staff member prefers Arabic or English.'),
+  'בהגדרות, בחלק "שפה", בוחרים עברית, العربية או English.': (
+    'في الإعدادات، قسم "اللغة"، اختر עברית أو العربية أو English.',
+    'In Settings, under "Language", choose עברית, العربية or English.'
+  ),
+  'מכירות וחשבוניות': ('المبيعات والفواتير', 'Sales and invoices'),
+  '{0} מסמכים החודש': ('{0} مستندات هذا الشهر', '{0} documents this month'),
+  'מחירון': ('قائمة الأسعار', 'Price list'),
+  '{0} מוצרים ו-{1} מסלולים': ('{0} منتجات و{1} مسارات', '{0} products and {1} plans'),
+  'מספר': ('الرقم', 'Number'),
+  'תאריך': ('التاريخ', 'Date'),
+  'תיאור': ('الوصف', 'Description'),
+  'הרשימה הועתקה. אפשר להדביק באקסל': ('نُسخت القائمة. يمكن لصقها في إكسل', 'List copied. Paste it into Excel'),
+  'חיפוש לפי לקוח או מספר מסמך': ('بحث بالزبون أو رقم المستند', 'Search by customer or document number'),
+  'סוג מכירה': ('نوع البيع', 'Sale type'),
+  '{0} מסמכים': ('{0} مستندات', '{0} documents'),
+  'מתוכו מע״מ': ('منها ضريبة', 'Of which VAT'),
+  'אין מסמכים בסינון הזה.': ('لا توجد مستندات في هذه التصفية.', 'No documents match this filter.'),
+  'עוד {0}': ('{0} أخرى', '{0} more'),
+  'מוצר חדש': ('منتج جديد', 'New product'),
+  'עריכת מוצר': ('تعديل منتج', 'Edit product'),
+  'שם המוצר או השירות': ('اسم المنتج أو الخدمة', 'Product or service name'),
+  'מחיר': ('السعر', 'Price'),
+  'הסרה מהמחירון': ('إزالة من قائمة الأسعار', 'Remove from price list'),
+  'המחירון עודכן': ('حُدّثت قائمة الأسعار', 'Price list updated'),
+  'מוצרים ושירותים בקבלה': ('منتجات وخدمات في الاستقبال', 'Products and services at the desk'),
+  'עריכה': ('تعديل', 'Edit'),
+  'המחירים כוללים מע״מ. שינוי מחיר משפיע על מכירות חדשות בלבד.': ('الأسعار تشمل الضريبة. تغيير السعر يؤثر على المبيعات الجديدة فقط.', 'Prices include VAT. A price change affects new sales only.'),
+  'ח.פ / ע.מ {0}': ('رقم الشركة / المرخّص {0}', 'Company / dealer no. {0}'),
+  'כל החשבוניות': ('كل الفواتير', 'All invoices'),
+  'ח.פ / ע.מ': ('رقم الشركة / المرخّص', 'Company / dealer no.'),
+  'לא הוגדר · יודפס על כל חשבונית': ('غير محدد · يُطبع على كل فاتورة', 'Not set · printed on every invoice'),
+  'מוצרים, שירותים ומסלולים עם המחירים': ('منتجات وخدمات ومسارات مع الأسعار', 'Products, services and plans with prices'),
+  'מוצאים חשבונית ישנה': ('إيجاد فاتورة قديمة', 'Find an old invoice'),
+  'לקוח מבקש עותק, או רוצים לבדוק מכירות.': ('زبون يطلب نسخة، أو تريد فحص المبيعات.', 'A customer asks for a copy, or you want to check sales.'),
+  'במסך הבית לוחצים "מכירות וחשבוניות".': ('في الشاشة الرئيسية اضغط "المبيعات والفواتير".', 'On the home screen tap "Sales and invoices".'),
+  'מחפשים לפי שם לקוח או מספר מסמך, ומסננים לפי תקופה, סוג מכירה או אמצעי תשלום.': ('ابحث باسم الزبون أو رقم المستند، وصفِّ حسب الفترة، نوع البيع أو طريقة الدفع.', 'Search by customer name or document number, and filter by period, sale type or payment method.'),
+  'לוחצים על החשבונית כדי לראות אותה ולשלוח אותה שוב ב-SMS.': ('اضغط على الفاتورة لرؤيتها وإرسالها مجددًا بـ SMS.', 'Tap the invoice to see it and send it again by SMS.'),
+  'למעלה רואים את סך המכירות בסינון, כולל המע״מ.': ('في الأعلى ترى مجموع المبيعات في التصفية، مع الضريبة.', 'At the top you see total sales for the filter, including VAT.'),
+  'מעדכנים מחירון': ('تحديث قائمة الأسعار', 'Update the price list'),
+  'מוצר חדש בקבלה, או שינוי מחיר.': ('منتج جديد في الاستقبال، أو تغيير سعر.', 'A new product at the desk, or a price change.'),
+  'במסך הבית לוחצים "מחירון".': ('في الشاشة الرئيسية اضغط "قائمة الأسعار".', 'On the home screen tap "Price list".'),
+  'לוחצים על מוצר כדי לשנות שם או מחיר, או "מוצר חדש" כדי להוסיף.': ('اضغط على منتج لتغيير الاسم أو السعر، أو "منتج جديد" للإضافة.', 'Tap a product to change its name or price, or "New product" to add one.'),
+  'מחירי המנויים נמצאים באותו מסך, תחת "מסלולי מנוי".': ('أسعار الاشتراكات في نفس الشاشة، تحت "مسارات الاشتراك".', 'Membership prices are on the same screen, under "Membership plans".'),
+  'עריכת מחירון': ('تعديل قائمة الأسعار', 'Edit price list'),
+  'כל מסמך שהופק נמצא כאן, כך שתמיד אפשר למצוא חשבונית ולשלוח עותק.': ('كل مستند صدر موجود هنا، فيمكن دائمًا إيجاد فاتورة وإرسال نسخة.', 'Every document issued is here, so you can always find an invoice and send a copy.'),
+  'סינון לפי תקופה, סוג מכירה ואמצעי תשלום': ('تصفية حسب الفترة ونوع البيع وطريقة الدفع', 'Filter by period, sale type and payment method'),
+  'סך המכירות והמע״מ בסינון': ('مجموع المبيعات والضريبة في التصفية', 'Total sales and VAT for the filter'),
+  'פתיחת חשבונית ושליחה ב-SMS': ('فتح الفاتورة وإرسالها بـ SMS', 'Open an invoice and send it by SMS'),
+  'המוצרים והמחירים שהקבלה מוכרת מוגדרים כאן, במקום אחד.': ('المنتجات والأسعار التي يبيعها الاستقبال تُحدَّد هنا، في مكان واحد.', 'The products and prices the desk sells are set here, in one place.'),
+  'הוספת מוצר או שירות לתשלום המהיר': ('إضافة منتج أو خدمة للدفع السريع', 'Add a product or service to quick payment'),
+  'שינוי מחיר שמשפיע מיד על מכירות חדשות': ('تغيير سعر يؤثر فورًا على المبيعات الجديدة', 'A price change applies right away to new sales'),
+  'מחירי המסלולים באותו מסך': ('أسعار المسارات في نفس الشاشة', 'Plan prices on the same screen'),
+  'כל פעולה באפליקציה מוסברת בצעדים קצרים, בלי מונחים מסובכים.': ('كل إجراء في التطبيق مشروح بخطوات قصيرة، دون مصطلحات معقدة.', 'Every action in the app is explained in short steps, without jargon.'),
+  'חיפוש במילה אחת': ('البحث بكلمة واحدة', 'Search with one word'),
+  'צעדים ממוספרים וטיפים': ('خطوات مرقّمة ونصائح', 'Numbered steps and tips'),
+  'כפתור שלוקח ישר למסך הנכון': ('زر يأخذك مباشرة للشاشة الصحيحة', 'A button that takes you straight to the right screen'),
 };

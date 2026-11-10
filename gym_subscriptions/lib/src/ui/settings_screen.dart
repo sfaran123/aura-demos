@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'help.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
 import 'checkout/checkout_screens.dart' show methodIcon;
+import 'guide_screen.dart';
 import 'plans_screen.dart';
+import 'sales_screen.dart';
+import 'report_picker.dart';
+import '../state/reports.dart' show allReports;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -83,8 +89,28 @@ class SettingsScreen extends StatelessWidget {
         );
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('הגדרות העסק'))),
+      appBar: AppBar(title: Text(t('הגדרות העסק')), actions: [HelpButton.topic(HelpTopic.settings)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        Panel(
+          key: const Key('settingsGuide'),
+          color: Aura.ink,
+          borderColor: Aura.ink,
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GuideScreen())),
+          child: Row(children: [
+            const Icon(Icons.menu_book_outlined, color: Aura.goldLight),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t('מדריך למשתמש'),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5, color: Colors.white)),
+                Text(t('איך עושים כל דבר, צעד אחרי צעד'),
+                    style: const TextStyle(fontSize: 12.5, color: Colors.white70)),
+              ]),
+            ),
+            const ForwardChevron(color: Colors.white70),
+          ]),
+        ),
+        const SizedBox(height: 10),
         Panel(
           key: const Key('openPlans'),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
@@ -100,6 +126,28 @@ class SettingsScreen extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(t('מסלולי מנוי'), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
                 Text(t('{0} מסלולים · עריכה והוספה', [store.plans.length]),
+                    style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+              ]),
+            ),
+            const ForwardChevron(),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        Panel(
+          key: const Key('openReportPicker'),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportPickerScreen())),
+          child: Row(children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: Aura.goldBg, borderRadius: BorderRadius.circular(11)),
+              child: const Icon(Icons.insert_chart_outlined, color: Aura.gold),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t('דוחות לעסק'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+                Text(t('{0} מתוך {1} דוחות מוצגים', [s.enabledReports.length, allReports.length]),
                     style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
               ]),
             ),
@@ -130,6 +178,23 @@ class SettingsScreen extends StatelessWidget {
         const SizedBox(height: 4),
         group(t('העסק'), '', [
           ListTile(
+            key: const Key('businessId'),
+            title: Text(t('ח.פ / ע.מ')),
+            subtitle: Text(s.businessId.isEmpty ? t('לא הוגדר · יודפס על כל חשבונית') : s.businessId),
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () async {
+              final v = await _askText(context, t('ח.פ / ע.מ'), s.businessId);
+              if (v != null) set(() => s.businessId = v.replaceAll(RegExp(r'\D'), ''));
+            },
+          ),
+          ListTile(
+            key: const Key('openPriceList'),
+            title: Text(t('מחירון')),
+            subtitle: Text(t('מוצרים, שירותים ומסלולים עם המחירים')),
+            trailing: const ForwardChevron(),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PriceListScreen())),
+          ),
+          ListTile(
             title: Text(t('שם העסק')),
             subtitle: Text(s.businessName),
             trailing: const Icon(Icons.edit_outlined),
@@ -139,7 +204,14 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           ListTile(
-              title: Text(t('סוג עסק')), subtitle: Text(t('חדר כושר / סטודיו')), trailing: Pill('Gym', tone: PillTone.info)),
+            key: const Key('businessType'),
+            leading: Icon(businessIcon(s.businessType), color: Aura.gold),
+            title: Text(t('סוג עסק')),
+            subtitle: Text('${s.businessType.label}\n${s.businessType.hint}'),
+            isThreeLine: true,
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () => pickBusinessType(context),
+          ),
           chips<DocType>(
               t('מסמך שמופק בכל תשלום'), DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
           stepper(t('מע״מ'), s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),

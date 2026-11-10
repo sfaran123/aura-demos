@@ -126,6 +126,10 @@ String? paymentProblem({
       return t('צריך להזין את הכרטיס החדש');
     }
   }
+  for (final l in lines) {
+    final p = l.detailsProblem;
+    if (p != null) return p;
+  }
   final left = round2(due - linesTotal(lines));
   if (left > 0) return t('נותרו {0} לשיוך', [money(left)]);
   if (left < 0) return t('הסכום גבוה ב-{0} מהנדרש', [money(-left)]);

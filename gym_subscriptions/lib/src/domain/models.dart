@@ -188,13 +188,115 @@ class PaymentLine {
     this.cardSource = CardSource.saved,
     this.installments = 1,
     this.cheques = 1,
-  });
+    ChequeDetails? cheque,
+    TransferDetails? transfer,
+  })  : cheque = cheque ?? ChequeDetails(),
+        transfer = transfer ?? TransferDetails();
 
   final PayMethod method;
   double amount;
   CardSource cardSource;
   int installments;
   int cheques;
+
+  /// Filled when [method] is a cheque: the cheques are consecutive, one a month.
+  final ChequeDetails cheque;
+
+  /// Filled when [method] is a bank transfer.
+  final TransferDetails transfer;
+
+  /// Basic details are missing for a cheque or a transfer.
+  String? get detailsProblem => switch (method) {
+        PayMethod.cheque => cheque.problem,
+        PayMethod.bank => transfer.problem,
+        _ => null,
+      };
+
+  /// One line for receipts and reports, empty when there is nothing to add.
+  String get detailsText => switch (method) {
+        PayMethod.cheque when cheque.isComplete => cheque.text(cheques),
+        PayMethod.bank when transfer.isComplete => transfer.text,
+        _ => '',
+      };
+}
+
+/// Israeli bank codes shown next to the number the staff types.
+const Map<String, String> israeliBanks = {
+  '4': 'יהב',
+  '9': 'בנק הדואר',
+  '10': 'לאומי',
+  '11': 'דיסקונט',
+  '12': 'הפועלים',
+  '17': 'מרכנתיל',
+  '20': 'מזרחי טפחות',
+  '31': 'הבינלאומי',
+  '46': 'מסד',
+  '52': 'פאג"י',
+  '54': 'ירושלים',
+};
+
+String bankName(String code) {
+  final n = israeliBanks[int.tryParse(code)?.toString() ?? code];
+  return n == null ? '' : t(n);
+}
+
+class ChequeDetails {
+  ChequeDetails({this.number = '', this.bank = '', this.branch = '', this.account = '', this.firstDate});
+  String number;
+  String bank;
+  String branch;
+  String account;
+
+  /// Date of the first cheque; the rest are a month apart. Null = today.
+  DateTime? firstDate;
+
+  bool get isComplete => problem == null;
+
+  String? get problem {
+    final missing = [
+      if (!RegExp(r'^\d{3,10}$').hasMatch(number)) t('מספר שיק'),
+      if (!RegExp(r'^\d{1,2}$').hasMatch(bank)) t('בנק'),
+      if (!RegExp(r'^\d{3}$').hasMatch(branch)) t('סניף'),
+      if (!RegExp(r'^\d{4,9}$').hasMatch(account)) t('חשבון'),
+    ];
+    return missing.isEmpty ? null : t('חסרים פרטי שיק: {0}', [missing.join(', ')]);
+  }
+
+  /// Number of the cheque at [i] (0-based); cheques in a book are consecutive.
+  String numberAt(int i) {
+    final n = int.tryParse(number);
+    return n == null ? number : (n + i).toString().padLeft(number.length, '0');
+  }
+
+  String text(int count) {
+    final b = bankName(bank);
+    final nums = count > 1 ? '${numberAt(0)}–${numberAt(count - 1)}' : number;
+    return t('שיק {0} · בנק {1}{2} · סניף {3} · חשבון {4}', [nums, bank, b.isEmpty ? '' : ' ($b)', branch, account]);
+  }
+}
+
+class TransferDetails {
+  TransferDetails({this.reference = '', this.bank = '', this.date});
+
+  /// The bank's reference number (אסמכתא).
+  String reference;
+  String bank;
+  DateTime? date;
+
+  bool get isComplete => problem == null;
+
+  String? get problem {
+    final missing = [
+      if (reference.trim().length < 3) t('אסמכתא'),
+      if (!RegExp(r'^\d{1,2}$').hasMatch(bank)) t('בנק משלם'),
+    ];
+    return missing.isEmpty ? null : t('חסרים פרטי העברה: {0}', [missing.join(', ')]);
+  }
+
+  String get text {
+    final b = bankName(bank);
+    return t('העברה · אסמכתא {0} · בנק {1}{2}', [reference, bank, b.isEmpty ? '' : ' ($b)']);
+  }
 }
 
 /// How a recurring plan is charged every month after the first payment.
@@ -323,9 +425,14 @@ class Receipt {
     required this.lines,
     required this.date,
     this.kind = ReceiptKind.subscription,
+    this.customerId,
   });
 
   final ReceiptKind kind;
+  final String? customerId;
+
+  /// Where the receipt was sent: (channel, address, when).
+  final List<(String, String, DateTime)> sent = [];
 
   final int number;
   String customerName;

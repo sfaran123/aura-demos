@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../domain/help.dart';
+import 'help.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
-import 'checkout/checkout_screens.dart' show methodIcon;
+import 'checkout/checkout_screens.dart' show methodIcon, PaymentDetailsFields;
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -19,7 +21,7 @@ class CollectScreen extends StatelessWidget {
     final s = store.settings;
     final overdueSum = store.openDebt;
     return Scaffold(
-      appBar: AppBar(title: Text(t('לגבייה'))),
+      appBar: AppBar(title: Text(t('לגבייה')), actions: [HelpButton.topic(HelpTopic.collect)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Panel(
           color: overdueSum > 0 ? Aura.warnBg : Aura.okBg,
@@ -44,17 +46,17 @@ class CollectScreen extends StatelessWidget {
         if (list.isEmpty)
           Note(t('כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.'),
               icon: Icons.check_circle_outline),
-        for (final c in list) _ChargeCard(charge: c),
+        for (final c in list) ChargeCard(charge: c),
         const SizedBox(height: 8),
-        Note(t(
-            t('מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.'))),
+        Note(t(t(
+            'מנוי חודשי בגבייה ידנית (מזומן, שיק או העברה) מופיע כאן כל חודש. לחיצה על "התקבל" מפיקה קבלה ופותחת את החודש הבא. חיוב באשראי שנכשל מופיע כאן אחרי הניסיון הראשון.'))),
       ]),
     );
   }
 }
 
-class _ChargeCard extends StatelessWidget {
-  const _ChargeCard({required this.charge});
+class ChargeCard extends StatelessWidget {
+  const ChargeCard({super.key, required this.charge});
   final Charge charge;
 
   @override
@@ -144,7 +146,8 @@ class _ChargeCard extends StatelessWidget {
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(t('איך שולמו {0}?', [money(charge.amount)]), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          Text(t('איך שולמו {0}?', [money(charge.amount)]),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           for (final x in methods)
             ListTile(
@@ -158,7 +161,40 @@ class _ChargeCard extends StatelessWidget {
       ),
     );
     if (m == null || !context.mounted) return;
-    final r = store.collect(charge, m);
+    PaymentLine? line;
+    if (m == PayMethod.cheque || m == PayMethod.bank) {
+      line = await showPaymentDetailsSheet(context, PaymentLine(method: m, amount: charge.amount));
+      if (line == null || !context.mounted) return;
+    }
+    final r = store.collect(charge, m, line: line);
     showDone(context, t('קבלה {0} הופקה · {1} ב{2}', [r.number, money(r.total), m.label]));
   }
 }
+
+/// Asks for cheque or transfer details before a monthly payment is marked paid.
+Future<PaymentLine?> showPaymentDetailsSheet(BuildContext context, PaymentLine line) =>
+    showModalBottomSheet<PaymentLine>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+              Text('${line.method.label} · ${money(line.amount)}',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              PaymentDetailsFields(line: line, index: 0, onChanged: () => setState(() {})),
+              const SizedBox(height: 12),
+              FilledButton(
+                key: const Key('detailsSave'),
+                onPressed: line.detailsProblem == null ? () => Navigator.pop(ctx, line) : null,
+                child: Text(t('אישור והפקת קבלה')),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );

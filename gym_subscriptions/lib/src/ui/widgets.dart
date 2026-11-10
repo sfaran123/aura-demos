@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../domain/help.dart';
+import 'help.dart';
+
 import '../domain/models.dart';
 import '../state/gym_store.dart';
 import 'theme.dart';
@@ -225,8 +228,10 @@ class StepBar extends StatelessWidget {
 
 /// Screen with a scrolling body and a fixed bottom action area.
 class FlowScaffold extends StatelessWidget {
-  const FlowScaffold({super.key, required this.title, required this.children, this.bottom, this.step, this.steps = 4});
+  const FlowScaffold(
+      {super.key, required this.title, required this.children, this.bottom, this.step, this.steps = 4, this.help});
   final String title;
+  final HelpTopic? help;
   final List<Widget> children;
   final Widget? bottom;
   final int? step;
@@ -237,6 +242,7 @@ class FlowScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
+        actions: [if (help != null) HelpButton.topic(help!)],
         bottom: step == null
             ? null
             : PreferredSize(preferredSize: const Size.fromHeight(12), child: StepBar(step: step!, total: steps)),
@@ -329,13 +335,26 @@ void showDone(BuildContext context, String text) {
 
 /// "Go forward" arrow that points the right way in RTL and LTR.
 class ForwardChevron extends StatelessWidget {
-  const ForwardChevron({super.key, this.size = 22});
+  const ForwardChevron({super.key, this.size = 22, this.color = Aura.muted});
   final double size;
+  final Color color;
 
   @override
   Widget build(BuildContext context) => Icon(
         Directionality.of(context) == TextDirection.rtl ? Icons.chevron_left : Icons.chevron_right,
         size: size,
-        color: Aura.muted,
+        color: color,
       );
+}
+
+/// The bottom-navigation tab, reachable from any screen (the guide uses it).
+class ShellTabs extends InheritedWidget {
+  const ShellTabs({super.key, required this.tab, required super.child});
+  final ValueNotifier<int> tab;
+
+  static ValueNotifier<int> of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ShellTabs>()?.tab ?? ValueNotifier(0);
+
+  @override
+  bool updateShouldNotify(ShellTabs old) => old.tab != tab;
 }
