@@ -43,16 +43,20 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const Text('לינק הרשמה', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
-        Text('הלקוח בוחר מסלול, ממלא פרטים${store.settings.requireHealthDeclaration ? ', חותם על הצהרת בריאות' : ''} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.',
+        Text(
+            'הלקוח בוחר מסלול, ממלא פרטים${store.settings.requireHealthDeclaration ? ', חותם על הצהרת בריאות' : ''} ומשלם באשראי. המנוי נפתח אוטומטית אחרי התשלום.',
             style: const TextStyle(color: Aura.muted, height: 1.45)),
         const SizedBox(height: 4),
         Text('מסלולים בלינק: $shown', style: const TextStyle(color: Aura.muted, fontSize: 12.5)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: Aura.paper, borderRadius: BorderRadius.circular(12), border: Border.all(color: Aura.line)),
+          decoration: BoxDecoration(
+              color: Aura.paper, borderRadius: BorderRadius.circular(12), border: Border.all(color: Aura.line)),
           child: Row(children: [
-            Expanded(child: Directionality(textDirection: TextDirection.ltr, child: Text(url, overflow: TextOverflow.ellipsis))),
+            Expanded(
+                child: Directionality(
+                    textDirection: TextDirection.ltr, child: Text(url, overflow: TextOverflow.ellipsis))),
             TextButton.icon(
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: 'https://$url'));
@@ -158,7 +162,8 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
     final banner = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(color: Aura.blueBg, borderRadius: BorderRadius.circular(10)),
-      child: const Text('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו', style: TextStyle(color: Aura.blue, fontSize: 12.5)),
+      child:
+          const Text('תצוגה מקדימה של מה שהלקוח רואה בטלפון שלו', style: TextStyle(color: Aura.blue, fontSize: 12.5)),
     );
 
     if (step == 3) {
@@ -167,9 +172,14 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
         body: ListView(padding: const EdgeInsets.all(16), children: [
           banner,
           const SizedBox(height: 24),
-          const Center(child: CircleAvatar(radius: 38, backgroundColor: Aura.okBg, child: Icon(Icons.check, size: 38, color: Aura.ok))),
+          const Center(
+              child: CircleAvatar(
+                  radius: 38, backgroundColor: Aura.okBg, child: Icon(Icons.check, size: 38, color: Aura.ok))),
           const SizedBox(height: 14),
-          const Text('המנוי שלך פעיל', key: Key('linkDone'), textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          const Text('המנוי שלך פעיל',
+              key: Key('linkDone'),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           Text('קבלה וכרטיס מנוי נשלחו ב-${s.receiptChannels.map((c) => c.label).join(' / ')}. בכניסה מציגים את הקוד.',
               textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
@@ -181,7 +191,8 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('${s.businessName} · כרטיס מנוי', style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
-                  Text(name.text, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(name.text,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                   Text(plan!.name, style: const TextStyle(color: Colors.white70)),
                 ]),
               ),
@@ -239,8 +250,13 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
           child: const Text('המשך לתשלום'),
         ),
         children: [
-          Text('${p.name} · ${money(p.price)}${p.isRecurring ? ' לחודש' : ''}', style: const TextStyle(color: Aura.muted)),
-          TextField(key: const Key('lName'), controller: name, decoration: const InputDecoration(labelText: 'שם מלא'), onChanged: (_) => setState(() {})),
+          Text('${p.name} · ${money(p.price)}${p.isRecurring ? ' לחודש' : ''}',
+              style: const TextStyle(color: Aura.muted)),
+          TextField(
+              key: const Key('lName'),
+              controller: name,
+              decoration: const InputDecoration(labelText: 'שם מלא'),
+              onChanged: (_) => setState(() {})),
           TextField(
             key: const Key('lPhone'),
             controller: phone,
@@ -254,7 +270,8 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
             decoration: InputDecoration(
               labelText: s.requireIdNumber ? 'תעודת זהות' : 'תעודת זהות (לא חובה)',
-              errorText: idn.text.isNotEmpty && idn.text.length >= 5 && !isValidIsraeliId(idn.text) ? 'מספר לא תקין' : null,
+              errorText:
+                  idn.text.isNotEmpty && idn.text.length >= 5 && !isValidIsraeliId(idn.text) ? 'מספר לא תקין' : null,
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -292,7 +309,9 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
       step: 2,
       steps: 3,
       bottom: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(error!, style: const TextStyle(color: Aura.warn))),
+        if (error != null)
+          Padding(
+              padding: const EdgeInsets.only(bottom: 6), child: Text(error!, style: const TextStyle(color: Aura.warn))),
         FilledButton(
           key: const Key('linkPay'),
           style: FilledButton.styleFrom(backgroundColor: Aura.goldLight, foregroundColor: Aura.ink),
@@ -301,8 +320,12 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
               : () {
                   if (needsDetails) return setState(() => step = 1);
                   store.completeSignup(widget.link,
-                      name: name.text, phone: phone.text, idNumber: idn.text.isEmpty ? null : idn.text,
-                      plan: p, cardLast4: card!, installments: installments);
+                      name: name.text,
+                      phone: phone.text,
+                      idNumber: idn.text.isEmpty ? null : idn.text,
+                      plan: p,
+                      cardLast4: card!,
+                      installments: installments);
                   setState(() => step = 3);
                 },
           child: Text('תשלום ${money(amountNow)}'),

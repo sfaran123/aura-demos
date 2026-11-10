@@ -45,15 +45,8 @@ class HomeScreen extends StatelessWidget {
           _Kpi(label: 'חוב פתוח', value: money(store.openDebt), alert: store.openDebt > 0, onTap: () => goTo(2)),
         ]),
         const SizedBox(height: 14),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 1.45,
-          children: [
-            _Tile(
+        _TileRow(
+            left: _Tile(
               key: const Key('tileNewSub'),
               primary: true,
               icon: Icons.add,
@@ -61,29 +54,31 @@ class HomeScreen extends StatelessWidget {
               sub: 'לקוח בקבלה',
               onTap: () => startCheckout(context, CheckoutFlow.subscription),
             ),
-            _Tile(
+            right: _Tile(
               key: const Key('tileQuickPay'),
               icon: Icons.point_of_sale,
               title: 'תשלום מהיר',
               sub: 'מוצרים, אימון אישי או סכום חופשי',
               onTap: () => startCheckout(context, CheckoutFlow.quickPay),
-            ),
-            _Tile(
+            )),
+        const SizedBox(height: 10),
+        _TileRow(
+            left: _Tile(
               key: const Key('tileLink'),
               icon: Icons.ios_share,
               title: 'לינק הרשמה',
               sub: 'הלקוח בוחר מסלול ומשלם לבד',
               onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
             ),
-            _Tile(
+            right: _Tile(
               key: const Key('tileCollect'),
               icon: Icons.receipt_long,
               title: 'לגבייה',
-              sub: collect.isEmpty ? 'אין תשלומים פתוחים' : '${collect.length} תשלומים · ${money(collect.fold(0.0, (a, c) => a + c.amount))}',
+              sub: collect.isEmpty
+                  ? 'אין תשלומים פתוחים'
+                  : '${collect.length} תשלומים · ${money(collect.fold(0.0, (a, c) => a + c.amount))}',
               onTap: () => goTo(2),
-            ),
-          ],
-        ),
+            )),
         if (overdue.isNotEmpty || waiting.isNotEmpty || expiring.isNotEmpty) ...[
           const SizedBox(height: 8),
           const SectionLabel('דורש טיפול'),
@@ -102,9 +97,7 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.link,
               tone: PillTone.wait,
               title: l.sentTo,
-              text: l.planId == null
-                  ? 'לינק הרשמה נשלח · ממתין לתשלום'
-                  : 'לינק לתשלום ${money(l.amount ?? 0)} · ממתין',
+              text: l.planId == null ? 'לינק הרשמה נשלח · ממתין לתשלום' : 'לינק לתשלום ${money(l.amount ?? 0)} · ממתין',
               onTap: () => openCustomerPreview(context, l),
             ),
           for (final s in expiring)
@@ -160,15 +153,34 @@ class _Kpi extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
-              child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: alert ? Aura.warn : Aura.ink)),
+              child: Text(value,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: alert ? Aura.warn : Aura.ink)),
             ),
           ]),
         ),
       );
 }
 
+/// Two tiles side by side with equal height; height follows the content, so
+/// large system fonts never overflow.
+class _TileRow extends StatelessWidget {
+  const _TileRow({required this.left, required this.right});
+  final Widget left;
+  final Widget right;
+
+  @override
+  Widget build(BuildContext context) => IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Expanded(child: left),
+          const SizedBox(width: 10),
+          Expanded(child: right),
+        ]),
+      );
+}
+
 class _Tile extends StatelessWidget {
-  const _Tile({super.key, required this.icon, required this.title, required this.sub, this.onTap, this.primary = false});
+  const _Tile(
+      {super.key, required this.icon, required this.title, required this.sub, this.onTap, this.primary = false});
   final IconData icon;
   final String title;
   final String sub;
@@ -188,12 +200,15 @@ class _Tile extends StatelessWidget {
           Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(color: primary ? Aura.goldLight : Aura.goldBg, borderRadius: BorderRadius.circular(10)),
+            decoration:
+                BoxDecoration(color: primary ? Aura.goldLight : Aura.goldBg, borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, size: 20, color: primary ? Aura.ink : Aura.gold),
           ),
-          const Spacer(),
+          const SizedBox(height: 14),
           Text(title, style: TextStyle(color: fg, fontSize: 15.5, fontWeight: FontWeight.w600)),
-          Text(sub, maxLines: 2, overflow: TextOverflow.ellipsis,
+          Text(sub,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: primary ? Aura.goldLight : Aura.muted, fontSize: 12)),
         ]),
       ),

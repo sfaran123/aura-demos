@@ -312,8 +312,7 @@ class Receipt {
   final DateTime date;
 
   double get total => lines.fold(0, (a, l) => a + l.amount);
-  double get collectedNow =>
-      lines.where((l) => !l.method.isDeferred).fold(0, (a, l) => a + l.amount);
+  double get collectedNow => lines.where((l) => !l.method.isDeferred).fold(0, (a, l) => a + l.amount);
 }
 
 class ShopItem {
@@ -361,7 +360,5 @@ String money(double v) {
     buf.write(digits[i]);
   }
   final sign = r < 0 ? '-' : '';
-  return frac == 0
-      ? '$sign$buf ₪'
-      : '$sign$buf.${frac.toString().padLeft(2, '0')} ₪';
+  return frac == 0 ? '$sign$buf ₪' : '$sign$buf.${frac.toString().padLeft(2, '0')} ₪';
 }

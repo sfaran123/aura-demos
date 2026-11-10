@@ -21,8 +21,7 @@ void startCheckout(BuildContext context, CheckoutFlow flow, {Customer? customer}
   }
 }
 
-Widget _nextAfterCustomer(CheckoutDraft d) =>
-    d.isSubscription ? PlanStep(draft: d) : ItemsStep(draft: d);
+Widget _nextAfterCustomer(CheckoutDraft d) => d.isSubscription ? PlanStep(draft: d) : ItemsStep(draft: d);
 
 // ---------------------------------------------------------------- customer
 class CustomerStep extends StatefulWidget {
@@ -101,12 +100,14 @@ class _CustomerTile extends StatelessWidget {
             Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
             Text('${customer.phone}${customer.hasSavedCard ? ' · כרטיס שמור' : ''}',
                 style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+            const SizedBox(height: 4),
+            if (sub != null)
+              Pill(plan == null ? sub.status.label : '${sub.status.label} · ${plan.name}', tone: toneFor(sub.status))
+            else
+              const Pill('ללא מנוי'),
           ]),
         ),
-        if (sub != null)
-          Pill(plan == null ? sub.status.label : '${sub.status.label} · ${plan.name}', tone: toneFor(sub.status))
-        else
-          const Pill('ללא מנוי'),
+        const Icon(Icons.chevron_left, color: Aura.muted),
       ]),
     );
   }
@@ -157,7 +158,8 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
       Navigator.pop(context, dup);
       return;
     }
-    final c = widget.store.addCustomer(name.text, phone.text, idNumber: idn.text.trim().isEmpty ? null : idn.text.trim());
+    final c =
+        widget.store.addCustomer(name.text, phone.text, idNumber: idn.text.trim().isEmpty ? null : idn.text.trim());
     Navigator.pop(context, c);
   }
 
@@ -169,7 +171,11 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const Text('לקוח חדש', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
-        TextField(key: const Key('ncName'), controller: name, autofocus: true, textInputAction: TextInputAction.next,
+        TextField(
+            key: const Key('ncName'),
+            controller: name,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(labelText: 'שם מלא')),
         const SizedBox(height: 10),
         TextField(
@@ -325,42 +331,50 @@ class _ItemsStepState extends State<ItemsStep> {
         ),
         children: [
           Text(d.walkIn ? 'לקוח מזדמן' : 'עבור ${d.customer!.name}', style: const TextStyle(color: Aura.muted)),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 2.3,
-            children: [
-              for (final i in d.store.items)
-                Panel(
-                  key: Key('item-${i.id}'),
-                  onTap: () => d.addItem(i.id),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: (d.cart[i.id] ?? 0) > 0 ? Aura.goldBg : null,
-                  child: Row(children: [
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Text(i.name, style: const TextStyle(fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        Text(money(i.price), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
-                      ]),
-                    ),
-                    if ((d.cart[i.id] ?? 0) > 0)
-                      InkWell(
-                        onTap: () => d.removeItem(i.id),
-                        borderRadius: BorderRadius.circular(14),
-                        child: CircleAvatar(
-                          radius: 13,
-                          backgroundColor: Aura.goldLight,
-                          child: Text('${d.cart[i.id]}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Aura.ink)),
-                        ),
-                      ),
-                  ]),
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, box) => Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final i in d.store.items)
+                  SizedBox(
+                      width: (box.maxWidth - 8) / 2,
+                      child: Panel(
+                        key: Key('item-${i.id}'),
+                        onTap: () => d.addItem(i.id),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        color: (d.cart[i.id] ?? 0) > 0 ? Aura.goldBg : null,
+                        child: Row(children: [
+                          Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(i.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
+                                  Text(money(i.price), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                                ]),
+                          ),
+                          if ((d.cart[i.id] ?? 0) > 0)
+                            InkWell(
+                              onTap: () => d.removeItem(i.id),
+                              borderRadius: BorderRadius.circular(14),
+                              child: CircleAvatar(
+                                radius: 13,
+                                backgroundColor: Aura.goldLight,
+                                child: Text('${d.cart[i.id]}',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Aura.ink)),
+                              ),
+                            ),
+                        ]),
+                      )),
+              ],
+            ),
           ),
-          if (d.cart.isNotEmpty) const Text('לחיצה על המספר מורידה פריט אחד.', style: TextStyle(fontSize: 12, color: Aura.muted)),
+          if (d.cart.isNotEmpty)
+            const Text('לחיצה על המספר מורידה פריט אחד.', style: TextStyle(fontSize: 12, color: Aura.muted)),
           const SectionLabel('סכום חופשי'),
           Row(children: [
             Expanded(
@@ -425,7 +439,8 @@ class PaymentStep extends StatelessWidget {
             if (problem != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text(problem, key: const Key('payProblem'), style: const TextStyle(color: Aura.warn, fontSize: 13)),
+                child:
+                    Text(problem, key: const Key('payProblem'), style: const TextStyle(color: Aura.warn, fontSize: 13)),
               ),
             FilledButton(
               key: const Key('toSummary'),
@@ -450,13 +465,15 @@ class PaymentStep extends StatelessWidget {
                             : 'לתשלום',
                         style: const TextStyle(color: Aura.goldLight, fontSize: 12.5),
                       ),
-                      Text(money(d.due), key: const Key('dueAmount'),
+                      Text(money(d.due),
+                          key: const Key('dueAmount'),
                           style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
                     ]),
                   ),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     const Text('שויך', style: TextStyle(color: Aura.goldLight, fontSize: 12.5)),
-                    Text(money(d.assigned), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(money(d.assigned),
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                   ]),
                 ]),
                 const SizedBox(height: 10),
@@ -471,7 +488,8 @@ class PaymentStep extends StatelessWidget {
                 ),
               ]),
             ),
-            for (final l in d.lines) _LineEditor(key: ObjectKey(l), draft: d, line: l, needCard: () => _needCard(context)),
+            for (final l in d.lines)
+              _LineEditor(key: ObjectKey(l), draft: d, line: l, needCard: () => _needCard(context)),
             SectionLabel(d.lines.isEmpty ? 'איך משלמים?' : 'הוספת אמצעי נוסף (פיצול)'),
             Row(children: [
               for (final m in PayMethod.values) ...[
@@ -506,7 +524,7 @@ class PaymentStep extends StatelessWidget {
               ),
               Note(switch (d.recurring) {
                 RecurringMethod.manual =>
-                    'בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי ${d.store.settings.graceDays} ימי איחור הכניסה נחסמת.',
+                  'בכל חודש התשלום יופיע ברשימת "לגבייה" עם תזכורת ללקוח. אחרי ${d.store.settings.graceDays} ימי איחור הכניסה נחסמת.',
                 RecurringMethod.standingOrder => 'החיוב יעבור דרך הבנק. יש להחתים את הלקוח על טופס הרשאה לחיוב חשבון.',
                 null => 'בחרו איך ייגבה החודש הבא.',
                 _ => p.commitMonths > 0
@@ -536,7 +554,10 @@ class _MethodButton extends StatelessWidget {
           child: Column(children: [
             Icon(methodIcon(method), size: 22),
             const SizedBox(height: 4),
-            Text(method.label, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+            Text(method.label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w500)),
           ]),
         ),
@@ -595,7 +616,8 @@ class _LineEditorState extends State<_LineEditor> {
               textAlign: TextAlign.left,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-              decoration: const InputDecoration(isDense: true, suffixText: '₪', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+              decoration: const InputDecoration(
+                  isDense: true, suffixText: '₪', contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
               style: const TextStyle(fontWeight: FontWeight.w600),
               onChanged: (v) => d.setAmount(l, double.tryParse(v) ?? 0),
             ),
@@ -638,7 +660,8 @@ class _LineEditorState extends State<_LineEditor> {
           if (l.installments > 1)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('${l.installments} × ${money(l.amount / l.installments)}', style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+              child: Text('${l.installments} × ${money(l.amount / l.installments)}',
+                  style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
             ),
         ],
         if (l.method == PayMethod.cheque) ...[
@@ -657,11 +680,20 @@ class _LineEditorState extends State<_LineEditor> {
           ),
         ],
         if (l.method == PayMethod.cash)
-          const Padding(padding: EdgeInsets.only(top: 6), child: Text('המזומן נרשם בקופה, והקבלה תציין "מזומן".', style: TextStyle(fontSize: 12.5, color: Aura.muted))),
+          const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('המזומן נרשם בקופה, והקבלה תציין "מזומן".',
+                  style: TextStyle(fontSize: 12.5, color: Aura.muted))),
         if (l.method == PayMethod.bank)
-          const Padding(padding: EdgeInsets.only(top: 6), child: Text('החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.', style: TextStyle(fontSize: 12.5, color: Aura.muted))),
+          const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('החלק הזה יאושר כשההעברה תופיע בחשבון. עד אז המנוי ממתין.',
+                  style: TextStyle(fontSize: 12.5, color: Aura.muted))),
         if (l.method == PayMethod.link)
-          const Padding(padding: EdgeInsets.only(top: 6), child: Text('החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.', style: TextStyle(fontSize: 12.5, color: Aura.muted))),
+          const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('החלק הזה נשלח ללקוח בלינק לתשלום. עד שהוא משלם, המנוי ממתין.',
+                  style: TextStyle(fontSize: 12.5, color: Aura.muted))),
       ]),
     );
   }
@@ -786,7 +818,9 @@ class DoneScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            sub == null ? 'התשלום התקבל' : (pending ? 'המנוי נפתח וממתין לתשלום' : '${draft.customer!.name} – מנוי פעיל'),
+            sub == null
+                ? 'התשלום התקבל'
+                : (pending ? 'המנוי נפתח וממתין לתשלום' : '${draft.customer!.name} – מנוי פעיל'),
             key: const Key('doneTitle'),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
@@ -802,9 +836,11 @@ class DoneScreen extends StatelessWidget {
               child: Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${draft.store.settings.businessName} · כרטיס מנוי', style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
+                    Text('${draft.store.settings.businessName} · כרטיס מנוי',
+                        style: const TextStyle(color: Aura.goldLight, fontSize: 12)),
                     const SizedBox(height: 4),
-                    Text(draft.customer!.name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                    Text(draft.customer!.name,
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(p.name, style: const TextStyle(color: Colors.white70)),
                   ]),

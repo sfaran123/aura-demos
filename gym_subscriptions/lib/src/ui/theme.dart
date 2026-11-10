@@ -30,6 +30,7 @@ ThemeData auraTheme() {
   );
   final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Rubik');
   return base.copyWith(
+    splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: Aura.paper,
     appBarTheme: const AppBarTheme(
       backgroundColor: Aura.paper,
@@ -71,18 +72,23 @@ ThemeData auraTheme() {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.line)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.line)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.gold, width: 2)),
+      border:
+          OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.line)),
+      enabledBorder:
+          OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.line)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Aura.gold, width: 2)),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.white,
       indicatorColor: Aura.goldBg,
-      labelTextStyle: WidgetStateProperty.all(const TextStyle(fontFamily: 'Rubik', fontSize: 12, fontWeight: FontWeight.w500)),
+      labelTextStyle:
+          WidgetStateProperty.all(const TextStyle(fontFamily: 'Rubik', fontSize: 12, fontWeight: FontWeight.w500)),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.all(Colors.white),
-      trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Aura.ok : const Color(0xFFCBC8C0)),
+      trackColor:
+          WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Aura.ok : const Color(0xFFCBC8C0)),
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
     dividerTheme: const DividerThemeData(color: Aura.line, space: 1),

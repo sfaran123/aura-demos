@@ -86,16 +86,32 @@ class _ShellState extends State<_Shell> {
         selectedIndex: tab,
         onDestinationSelected: (i) => setState(() => tab = i),
         destinations: [
-          const NavigationDestination(key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'ראשי'),
-          const NavigationDestination(key: Key('navMembers'), icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'מנויים'),
+          const NavigationDestination(
+              key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'ראשי'),
+          const NavigationDestination(
+              key: Key('navMembers'),
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people),
+              label: 'מנויים'),
           NavigationDestination(
             key: const Key('navCollect'),
-            icon: Badge(isLabelVisible: toCollect > 0, label: Text('$toCollect'), child: const Icon(Icons.receipt_long_outlined)),
+            icon: Badge(
+                isLabelVisible: toCollect > 0,
+                label: Text('$toCollect'),
+                child: const Icon(Icons.receipt_long_outlined)),
             selectedIcon: const Icon(Icons.receipt_long),
             label: 'לגבייה',
           ),
-          const NavigationDestination(key: Key('navPlans'), icon: Icon(Icons.view_list_outlined), selectedIcon: Icon(Icons.view_list), label: 'מסלולים'),
-          const NavigationDestination(key: Key('navSettings'), icon: Icon(Icons.tune_outlined), selectedIcon: Icon(Icons.tune), label: 'הגדרות'),
+          const NavigationDestination(
+              key: Key('navPlans'),
+              icon: Icon(Icons.view_list_outlined),
+              selectedIcon: Icon(Icons.view_list),
+              label: 'מסלולים'),
+          const NavigationDestination(
+              key: Key('navSettings'),
+              icon: Icon(Icons.tune_outlined),
+              selectedIcon: Icon(Icons.tune),
+              label: 'הגדרות'),
         ],
       ),
     );

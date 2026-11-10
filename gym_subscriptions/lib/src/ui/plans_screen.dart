@@ -28,7 +28,8 @@ class PlansScreen extends StatelessWidget {
         label: const Text('מסלול חדש'),
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
-        const Note('כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'),
+        const Note(
+            'כל מסלול נשמר כמוצר שמסומן כמנוי. שינוי כאן משפיע על מנויים חדשים ועל לינק ההרשמה. מנויים קיימים שומרים על התנאים שלהם.'),
         const SizedBox(height: 12),
         for (final p in store.plans)
           Padding(
@@ -56,7 +57,8 @@ class _PlanEditorState extends State<PlanEditor> {
   late final SubscriptionPlan p = widget.plan;
   String? error;
 
-  Widget _num(String key, String label, num value, ValueChanged<num> onChanged, {String? suffix, String? hint, bool decimal = false}) {
+  Widget _num(String key, String label, num value, ValueChanged<num> onChanged,
+      {String? suffix, String? hint, bool decimal = false}) {
     return TextFormField(
       key: Key('pe-$key'),
       initialValue: value == 0 && hint != null ? '' : (decimal ? _fmt(value.toDouble()) : '$value'),
@@ -81,7 +83,9 @@ class _PlanEditorState extends State<PlanEditor> {
     return FlowScaffold(
       title: isNew ? 'מסלול חדש' : 'עריכת מסלול',
       bottom: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(error!, style: const TextStyle(color: Aura.warn))),
+        if (error != null)
+          Padding(
+              padding: const EdgeInsets.only(bottom: 6), child: Text(error!, style: const TextStyle(color: Aura.warn))),
         FilledButton(
           key: const Key('savePlan'),
           onPressed: () {
@@ -121,13 +125,18 @@ class _PlanEditorState extends State<PlanEditor> {
         ),
         const SectionLabel('מחיר ומשך'),
         _grid([
-          _num('price', p.isRecurring ? 'מחיר לחודש' : 'מחיר כולל', p.price, (v) => p.price = v.toDouble(), suffix: '₪', decimal: true),
+          _num('price', p.isRecurring ? 'מחיר לחודש' : 'מחיר כולל', p.price, (v) => p.price = v.toDouble(),
+              suffix: '₪', decimal: true),
           if (p.kind == PlanKind.term) _num('months', 'משך בחודשים', p.months, (v) => p.months = v.toInt()),
           if (p.kind == PlanKind.punch) _num('entries', 'מספר כניסות', p.entries, (v) => p.entries = v.toInt()),
           if (p.kind == PlanKind.punch) _num('valid', 'תוקף בחודשים', p.validMonths, (v) => p.validMonths = v.toInt()),
-          if (p.isRecurring) _num('commit', 'התחייבות בחודשים', p.commitMonths, (v) => p.commitMonths = v.toInt(), hint: '0 = בלי'),
-          if (p.isRecurring) _num('notice', 'הודעת ביטול מראש', p.cancelNoticeDays, (v) => p.cancelNoticeDays = v.toInt(), suffix: 'ימים'),
-          _num('reg', 'דמי רישום', p.registrationFee, (v) => p.registrationFee = v.toDouble(), suffix: '₪', hint: '0', decimal: true),
+          if (p.isRecurring)
+            _num('commit', 'התחייבות בחודשים', p.commitMonths, (v) => p.commitMonths = v.toInt(), hint: '0 = בלי'),
+          if (p.isRecurring)
+            _num('notice', 'הודעת ביטול מראש', p.cancelNoticeDays, (v) => p.cancelNoticeDays = v.toInt(),
+                suffix: 'ימים'),
+          _num('reg', 'דמי רישום', p.registrationFee, (v) => p.registrationFee = v.toDouble(),
+              suffix: '₪', hint: '0', decimal: true),
         ]),
         const SectionLabel('שימוש'),
         _grid([
@@ -137,7 +146,8 @@ class _PlanEditorState extends State<PlanEditor> {
         const SectionLabel('תשלום'),
         _grid([
           if (!p.isRecurring)
-            _num('inst', 'מקס׳ תשלומים באשראי', p.maxInstallments, (v) => p.maxInstallments = v.toInt() < 1 ? 1 : v.toInt()),
+            _num('inst', 'מקס׳ תשלומים באשראי', p.maxInstallments,
+                (v) => p.maxInstallments = v.toInt() < 1 ? 1 : v.toInt()),
           _num('chq', 'מקס׳ שיקים', p.maxCheques, (v) => p.maxCheques = v.toInt(), hint: '0'),
         ]),
         Panel(

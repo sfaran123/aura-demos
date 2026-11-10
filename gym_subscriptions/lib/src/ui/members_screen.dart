@@ -35,7 +35,9 @@ class _MembersScreenState extends State<MembersScreen> {
     final ending = store.expiringSoon.map((s) => s.id).toSet();
     final subs = store.subscriptions.where((s) {
       final c = store.customer(s.customerId)!;
-      if (q.isNotEmpty && !c.name.contains(q) && !c.phone.replaceAll('-', '').contains(q.replaceAll('-', ''))) return false;
+      if (q.isNotEmpty && !c.name.contains(q) && !c.phone.replaceAll('-', '').contains(q.replaceAll('-', ''))) {
+        return false;
+      }
       return switch (filter) {
         _Filter.all => true,
         _Filter.active => s.status == SubStatus.active,
@@ -115,14 +117,18 @@ class _MemberRow extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(c.name, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
             Text('${p.name} · $detail', style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+            const SizedBox(height: 4),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              Pill(sub.status.label, tone: toneFor(sub.status)),
+              if (blocked)
+                const Pill('כניסה חסומה', tone: PillTone.bad)
+              else if (owes)
+                const Pill('חוב פתוח', tone: PillTone.wait),
+              if (sub.cancelEffective != null) Pill('מבוטל מ-${fmtDate(sub.cancelEffective!)}'),
+            ]),
           ]),
         ),
-        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Pill(sub.status.label, tone: toneFor(sub.status)),
-          if (blocked) ...[const SizedBox(height: 4), const Pill('כניסה חסומה', tone: PillTone.bad)]
-          else if (owes) ...[const SizedBox(height: 4), const Pill('חוב פתוח', tone: PillTone.wait)],
-          if (sub.cancelEffective != null) ...[const SizedBox(height: 4), Pill('מבוטל מ-${fmtDate(sub.cancelEffective!)}')],
-        ]),
+        const Icon(Icons.chevron_left, color: Aura.muted),
       ]),
     );
   }
@@ -152,7 +158,8 @@ class _MemberSheet extends StatelessWidget {
       ('סטטוס', sub.status.label),
       ('התחלה', fmtDate(sub.start)),
       if (sub.end != null) ('סיום', fmtDate(sub.end!)),
-      if (p.isRecurring) ('חיוב חודשי', '${money(sub.monthlyAmount ?? p.price)} · ${sub.recurringMethod?.label ?? '—'}'),
+      if (p.isRecurring)
+        ('חיוב חודשי', '${money(sub.monthlyAmount ?? p.price)} · ${sub.recurringMethod?.label ?? '—'}'),
       if (sub.nextCharge != null && p.isRecurring) ('חיוב הבא', fmtDate(sub.nextCharge!)),
       if (sub.entriesLeft != null) ('כניסות שנותרו', '${sub.entriesLeft}'),
       if (p.commitMonths > 0) ('התחייבות עד', fmtDate(addMonths(sub.start, p.commitMonths))),
@@ -174,7 +181,9 @@ class _MemberSheet extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           if (store.entryBlocked(c.id))
-            const Padding(padding: EdgeInsets.only(bottom: 12), child: Note('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.', warn: true)),
+            const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Note('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.', warn: true)),
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -239,12 +248,15 @@ class _MemberSheet extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('כמה ימים להקפיא?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),
-            Text('נשארו $max ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.', style: const TextStyle(color: Aura.muted, fontSize: 13)),
+            Text('נשארו $max ימים השנה. ההקפאה מאריכה את המנוי ודוחה את החיוב הבא.',
+                style: const TextStyle(color: Aura.muted, fontSize: 13)),
             if (store.settings.freezeFeePerMonth > 0)
-              Text('דמי הקפאה: ${money(store.settings.freezeFeePerMonth)} לחודש', style: const TextStyle(color: Aura.muted, fontSize: 13)),
+              Text('דמי הקפאה: ${money(store.settings.freezeFeePerMonth)} לחודש',
+                  style: const TextStyle(color: Aura.muted, fontSize: 13)),
             const SizedBox(height: 12),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final d in opts) ActionChip(key: Key('freeze-$d'), label: Text('$d ימים'), onPressed: () => Navigator.pop(ctx, d)),
+              for (final d in opts)
+                ActionChip(key: Key('freeze-$d'), label: Text('$d ימים'), onPressed: () => Navigator.pop(ctx, d)),
             ]),
           ]),
         ),

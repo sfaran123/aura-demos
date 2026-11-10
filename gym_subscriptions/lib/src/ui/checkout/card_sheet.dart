@@ -26,7 +26,8 @@ class _CardSheetState extends State<_CardSheet> {
   Widget _field(String hint, String value) => Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-        decoration: BoxDecoration(color: Aura.paper, borderRadius: BorderRadius.circular(10), border: Border.all(color: Aura.line)),
+        decoration: BoxDecoration(
+            color: Aura.paper, borderRadius: BorderRadius.circular(10), border: Border.all(color: Aura.line)),
         child: Directionality(
           textDirection: TextDirection.ltr,
           child: Text(filled ? value : hint, style: TextStyle(color: filled ? Aura.ink : Aura.muted, fontSize: 15)),
@@ -42,7 +43,8 @@ class _CardSheetState extends State<_CardSheet> {
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: Aura.goldLight, width: 1.5)),
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14), border: Border.all(color: Aura.goldLight, width: 1.5)),
           child: Column(children: [
             const Row(children: [
               Icon(Icons.lock_outline, size: 16, color: Aura.muted),

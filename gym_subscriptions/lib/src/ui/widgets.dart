@@ -7,14 +7,11 @@ import 'theme.dart';
 /// Makes [GymStore] available to the widget tree and rebuilds dependants
 /// when it changes.
 class StoreScope extends InheritedNotifier<_StoreListenable> {
-  StoreScope({super.key, required GymStore store, required super.child})
-      : super(notifier: _StoreListenable(store));
+  StoreScope({super.key, required GymStore store, required super.child}) : super(notifier: _StoreListenable(store));
 
-  static GymStore of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<StoreScope>()!.notifier!.store;
+  static GymStore of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<StoreScope>()!.notifier!.store;
 
-  static GymStore read(BuildContext context) =>
-      context.getInheritedWidgetOfExactType<StoreScope>()!.notifier!.store;
+  static GymStore read(BuildContext context) => context.getInheritedWidgetOfExactType<StoreScope>()!.notifier!.store;
 }
 
 class _StoreListenable extends ChangeNotifier {
@@ -35,7 +32,8 @@ class SectionLabel extends StatelessWidget {
         child: Row(children: [
           Expanded(
             child: Text(text,
-                style: const TextStyle(fontSize: 13, color: Aura.muted, fontWeight: FontWeight.w500, letterSpacing: .2)),
+                style:
+                    const TextStyle(fontSize: 13, color: Aura.muted, fontWeight: FontWeight.w500, letterSpacing: .2)),
           ),
           if (trailing != null) trailing!,
         ]),
@@ -92,7 +90,13 @@ class Avatar extends StatelessWidget {
 
 /// White rounded card with a hairline border.
 class Panel extends StatelessWidget {
-  const Panel({super.key, required this.child, this.padding = const EdgeInsets.all(14), this.color, this.borderColor, this.onTap});
+  const Panel(
+      {super.key,
+      required this.child,
+      this.padding = const EdgeInsets.all(14),
+      this.color,
+      this.borderColor,
+      this.onTap});
   final Widget child;
   final EdgeInsets padding;
   final Color? color;
@@ -135,13 +139,8 @@ class PlanCard extends StatelessWidget {
         borderColor: selected ? Aura.goldLight : null,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Expanded(
-              child: Row(children: [
-                Flexible(child: Text(plan.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-                if (plan.badge != null) ...[const SizedBox(width: 8), Pill(plan.badge!, tone: PillTone.wait)],
-                if (!plan.active) ...[const SizedBox(width: 8), const Pill('לא פעיל')],
-              ]),
-            ),
+            Expanded(child: Text(plan.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 8),
             Text.rich(TextSpan(children: [
               TextSpan(text: money(plan.price), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               if (plan.isRecurring) const TextSpan(text: ' / חודש', style: TextStyle(fontSize: 12, color: Aura.muted)),
@@ -149,6 +148,8 @@ class PlanCard extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
+            if (plan.badge != null) Pill(plan.badge!, tone: PillTone.wait),
+            if (!plan.active) const Pill('לא פעיל', tone: PillTone.bad),
             if (showKind)
               Pill(plan.kind.label,
                   tone: switch (plan.kind) {
@@ -159,7 +160,8 @@ class PlanCard extends StatelessWidget {
             for (final f in plan.features())
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: selected ? Colors.white : Aura.paper, borderRadius: BorderRadius.circular(8)),
+                decoration:
+                    BoxDecoration(color: selected ? Colors.white : Aura.paper, borderRadius: BorderRadius.circular(8)),
                 child: Text(f, style: const TextStyle(fontSize: 12, color: Aura.muted)),
               ),
           ]),
@@ -171,7 +173,13 @@ class PlanCard extends StatelessWidget {
 
 /// A row of single-choice chips.
 class ChoiceRow<T> extends StatelessWidget {
-  const ChoiceRow({super.key, required this.values, required this.selected, required this.label, required this.onSelected, this.enabled});
+  const ChoiceRow(
+      {super.key,
+      required this.values,
+      required this.selected,
+      required this.label,
+      required this.onSelected,
+      this.enabled});
   final List<T> values;
   final T? selected;
   final String Function(T) label;
@@ -266,7 +274,8 @@ class Note extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(color: warn ? Aura.warnBg : Aura.paper, borderRadius: BorderRadius.circular(12)),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon ?? (warn ? Icons.error_outline : Icons.info_outline), size: 18, color: warn ? Aura.warn : Aura.muted),
+          Icon(icon ?? (warn ? Icons.error_outline : Icons.info_outline),
+              size: 18, color: warn ? Aura.warn : Aura.muted),
           const SizedBox(width: 8),
           Expanded(
               child: Text(text, style: TextStyle(fontSize: 13, height: 1.45, color: warn ? Aura.warn : Aura.muted))),
@@ -286,7 +295,8 @@ class SummaryBox extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           color: strong ? Aura.paper : null,
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a, style: TextStyle(color: strong ? Aura.ink : Aura.muted, fontWeight: strong ? FontWeight.w700 : null)),
+            Text(a,
+                style: TextStyle(color: strong ? Aura.ink : Aura.muted, fontWeight: strong ? FontWeight.w700 : null)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(b,

@@ -23,22 +23,24 @@ class CollectScreen extends StatelessWidget {
         Panel(
           color: overdueSum > 0 ? Aura.warnBg : Aura.okBg,
           borderColor: overdueSum > 0 ? Aura.warnBg : Aura.okBg,
-          child: Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(overdueSum > 0 ? 'חוב פתוח עד היום' : 'אין חובות פתוחים',
-                    style: TextStyle(color: overdueSum > 0 ? Aura.warn : Aura.ok, fontSize: 13)),
-                Text(money(overdueSum),
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: overdueSum > 0 ? Aura.warn : Aura.ok)),
-              ]),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(overdueSum > 0 ? 'חוב פתוח עד היום' : 'אין חובות פתוחים',
+                style: TextStyle(color: overdueSum > 0 ? Aura.warn : Aura.ok, fontSize: 13)),
+            Text(money(overdueSum),
+                style:
+                    TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: overdueSum > 0 ? Aura.warn : Aura.ok)),
+            const SizedBox(height: 4),
+            Text(
+              'תזכורת ${s.manualReminderDaysBefore} ימים לפני מועד התשלום · '
+              '${s.blockEntryWhenOverdue ? 'חסימת כניסה אחרי ${s.graceDays} ימי איחור' : 'בלי חסימת כניסה'}',
+              style: const TextStyle(fontSize: 12, color: Aura.muted, height: 1.4),
             ),
-            Text('תזכורת ${s.manualReminderDaysBefore} ימים לפני\n${s.blockEntryWhenOverdue ? 'חסימה אחרי ${s.graceDays} ימי איחור' : 'בלי חסימת כניסה'}',
-                textAlign: TextAlign.left, style: const TextStyle(fontSize: 12, color: Aura.muted, height: 1.4)),
           ]),
         ),
         const SizedBox(height: 12),
         if (list.isEmpty)
-          const Note('כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.', icon: Icons.check_circle_outline),
+          const Note('כל התשלומים החודשיים נגבו. מנויים בגבייה ידנית יופיעו כאן כמה ימים לפני מועד התשלום.',
+              icon: Icons.check_circle_outline),
         for (final c in list) _ChargeCard(charge: c),
         const SizedBox(height: 8),
         const Note(
@@ -95,7 +97,8 @@ class _ChargeCard extends StatelessWidget {
             Expanded(
               child: FilledButton.icon(
                 key: Key('collect-${c.id}'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () => _collect(context),
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('התקבל'),
@@ -104,6 +107,8 @@ class _ChargeCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () {
                   store.sendChargeLink(c);
                   showDone(context, 'לינק לתשלום ${money(c.amount)} נשלח ל${cust.name}');

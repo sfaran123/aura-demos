@@ -28,9 +28,7 @@ class CheckoutDraft extends ChangeNotifier {
   bool get hasSavedCard => customer?.hasSavedCard ?? false;
 
   double get due => isSubscription
-      ? (plan == null
-          ? 0
-          : subscriptionDueNow(plan!, discountPct: discountPct, waiveRegistration: waiveRegistration))
+      ? (plan == null ? 0 : subscriptionDueNow(plan!, discountPct: discountPct, waiveRegistration: waiveRegistration))
       : cartTotal(cart, store.items, customAmount);
 
   double get assigned => linesTotal(lines);
@@ -45,14 +43,12 @@ class CheckoutDraft extends ChangeNotifier {
         recurring: recurring,
       );
 
-  bool allowed(PayMethod m) =>
-      methodAllowed(m, store.settings, plan: isSubscription ? plan : null, walkIn: walkIn);
+  bool allowed(PayMethod m) => methodAllowed(m, store.settings, plan: isSubscription ? plan : null, walkIn: walkIn);
 
   int get maxInstallments => maxInstallmentsFor(isSubscription ? plan : null, store.settings);
   int get maxCheques => maxChequesFor(isSubscription ? plan : null, store.settings);
 
-  List<RecurringMethod> get recurringChoices =>
-      recurringOptions(hasSavedCard: hasSavedCard, s: store.settings);
+  List<RecurringMethod> get recurringChoices => recurringOptions(hasSavedCard: hasSavedCard, s: store.settings);
 
   void _resetPayment() {
     lines.clear();

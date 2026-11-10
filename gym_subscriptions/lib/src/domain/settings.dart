@@ -74,6 +74,5 @@ class BusinessSettings {
   Set<Channel> reminderChannels = {Channel.whatsapp, Channel.sms};
 
   /// Discount steps the counter may offer.
-  List<int> discountSteps() =>
-      [0, 5, 10, 15, 20, 25, 30, 40, 50].where((d) => d <= staffMaxDiscountPct).toList();
+  List<int> discountSteps() => [0, 5, 10, 15, 20, 25, 30, 40, 50].where((d) => d <= staffMaxDiscountPct).toList();
 }

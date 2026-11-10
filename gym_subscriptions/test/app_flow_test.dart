@@ -165,4 +165,22 @@ void main() {
     await tapKey(t, 'freeze-14');
     expect(store.subscriptions.firstWhere((s) => s.id == 's1').status, SubStatus.frozen);
   });
+
+  testWidgets('every main screen works with a large system font (130%)', (t) async {
+    t.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
+    await boot(t);
+    for (final tab in ['navMembers', 'navCollect', 'navPlans', 'navSettings', 'navHome']) {
+      await tapKey(t, tab);
+      expect(t.takeException(), isNull, reason: tab);
+    }
+    await tapKey(t, 'tileNewSub');
+    await tap(t, find.text('נועה לוי'));
+    await tapKey(t, 'plan-p4');
+    await tapKey(t, 'toPayment');
+    await tapKey(t, 'add-cheque');
+    expect(t.takeException(), isNull);
+    await tapKey(t, 'toSummary');
+    expect(t.takeException(), isNull);
+  });
 }
