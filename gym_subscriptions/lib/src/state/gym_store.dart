@@ -1,14 +1,17 @@
 // In-memory store with sample data. In the AURA app this is replaced by an
 // implementation that calls the AURA API; screens only talk to GymStore.
 
+import 'dart:async';
+
 import '../domain/checkout.dart';
+import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/notifier.dart';
 import '../domain/settings.dart';
 
 class GymStore extends SimpleNotifier {
-  GymStore({DateTime Function()? clock}) : _clock = clock ?? DateTime.now {
-    _seed();
+  GymStore({DateTime Function()? clock, bool seed = true}) : _clock = clock ?? DateTime.now {
+    if (seed) _seed();
   }
 
   final DateTime Function() _clock;
@@ -36,6 +39,13 @@ class GymStore extends SimpleNotifier {
   ];
 
   void touch() => notifyListeners();
+
+  AppLang get language => L10n.lang;
+
+  void setLanguage(AppLang l) {
+    L10n.lang = l;
+    notifyListeners();
+  }
 
   // ---------- lookups ----------
   SubscriptionPlan? plan(String id) => plans.where((p) => p.id == id).firstOrNull;
@@ -84,6 +94,9 @@ class GymStore extends SimpleNotifier {
           s.end!.difference(today).inDays <= settings.renewalReminderDaysBefore)
       .toList();
 
+  bool hasOverdue(String subscriptionId) =>
+      charges.any((c) => c.subscriptionId == subscriptionId && c.isOpen() && c.daysOverdue(today) > 0);
+
   /// Entry is blocked when a charge is overdue past the grace period.
   bool entryBlocked(String customerId) {
     if (!settings.blockEntryWhenOverdue) return false;
@@ -99,6 +112,7 @@ class GymStore extends SimpleNotifier {
   }
 
   void savePlan(SubscriptionPlan p) {
+    if (!p.isRecurring) p.prepayLastMonth = false;
     final i = plans.indexWhere((x) => x.id == p.id);
     if (i >= 0) {
       plans[i] = p;
@@ -108,11 +122,12 @@ class GymStore extends SimpleNotifier {
     notifyListeners();
   }
 
-  Receipt _receipt(String name, String desc, List<PaymentLine> lines) {
+  Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind, {DateTime? at}) {
     final r = Receipt(
         number: ++_receiptNo,
         customerName: name,
         description: desc,
+        kind: kind,
         lines: lines
             .map((l) => PaymentLine(
                 method: l.method,
@@ -121,10 +136,30 @@ class GymStore extends SimpleNotifier {
                 installments: l.installments,
                 cheques: l.cheques))
             .toList(),
-        date: now);
+        date: at ?? now);
     receipts.add(r);
     return r;
   }
+
+  /// Schedules the monthly charge due on [due], unless the membership has
+  /// ended by then. The last charge of a prepaid membership is already covered.
+  void _schedule(Subscription sub, DateTime due, double amount, bool manual) {
+    final end = sub.cancelEffective;
+    if (end != null && !due.isBefore(end)) return;
+    final covered = end != null && sub.prepaidAmount > 0 && !addMonths(due, 1).isBefore(end) && !_hasCovered(sub.id);
+    charges.add(Charge(
+      id: _next('ch'),
+      subscriptionId: sub.id,
+      customerId: sub.customerId,
+      dueDate: due,
+      amount: amount,
+      manual: manual,
+      status: covered ? ChargeStatus.covered : ChargeStatus.due,
+    ));
+    if (covered) sub.prepaidAmount = 0;
+  }
+
+  bool _hasCovered(String subId) => charges.any((c) => c.subscriptionId == subId && c.status == ChargeStatus.covered);
 
   /// Opens a subscription and issues one receipt for all payment lines.
   ({Subscription sub, Receipt receipt}) openSubscription({
@@ -159,19 +194,12 @@ class GymStore extends SimpleNotifier {
           plan.isRecurring ? (recurring == RecurringMethod.newCard ? RecurringMethod.savedCard : recurring) : null,
       entriesLeft: plan.kind == PlanKind.punch ? plan.entries : null,
       nextCharge: plan.isRecurring ? addMonths(s0, 1) : null,
+      prepaidAmount: plan.isRecurring && plan.prepayLastMonth ? monthly! : 0,
+      joinedAt: now,
     );
     subscriptions.add(sub);
-    if (plan.isRecurring) {
-      charges.add(Charge(
-        id: _next('ch'),
-        subscriptionId: sub.id,
-        customerId: customer.id,
-        dueDate: addMonths(s0, 1),
-        amount: monthly!,
-        manual: recurring == RecurringMethod.manual,
-      ));
-    }
-    final r = _receipt(customer.name, plan.name, lines);
+    if (plan.isRecurring) _schedule(sub, addMonths(s0, 1), monthly!, recurring == RecurringMethod.manual);
+    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription);
     if (lines.any((l) => l.method == PayMethod.link)) {
       final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
       links.insert(
@@ -189,7 +217,7 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt quickPay({Customer? customer, required String description, required List<PaymentLine> lines}) {
-    final r = _receipt(customer?.name ?? 'לקוח מזדמן', description, lines);
+    final r = _receipt(customer?.name ?? 'לקוח מזדמן', description, lines, ReceiptKind.quickPay);
     notifyListeners();
     return r;
   }
@@ -206,17 +234,10 @@ class GymStore extends SimpleNotifier {
     }
     final next = addMonths(c.dueDate, 1);
     sub.nextCharge = next;
-    if (sub.cancelEffective == null || next.isBefore(sub.cancelEffective!)) {
-      charges.add(Charge(
-          id: _next('ch'),
-          subscriptionId: sub.id,
-          customerId: cust.id,
-          dueDate: next,
-          amount: c.amount,
-          manual: c.manual));
-    }
-    final r = _receipt(cust.name, '${plan(sub.planId)?.name ?? 'מנוי'} · חודש ${c.dueDate.month}/${c.dueDate.year}',
-        [PaymentLine(method: method, amount: c.amount)]);
+    final hasLater = charges.any((x) => x.subscriptionId == sub.id && x.dueDate.isAfter(c.dueDate));
+    if (!hasLater) _schedule(sub, next, c.amount, c.manual);
+    final r = _receipt(cust.name, '${plan(sub.planId)?.name ?? 'מנוי'} · ${c.dueDate.month}/${c.dueDate.year}',
+        [PaymentLine(method: method, amount: c.amount)], ReceiptKind.collection);
     notifyListeners();
     return r;
   }
@@ -247,7 +268,8 @@ class GymStore extends SimpleNotifier {
     s.freezeDaysUsed += days;
     if (s.end != null) s.end = s.end!.add(Duration(days: days));
     if (s.nextCharge != null) s.nextCharge = s.nextCharge!.add(Duration(days: days));
-    for (final c in charges.where((c) => c.subscriptionId == s.id && c.isOpen() && !c.dueDate.isBefore(today))) {
+    for (final c
+        in charges.where((c) => c.subscriptionId == s.id && c.isOpen() && !c.dueDate.isBefore(today)).toList()) {
       charges[charges.indexOf(c)] = Charge(
           id: c.id,
           subscriptionId: c.subscriptionId,
@@ -271,20 +293,102 @@ class GymStore extends SimpleNotifier {
     notifyListeners();
   }
 
+  /// Schedules the cancellation. For a prepaid membership, the last month's
+  /// charge is marked as already paid.
   DateTime cancel(Subscription s) {
     final p = plan(s.planId)!;
-    final d = cancelEffectiveDate(p, s, today);
+    var d = cancelEffectiveDate(p, s, today);
+    if (s.prepaidAmount > 0) {
+      // The month paid in advance is always the last month of the membership.
+      final open = charges
+          .where((c) => c.subscriptionId == s.id && c.isOpen() && !c.dueDate.isBefore(today) && c.dueDate.isBefore(d))
+          .toList()
+        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      if (open.isNotEmpty) {
+        open.last.status = ChargeStatus.covered;
+      } else {
+        final nd = s.nextCharge ?? addMonths(s.start, 1);
+        final end = addMonths(nd, 1);
+        if (end.isAfter(d)) d = end;
+        final existing = charges.where((c) => c.subscriptionId == s.id && c.dueDate == nd).firstOrNull;
+        if (existing != null) {
+          existing.status = ChargeStatus.covered;
+        } else {
+          charges.add(Charge(
+              id: _next('ch'),
+              subscriptionId: s.id,
+              customerId: s.customerId,
+              dueDate: nd,
+              amount: s.monthlyAmount ?? p.price,
+              manual: s.recurringMethod == RecurringMethod.manual,
+              status: ChargeStatus.covered));
+        }
+      }
+      s.prepaidAmount = 0;
+    }
     s.cancelEffective = d;
-    charges.removeWhere((c) => c.subscriptionId == s.id && c.isOpen() && c.dueDate.isAfter(d));
+    s.cancelledAt = now;
+    charges.removeWhere((c) => c.subscriptionId == s.id && c.isOpen() && !c.dueDate.isBefore(d));
     notifyListeners();
     return d;
   }
 
+  // ---------- links ----------
   SignupLink sendSignupLink(String to) {
     final l = SignupLink(id: _next('l'), sentTo: to.trim().isEmpty ? 'לקוח חדש' : to.trim(), createdAt: now);
     links.insert(0, l);
     notifyListeners();
     return l;
+  }
+
+  void linkStage(SignupLink l, LinkStage s) {
+    l.advance(s, now);
+    notifyListeners();
+  }
+
+  final Map<String, Timer> _sims = {};
+
+  /// Demo: plays the customer's side of a link, one step every [step], so the
+  /// owner sees the stages change live. In production the stages come from the
+  /// link page and the card processor's webhook.
+  void simulateLink(SignupLink l, {Duration step = const Duration(seconds: 2)}) {
+    _sims[l.id]?.cancel();
+    _sims[l.id] = Timer.periodic(step, (t) {
+      final next = switch (l.stage) {
+        LinkStage.sent => LinkStage.opened,
+        LinkStage.opened => LinkStage.details,
+        LinkStage.details => LinkStage.signed,
+        LinkStage.signed || LinkStage.failed => LinkStage.paid,
+        LinkStage.paid => null,
+      };
+      if (next == null) {
+        t.cancel();
+        _sims.remove(l.id);
+        return;
+      }
+      if (next == LinkStage.paid) {
+        final plan = l.planId != null ? this.plan(l.planId!)! : activePlans.firstWhere((p) => p.onlineSignup);
+        final c = l.customerId != null ? customer(l.customerId!)! : null;
+        completeSignup(l,
+            name: c?.name ?? (RegExp(r'\d').hasMatch(l.sentTo) ? 'לקוח מהלינק' : l.sentTo),
+            phone: c?.phone ?? (isValidPhone(l.sentTo) ? l.sentTo : '050-0000000'),
+            plan: plan,
+            cardLast4: '4242');
+        t.cancel();
+        _sims.remove(l.id);
+      } else {
+        linkStage(l, next);
+      }
+    });
+  }
+
+  bool isSimulating(SignupLink l) => _sims.containsKey(l.id);
+
+  void stopSimulations() {
+    for (final t in _sims.values) {
+      t.cancel();
+    }
+    _sims.clear();
   }
 
   /// Customer side of the link: registers, pays by card, subscription becomes active.
@@ -305,15 +409,24 @@ class GymStore extends SimpleNotifier {
     final existing = link.customerId != null
         ? subscriptions.where((s) => s.customerId == c!.id && s.status == SubStatus.pendingPayment).firstOrNull
         : null;
-    final amount = link.amount ?? subscriptionDueNow(plan);
-    link.status = LinkStatus.paid;
+    final amount = link.amount ?? subscriptionDueNow(plan, prepayLastMonth: plan.isRecurring && plan.prepayLastMonth);
+    link.customerId ??= c.id;
+    link.planId ??= plan.id;
+    link.advance(LinkStage.paid, now);
+    final line =
+        PaymentLine(method: PayMethod.card, amount: amount, installments: installments, cardSource: CardSource.newCard);
     if (existing != null) {
       existing.status = SubStatus.active;
-      _receipt(c.name, '${plan.name} · יתרה בלינק', [
-        PaymentLine(method: PayMethod.card, amount: amount, installments: installments, cardSource: CardSource.newCard)
-      ]);
+      _receipt(c.name, '${plan.name} · לינק', [line], ReceiptKind.link);
       notifyListeners();
       return existing;
+    }
+    final charge = link.customerId != null && link.amount != null
+        ? charges.where((x) => x.customerId == c!.id && x.isOpen()).firstOrNull
+        : null;
+    if (charge != null) {
+      collect(charge, PayMethod.card);
+      return subscriptions.firstWhere((s) => s.id == charge.subscriptionId);
     }
     final r = openSubscription(
       customer: c,
@@ -321,12 +434,18 @@ class GymStore extends SimpleNotifier {
       start: StartOption.today,
       discountPct: 0,
       waiveRegistration: false,
-      lines: [
-        PaymentLine(method: PayMethod.card, amount: amount, installments: installments, cardSource: CardSource.newCard)
-      ],
+      lines: [line],
       recurring: plan.isRecurring ? RecurringMethod.savedCard : null,
       newCardLast4: cardLast4,
     );
+    receipts.remove(r.receipt);
+    receipts.add(Receipt(
+        number: r.receipt.number,
+        customerName: r.receipt.customerName,
+        description: r.receipt.description,
+        lines: r.receipt.lines,
+        date: r.receipt.date,
+        kind: ReceiptKind.link));
     return r.sub;
   }
 
@@ -356,6 +475,13 @@ class GymStore extends SimpleNotifier {
           registrationFee: 100,
           weeklyLimit: 2,
           freezeDaysPerYear: 14),
+      SubscriptionPlan(
+          id: 'p7',
+          name: 'חודשי + חודש אחרון מראש',
+          kind: PlanKind.recurring,
+          price: 179,
+          freezeDaysPerYear: 30,
+          prepayLastMonth: true),
       SubscriptionPlan(
           id: 'p4',
           name: '3 חודשים',
@@ -394,13 +520,19 @@ class GymStore extends SimpleNotifier {
       return x;
     }
 
+    c('c7', 'יעל אורן', '052-4417730', '9031');
+    c('c8', 'חאלד מנסור', '054-3302871');
+    c('c9', 'מאיה גולן', '050-7719264', '5512');
+    c('c10', 'עומר שלו', '052-6620043', '3381');
+    c('c11', 'לינה סעד', '058-2201937');
     c('c1', 'נועה לוי', '052-7781024', '4580');
     c('c2', 'מוחמד חסן', '054-6120933');
     c('c3', 'דני כהן', '050-3349182', '1123');
     c('c4', 'רים ח׳ורי', '058-4410276');
     c('c5', 'אלון ברק', '052-9917345');
-    c('c6', 'סמאח עודה', '053-2288104');
+    c('c6', 'סמאח עודה', '053-2288104', '7702');
 
+    DateTime ago(int days) => t.subtract(Duration(days: days));
     subscriptions.addAll([
       Subscription(id: 's1', customerId: 'c1', planId: 'p5', start: addMonths(t, -8), end: addMonths(t, 4)),
       Subscription(
@@ -418,7 +550,7 @@ class GymStore extends SimpleNotifier {
           start: addMonths(t, -2),
           monthlyAmount: 149,
           recurringMethod: RecurringMethod.manual,
-          nextCharge: t.subtract(const Duration(days: 3))),
+          nextCharge: ago(3)),
       Subscription(
           id: 's4',
           customerId: 'c6',
@@ -427,25 +559,65 @@ class GymStore extends SimpleNotifier {
           monthlyAmount: 199,
           recurringMethod: RecurringMethod.savedCard,
           status: SubStatus.paymentFailed,
-          nextCharge: t.subtract(const Duration(days: 9))),
+          nextCharge: ago(9)),
       Subscription(
           id: 's5', customerId: 'c2', planId: 'p4', start: addMonths(t, -3), end: t.add(const Duration(days: 6))),
+      Subscription(
+          id: 's6',
+          customerId: 'c7',
+          planId: 'p7',
+          start: ago(18),
+          joinedAt: ago(18),
+          monthlyAmount: 179,
+          recurringMethod: RecurringMethod.savedCard,
+          prepaidAmount: 179,
+          nextCharge: addMonths(ago(18), 1)),
+      Subscription(
+          id: 's7',
+          customerId: 'c8',
+          planId: 'p1',
+          start: ago(25),
+          joinedAt: ago(25),
+          monthlyAmount: 199,
+          recurringMethod: RecurringMethod.manual,
+          nextCharge: addMonths(ago(25), 1)),
+      Subscription(
+          id: 's8',
+          customerId: 'c9',
+          planId: 'p2',
+          start: addMonths(t, -4),
+          monthlyAmount: 169,
+          recurringMethod: RecurringMethod.savedCard,
+          status: SubStatus.frozen,
+          frozenUntil: t.add(const Duration(days: 12)),
+          freezeDaysUsed: 21,
+          nextCharge: t.add(const Duration(days: 15))),
+      Subscription(
+          id: 's9',
+          customerId: 'c10',
+          planId: 'p1',
+          start: addMonths(t, -6),
+          monthlyAmount: 199,
+          recurringMethod: RecurringMethod.savedCard,
+          nextCharge: t.add(const Duration(days: 4)),
+          cancelEffective: t.add(const Duration(days: 20)),
+          cancelledAt: ago(10)),
+      Subscription(
+          id: 's10',
+          customerId: 'c11',
+          planId: 'p4',
+          start: ago(12),
+          joinedAt: ago(12),
+          end: endDate(plan('p4')!, ago(12))),
     ]);
-    customers.firstWhere((x) => x.id == 'c6').savedCardLast4 = '7702';
     charges.addAll([
       Charge(
-          id: 'ch1',
-          subscriptionId: 's3',
-          customerId: 'c5',
-          dueDate: t.subtract(const Duration(days: 3)),
-          amount: 149,
-          manual: true,
-          reminders: 1),
+          id: 'ch1', subscriptionId: 's3', customerId: 'c5', dueDate: ago(3), amount: 149, manual: true, reminders: 1),
       Charge(
           id: 'ch2',
           subscriptionId: 's4',
           customerId: 'c6',
-          dueDate: t.subtract(const Duration(days: 9)),
+          dueDate: ago(9),
           amount: 199,
           manual: false,
           status: ChargeStatus.failed,
@@ -457,21 +629,72 @@ class GymStore extends SimpleNotifier {
           dueDate: t.add(const Duration(days: 9)),
           amount: 199,
           manual: false),
+      Charge(
+          id: 'ch4',
+          subscriptionId: 's6',
+          customerId: 'c7',
+          dueDate: addMonths(ago(18), 1),
+          amount: 179,
+          manual: false),
+      Charge(
+          id: 'ch5', subscriptionId: 's7', customerId: 'c8', dueDate: addMonths(ago(25), 1), amount: 199, manual: true),
+      Charge(
+          id: 'ch6',
+          subscriptionId: 's8',
+          customerId: 'c9',
+          dueDate: t.add(const Duration(days: 15)),
+          amount: 169,
+          manual: false),
+      Charge(
+          id: 'ch7',
+          subscriptionId: 's9',
+          customerId: 'c10',
+          dueDate: t.add(const Duration(days: 4)),
+          amount: 199,
+          manual: false),
+      Charge(
+          id: 'ch8',
+          subscriptionId: 's3',
+          customerId: 'c5',
+          dueDate: addMonths(ago(3), -1),
+          amount: 149,
+          manual: true,
+          status: ChargeStatus.paid,
+          paidWith: PayMethod.cash,
+          paidAt: addMonths(ago(3), -1)),
     ]);
-    links.add(SignupLink(id: 'l1', sentTo: 'יוסי אברהם', createdAt: now.subtract(const Duration(hours: 5))));
+
+    final l1 = SignupLink(id: 'l1', sentTo: 'יוסי אברהם', createdAt: now.subtract(const Duration(hours: 5)));
+    final l2 = SignupLink(id: 'l2', sentTo: '054-7781200', createdAt: now.subtract(const Duration(hours: 2)))
+      ..advance(LinkStage.opened, now.subtract(const Duration(minutes: 50)));
+    final l3 = SignupLink(id: 'l3', sentTo: 'רונית ש.', createdAt: now.subtract(const Duration(hours: 1)))
+      ..advance(LinkStage.opened, now.subtract(const Duration(minutes: 40)))
+      ..advance(LinkStage.details, now.subtract(const Duration(minutes: 38)))
+      ..advance(LinkStage.signed, now.subtract(const Duration(minutes: 37)))
+      ..advance(LinkStage.failed, now.subtract(const Duration(minutes: 36)));
+    final l4 = SignupLink(id: 'l4', sentTo: 'יעל אורן', createdAt: ago(18), planId: 'p7', customerId: 'c7', amount: 358)
+      ..advance(LinkStage.paid, ago(18));
+    links.addAll([l1, l2, l3, l4]);
+
+    final pc = PaymentLine.new;
+    Receipt rec(int no, String name, String desc, List<PaymentLine> l, DateTime at, ReceiptKind k) =>
+        Receipt(number: no, customerName: name, description: desc, lines: l, date: at, kind: k);
     receipts.addAll([
-      Receipt(
-          number: 30180,
-          customerName: 'שירן מזרחי',
-          description: 'שנתי',
-          lines: [PaymentLine(method: PayMethod.card, amount: 1790, installments: 6)],
-          date: now.subtract(const Duration(hours: 3))),
-      Receipt(
-          number: 30181,
-          customerName: 'לקוח מזדמן',
-          description: 'כניסה חד-פעמית',
-          lines: [PaymentLine(method: PayMethod.cash, amount: 60)],
-          date: now.subtract(const Duration(hours: 1))),
+      rec(30160, 'חאלד מנסור', 'חודשי ללא הגבלה', [pc(method: PayMethod.cash, amount: 299)], ago(25),
+          ReceiptKind.subscription),
+      rec(30163, 'יעל אורן', 'חודשי + חודש אחרון מראש', [pc(method: PayMethod.card, amount: 358)], ago(18),
+          ReceiptKind.link),
+      rec(30166, 'לינה סעד', '3 חודשים', [pc(method: PayMethod.cheque, amount: 640, cheques: 3)], ago(12),
+          ReceiptKind.subscription),
+      rec(30170, 'אלון ברק', 'פעמיים בשבוע · ${addMonths(ago(3), -1).month}/${addMonths(ago(3), -1).year}',
+          [pc(method: PayMethod.cash, amount: 149)], addMonths(ago(3), -1), ReceiptKind.collection),
+      rec(30174, 'דני כהן', 'אימון אישי', [pc(method: PayMethod.card, amount: 180)], ago(6), ReceiptKind.quickPay),
+      rec(30177, 'נועה לוי', 'שייק חלבון, מגבת', [pc(method: PayMethod.cash, amount: 52)], ago(2),
+          ReceiptKind.quickPay),
+      rec(30180, 'שירן מזרחי', 'שנתי', [pc(method: PayMethod.card, amount: 1790, installments: 6)],
+          now.subtract(const Duration(hours: 3)), ReceiptKind.subscription),
+      rec(30181, 'לקוח מזדמן', 'כניסה חד-פעמית', [pc(method: PayMethod.cash, amount: 60)],
+          now.subtract(const Duration(hours: 1)), ReceiptKind.quickPay),
     ]);
   }
 }

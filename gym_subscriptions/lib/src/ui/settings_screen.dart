@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
 import 'checkout/checkout_screens.dart' show methodIcon;
+import 'plans_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -83,6 +85,48 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('הגדרות העסק')),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        Panel(
+          key: const Key('openPlans'),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
+          child: Row(children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: Aura.goldBg, borderRadius: BorderRadius.circular(11)),
+              child: const Icon(Icons.view_list, color: Aura.gold),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('מסלולי מנוי', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+                Text('${store.plans.length} מסלולים · עריכה והוספה', style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+              ]),
+            ),
+            const ForwardChevron(),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        Panel(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Row(children: [
+              Icon(Icons.translate, color: Aura.muted),
+              SizedBox(width: 12),
+              Text('שפה · Language · اللغة', style: TextStyle(fontSize: 15)),
+            ]),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final l in AppLang.values)
+                ChoiceChip(
+                  key: Key('lang-${l.code}'),
+                  label: Text(l.nativeName),
+                  selected: store.language == l,
+                  labelStyle: TextStyle(color: store.language == l ? Colors.white : Aura.ink),
+                  onSelected: (_) => store.setLanguage(l),
+                ),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 4),
         group('העסק', '', [
           ListTile(
             title: const Text('שם העסק'),

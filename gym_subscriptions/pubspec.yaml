@@ -30,6 +30,15 @@ flutter:
           weight: 600
         - asset: assets/fonts/Rubik_700Bold.ttf
           weight: 700
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo_400Regular.ttf
+        - asset: assets/fonts/Cairo_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Cairo_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Cairo_700Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

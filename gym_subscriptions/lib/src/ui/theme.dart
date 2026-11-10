@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../domain/l10n.dart';
+
 /// AURA brand palette.
 class Aura {
   static const ink = Color(0xFF101A28);
@@ -17,7 +19,8 @@ class Aura {
   static const blueBg = Color(0xFFE8EEF8);
 }
 
-ThemeData auraTheme() {
+ThemeData auraTheme([AppLang lang = AppLang.he]) {
+  final font = lang == AppLang.ar ? 'Cairo' : 'Rubik';
   final scheme = ColorScheme.fromSeed(seedColor: Aura.goldLight, brightness: Brightness.light).copyWith(
     primary: Aura.ink,
     onPrimary: Colors.white,
@@ -28,25 +31,25 @@ ThemeData auraTheme() {
     error: Aura.warn,
     outlineVariant: Aura.line,
   );
-  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: 'Rubik');
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme, fontFamily: font);
   return base.copyWith(
     splashFactory: InkRipple.splashFactory,
     scaffoldBackgroundColor: Aura.paper,
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Aura.paper,
       foregroundColor: Aura.ink,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(fontFamily: 'Rubik', fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
+      titleTextStyle: TextStyle(fontFamily: font, fontSize: 18, fontWeight: FontWeight.w600, color: Aura.ink),
     ),
-    textTheme: base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: 'Rubik'),
+    textTheme: base.textTheme.apply(bodyColor: Aura.ink, displayColor: Aura.ink, fontFamily: font),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: Aura.ink,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(54),
-        textStyle: const TextStyle(fontFamily: 'Rubik', fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(fontFamily: font, fontSize: 16, fontWeight: FontWeight.w600),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
@@ -55,15 +58,15 @@ ThemeData auraTheme() {
         foregroundColor: Aura.ink,
         minimumSize: const Size.fromHeight(48),
         side: const BorderSide(color: Aura.line),
-        textStyle: const TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w500),
+        textStyle: TextStyle(fontFamily: font, fontSize: 15, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Colors.white,
       selectedColor: Aura.ink,
-      labelStyle: const TextStyle(fontFamily: 'Rubik', fontSize: 13.5, color: Aura.ink),
-      secondaryLabelStyle: const TextStyle(fontFamily: 'Rubik', fontSize: 13.5, color: Colors.white),
+      labelStyle: TextStyle(fontFamily: font, fontSize: 13.5, color: Aura.ink),
+      secondaryLabelStyle: TextStyle(fontFamily: font, fontSize: 13.5, color: Colors.white),
       side: const BorderSide(color: Aura.line),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       showCheckmark: false,
@@ -83,7 +86,7 @@ ThemeData auraTheme() {
       backgroundColor: Colors.white,
       indicatorColor: Aura.goldBg,
       labelTextStyle:
-          WidgetStateProperty.all(const TextStyle(fontFamily: 'Rubik', fontSize: 12, fontWeight: FontWeight.w500)),
+          WidgetStateProperty.all(TextStyle(fontFamily: font, fontSize: 12, fontWeight: FontWeight.w500)),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.all(Colors.white),

@@ -193,7 +193,7 @@ class ChoiceRow<T> extends StatelessWidget {
             label: Text(label(v)),
             selected: v == selected,
             onSelected: (enabled?.call(v) ?? true) ? (_) => onSelected(v) : null,
-            labelStyle: TextStyle(color: v == selected ? Colors.white : Aura.ink, fontFamily: 'Rubik'),
+            labelStyle: TextStyle(color: v == selected ? Colors.white : Aura.ink),
           ),
       ]);
 }
@@ -300,7 +300,7 @@ class SummaryBox extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(b,
-                  textAlign: TextAlign.left,
+                  textAlign: TextAlign.end,
                   style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w500, fontSize: strong ? 16 : 14)),
             ),
           ]),
@@ -324,4 +324,17 @@ void showDone(BuildContext context, String text) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(text)));
+}
+
+/// "Go forward" arrow that points the right way in RTL and LTR.
+class ForwardChevron extends StatelessWidget {
+  const ForwardChevron({super.key, this.size = 22});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+        Directionality.of(context) == TextDirection.rtl ? Icons.chevron_left : Icons.chevron_right,
+        size: size,
+        color: Aura.muted,
+      );
 }

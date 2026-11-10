@@ -4,6 +4,7 @@ import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'checkout/checkout_screens.dart';
 import 'links.dart';
+import 'links_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -18,7 +19,7 @@ class HomeScreen extends StatelessWidget {
     final store = StoreScope.of(context);
     final collect = store.toCollect;
     final overdue = collect.where((c) => !c.dueDate.isAfter(store.today)).toList();
-    final waiting = store.links.where((l) => l.status == LinkStatus.waiting).toList();
+    final waiting = store.links.where((l) => l.stage != LinkStage.paid).toList();
     final expiring = store.expiringSoon;
 
     return Scaffold(
@@ -79,7 +80,7 @@ class HomeScreen extends StatelessWidget {
                   : '${collect.length} תשלומים · ${money(collect.fold(0.0, (a, c) => a + c.amount))}',
               onTap: () => goTo(2),
             )),
-        if (overdue.isNotEmpty || waiting.isNotEmpty || expiring.isNotEmpty) ...[
+        if (overdue.isNotEmpty || expiring.isNotEmpty) ...[
           const SizedBox(height: 8),
           const SectionLabel('דורש טיפול'),
           for (final c in overdue)
@@ -92,14 +93,6 @@ class HomeScreen extends StatelessWidget {
                   : 'חיוב באשראי נכשל · ${money(c.amount)} · ${c.attempts} ניסיונות',
               onTap: () => goTo(2),
             ),
-          for (final l in waiting)
-            _Alert(
-              icon: Icons.link,
-              tone: PillTone.wait,
-              title: l.sentTo,
-              text: l.planId == null ? 'לינק הרשמה נשלח · ממתין לתשלום' : 'לינק לתשלום ${money(l.amount ?? 0)} · ממתין',
-              onTap: () => openCustomerPreview(context, l),
-            ),
           for (final s in expiring)
             _Alert(
               icon: Icons.event_busy,
@@ -108,6 +101,16 @@ class HomeScreen extends StatelessWidget {
               text: '${store.plan(s.planId)!.name} מסתיים ב-${fmtDate(s.end!)} · להציע חידוש',
               onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
             ),
+        ],
+        if (waiting.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SectionLabel('לינקים פתוחים (${waiting.length})',
+              trailing: TextButton(
+                key: const Key('allLinks'),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinksScreen())),
+                child: const Text('כל הלינקים'),
+              )),
+          for (final l in waiting.take(3)) Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
         ],
         const SizedBox(height: 8),
         const SectionLabel('תשלומים אחרונים'),
@@ -246,7 +249,7 @@ class _Alert extends StatelessWidget {
               Text(text, style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
             ]),
           ),
-          const Icon(Icons.chevron_left, color: Aura.muted),
+          const ForwardChevron(),
         ]),
       ),
     );

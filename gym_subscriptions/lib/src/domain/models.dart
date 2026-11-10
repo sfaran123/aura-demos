@@ -40,6 +40,7 @@ class SubscriptionPlan {
     this.onlineSignup = true,
     this.active = true,
     this.badge,
+    this.prepayLastMonth = false,
   });
 
   final String id;
@@ -78,6 +79,10 @@ class SubscriptionPlan {
   bool active;
   String? badge;
 
+  /// Recurring plans: the customer pays the last month in advance when joining.
+  /// Cancelling needs a month's notice, and the last month is not charged.
+  bool prepayLastMonth;
+
   bool get isRecurring => kind == PlanKind.recurring;
 
   SubscriptionPlan copy({String? id}) => SubscriptionPlan(
@@ -101,6 +106,7 @@ class SubscriptionPlan {
         onlineSignup: onlineSignup,
         active: active,
         badge: badge,
+        prepayLastMonth: prepayLastMonth,
       );
 
   /// Short feature labels shown on plan cards.
@@ -109,6 +115,7 @@ class SubscriptionPlan {
     switch (kind) {
       case PlanKind.recurring:
         f.add(commitMonths > 0 ? 'התחייבות $commitMonths ח׳' : 'בלי התחייבות');
+        if (prepayLastMonth) f.add('חודש אחרון משולם מראש');
       case PlanKind.term:
         f.add('$months חודשים');
       case PlanKind.punch:
@@ -204,7 +211,8 @@ extension RecurringMethodLabel on RecurringMethod {
   bool get isAutomatic => this != RecurringMethod.manual;
 }
 
-enum ChargeStatus { due, paid, failed }
+/// [covered]: the last month, already paid in advance when the member joined.
+enum ChargeStatus { due, paid, failed, covered }
 
 /// One monthly charge of a recurring subscription. Automatic charges are run
 /// by the card processor; manual ones appear in the "to collect" list until
@@ -243,7 +251,7 @@ class Charge {
     return d < 0 ? 0 : d;
   }
 
-  bool isOpen() => status != ChargeStatus.paid;
+  bool isOpen() => status == ChargeStatus.due || status == ChargeStatus.failed;
 }
 
 enum SubStatus { active, pendingPayment, frozen, paymentFailed, cancelled, expired }
@@ -276,7 +284,10 @@ class Subscription {
     this.freezeDaysUsed = 0,
     this.nextCharge,
     this.cancelEffective,
-  });
+    this.prepaidAmount = 0,
+    DateTime? joinedAt,
+    this.cancelledAt,
+  }) : joinedAt = joinedAt ?? start;
 
   final String id;
   final String customerId;
@@ -293,7 +304,14 @@ class Subscription {
   int freezeDaysUsed;
   DateTime? nextCharge;
   DateTime? cancelEffective;
+
+  /// Last month paid in advance and held until the membership ends.
+  double prepaidAmount;
+  final DateTime joinedAt;
+  DateTime? cancelledAt;
 }
+
+enum ReceiptKind { subscription, collection, quickPay, link }
 
 /// A tax invoice-receipt covering every payment line of one action.
 class Receipt {
@@ -303,7 +321,10 @@ class Receipt {
     required this.description,
     required this.lines,
     required this.date,
+    this.kind = ReceiptKind.subscription,
   });
+
+  final ReceiptKind kind;
 
   final int number;
   final String customerName;
@@ -324,6 +345,9 @@ class ShopItem {
 
 enum LinkStatus { waiting, paid }
 
+/// Where the customer is in a link, in order.
+enum LinkStage { sent, opened, details, signed, paid, failed }
+
 class SignupLink {
   SignupLink({
     required this.id,
@@ -332,8 +356,10 @@ class SignupLink {
     this.planId,
     this.customerId,
     this.amount,
-    this.status = LinkStatus.waiting,
-  });
+    LinkStage stage = LinkStage.sent,
+    Map<LinkStage, DateTime>? timeline,
+  })  : _stage = stage,
+        timeline = timeline ?? {LinkStage.sent: createdAt};
 
   final String id;
   String sentTo;
@@ -343,7 +369,24 @@ class SignupLink {
   String? planId;
   String? customerId;
   double? amount;
-  LinkStatus status;
+  LinkStage _stage;
+  final Map<LinkStage, DateTime> timeline;
+
+  LinkStage get stage => _stage;
+
+  /// Moves forward (never back, except to failed and from failed to paid).
+  void advance(LinkStage s, DateTime at) {
+    if (_stage == LinkStage.paid) return;
+    if (s.index <= _stage.index && s != LinkStage.failed && _stage != LinkStage.failed) return;
+    _stage = s;
+    timeline.putIfAbsent(s, () => at);
+    // Fill skipped steps so the timeline reads in order.
+    for (final x in LinkStage.values) {
+      if (x.index < s.index && x != LinkStage.failed && s != LinkStage.failed) timeline.putIfAbsent(x, () => at);
+    }
+  }
+
+  LinkStatus get status => _stage == LinkStage.paid ? LinkStatus.paid : LinkStatus.waiting;
 
   String get url => 'fitclub.aura.link/${planId == null ? 'join' : 'pay'}/$id';
 }
@@ -361,4 +404,15 @@ String money(double v) {
   }
   final sign = r < 0 ? '-' : '';
   return frac == 0 ? '$sign$buf ₪' : '$sign$buf.${frac.toString().padLeft(2, '0')} ₪';
+}
+
+extension LinkStageLabel on LinkStage {
+  String get label => switch (this) {
+        LinkStage.sent => 'נשלח',
+        LinkStage.opened => 'נפתח',
+        LinkStage.details => 'מילא פרטים',
+        LinkStage.signed => 'חתם',
+        LinkStage.paid => 'שילם',
+        LinkStage.failed => 'התשלום נכשל',
+      };
 }

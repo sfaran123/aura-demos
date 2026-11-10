@@ -1,28 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'domain/l10n.dart';
 import 'state/gym_store.dart';
 import 'ui/collect_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/members_screen.dart';
-import 'ui/plans_screen.dart';
+import 'ui/reports_screen.dart';
 import 'ui/settings_screen.dart';
 import 'ui/theme.dart';
 import 'ui/widgets.dart';
 
 /// Standalone app. Inside the existing AURA app, wrap [GymModule] with your
 /// own MaterialApp/route instead.
-class AuraGymApp extends StatelessWidget {
+class AuraGymApp extends StatefulWidget {
   const AuraGymApp({super.key, required this.store});
   final GymStore store;
 
   @override
+  State<AuraGymApp> createState() => _AuraGymAppState();
+}
+
+class _AuraGymAppState extends State<AuraGymApp> {
+  AppLang _lang = L10n.lang;
+
+  void _onStore() {
+    if (L10n.lang != _lang) setState(() => _lang = L10n.lang);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store.addListener(_onStore);
+  }
+
+  @override
+  void dispose() {
+    widget.store.removeListener(_onStore);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final store = widget.store;
     return MaterialApp(
       title: 'AURA Gym',
       debugShowCheckedModeBanner: false,
-      theme: auraTheme(),
-      locale: const Locale('he'),
+      theme: auraTheme(_lang),
+      locale: Locale(_lang.code),
       supportedLocales: const [Locale('he'), Locale('ar'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -77,7 +102,7 @@ class _ShellState extends State<_Shell> {
       HomeScreen(goTo: (i) => setState(() => tab = i)),
       const MembersScreen(),
       const CollectScreen(),
-      const PlansScreen(),
+      const ReportsScreen(),
       const SettingsScreen(),
     ];
     return Scaffold(
@@ -103,10 +128,10 @@ class _ShellState extends State<_Shell> {
             label: 'לגבייה',
           ),
           const NavigationDestination(
-              key: Key('navPlans'),
-              icon: Icon(Icons.view_list_outlined),
-              selectedIcon: Icon(Icons.view_list),
-              label: 'מסלולים'),
+              key: Key('navReports'),
+              icon: Icon(Icons.insert_chart_outlined),
+              selectedIcon: Icon(Icons.insert_chart),
+              label: 'דוחות'),
           const NavigationDestination(
               key: Key('navSettings'),
               icon: Icon(Icons.tune_outlined),

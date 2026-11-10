@@ -160,6 +160,17 @@ class _PlanEditorState extends State<PlanEditor> {
                 value: p.autoRenew,
                 onChanged: (v) => setState(() => p.autoRenew = v),
               ),
+            if (p.isRecurring)
+              SwitchListTile(
+                key: const Key('pe-prepay'),
+                title: const Text('תשלום מראש על החודש האחרון'),
+                subtitle: const Text('בהצטרפות משלמים חודש ראשון + חודש אחרון. ביטול בהודעה של חודש, והחודש האחרון לא מחויב'),
+                value: p.prepayLastMonth,
+                onChanged: (v) => setState(() {
+                  p.prepayLastMonth = v;
+                  if (v && p.cancelNoticeDays < 30) p.cancelNoticeDays = 30;
+                }),
+              ),
             SwitchListTile(
               title: const Text('מותר מזומן'),
               subtitle: Text(p.isRecurring ? 'בתשלום הראשון ובגבייה ידנית חודשית' : 'בתשלום בקבלה'),

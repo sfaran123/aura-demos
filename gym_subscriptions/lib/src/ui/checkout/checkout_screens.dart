@@ -107,7 +107,7 @@ class _CustomerTile extends StatelessWidget {
               const Pill('ללא מנוי'),
           ]),
         ),
-        const Icon(Icons.chevron_left, color: Aura.muted),
+        const ForwardChevron(),
       ]),
     );
   }
@@ -461,7 +461,11 @@ class PaymentStep extends StatelessWidget {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(
                         p != null && p.isRecurring
-                            ? 'לתשלום היום (חודש ראשון${!d.waiveRegistration && p.registrationFee > 0 ? ' + דמי רישום' : ''})'
+                            ? '${'לתשלום היום'} (${[
+                                'חודש ראשון',
+                                if (p.prepayLastMonth) 'חודש אחרון מראש',
+                                if (!d.waiveRegistration && p.registrationFee > 0) 'דמי רישום',
+                              ].join(' + ')})'
                             : 'לתשלום',
                         style: const TextStyle(color: Aura.goldLight, fontSize: 12.5),
                       ),
@@ -736,6 +740,7 @@ class SummaryStep extends StatelessWidget {
         ),
         if (d.discountPct > 0) ('הנחה', '${d.discountPct}%'),
         if (p.registrationFee > 0) ('דמי רישום', d.waiveRegistration ? 'בוטלו' : money(p.registrationFee)),
+        if (p.isRecurring && p.prepayLastMonth) ('חודש אחרון ששולם מראש', money(d.monthly)),
       ] else
         ('פריטים', d.itemsDescription),
     ];

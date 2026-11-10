@@ -4,6 +4,7 @@ import 'package:aura_gym/src/domain/checkout.dart';
 import 'package:aura_gym/src/domain/models.dart';
 import 'package:aura_gym/src/domain/settings.dart';
 import 'package:aura_gym/src/state/gym_store.dart';
+import 'package:aura_gym/src/state/reports.dart';
 
 void main() {
   final fixedNow = DateTime(2026, 11, 10, 10, 0);
@@ -271,6 +272,78 @@ void main() {
       st.savePlan(SubscriptionPlan(id: '', name: 'סטודנטים', kind: PlanKind.recurring, price: 129));
       expect(st.plans.length, n + 1);
       expect(st.plans.last.id, isNot(''));
+    });
+  });
+
+  group('prepaid last month', () {
+    test('joining pays the first and the last month', () {
+      final p = SubscriptionPlan(id: 'x', name: 'x', kind: PlanKind.recurring, price: 179, prepayLastMonth: true);
+      expect(subscriptionDueNow(p), 358);
+      expect(subscriptionDueNow(p, discountPct: 10), 322.2);
+    });
+
+    test('cancelling marks the last charge as already paid', () {
+      final st = newStore();
+      final c = st.addCustomer('בדיקה', '0521111111');
+      final res = st.openSubscription(
+          customer: c,
+          plan: st.plan('p7')!,
+          start: StartOption.today,
+          discountPct: 0,
+          waiveRegistration: false,
+          lines: [PaymentLine(method: PayMethod.card, amount: 358)],
+          recurring: RecurringMethod.savedCard,
+          newCardLast4: '1111');
+      expect(res.sub.prepaidAmount, 179);
+      final end = st.cancel(res.sub);
+      expect(end, DateTime(2027, 1, 10)); // runs through the month paid in advance
+      final ch = st.charges.where((x) => x.subscriptionId == res.sub.id).toList();
+      expect(ch.length, 1);
+      expect(ch.single.status, ChargeStatus.covered);
+      expect(res.sub.prepaidAmount, 0);
+      expect(st.toCollect.any((x) => x.subscriptionId == res.sub.id), isFalse);
+    });
+  });
+
+  group('links', () {
+    test('stages move forward and fill the timeline', () {
+      final l = SignupLink(id: 'l', sentTo: 'x', createdAt: fixedNow);
+      l.advance(LinkStage.signed, fixedNow);
+      expect(l.stage, LinkStage.signed);
+      expect(l.timeline.length, 4);
+      l.advance(LinkStage.opened, fixedNow);
+      expect(l.stage, LinkStage.signed);
+      l.advance(LinkStage.failed, fixedNow);
+      expect(l.stage, LinkStage.failed);
+      l.advance(LinkStage.paid, fixedNow);
+      expect(l.status, LinkStatus.paid);
+    });
+  });
+
+  group('reports', () {
+    test('every report builds for every period', () {
+      final st = newStore();
+      for (final r in allReports) {
+        for (final p in Period.values) {
+          final d = r.build(st, p);
+          expect(d.kpis.isNotEmpty, isTrue);
+          expect(d.toCsv(r.title).isNotEmpty, isTrue);
+        }
+        expect(r.headline!(st).isNotEmpty, isTrue);
+      }
+    });
+
+    test('manual monthly report: who still owes cash this month', () {
+      final st = newStore();
+      final d = manualMonthlyReport(st, Period.month);
+      final open = d.sections.first.rows.map((r) => r.title).toList();
+      expect(open.contains('אלון ברק'), isTrue);
+    });
+
+    test('debts report totals overdue charges', () {
+      final st = newStore();
+      final d = debtsReport(st, Period.month);
+      expect(d.kpis.first.value, money(st.charges.where((c) => c.isOpen() && c.daysOverdue(st.today) > 0).fold(0.0, (a, c) => a + c.amount)));
     });
   });
 }

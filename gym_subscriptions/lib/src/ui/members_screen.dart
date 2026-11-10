@@ -6,16 +6,19 @@ import 'checkout/checkout_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-enum _Filter { all, active, pending, frozen, failed, ending }
+enum _Filter { all, active, pending, debt, failed, frozen, ending, cancelling, ended }
 
 extension on _Filter {
   String get label => switch (this) {
         _Filter.all => 'הכל',
         _Filter.active => 'פעילים',
-        _Filter.pending => 'ממתינים',
-        _Filter.frozen => 'מוקפאים',
+        _Filter.pending => 'ממתינים לתשלום',
+        _Filter.debt => 'חוב פתוח',
         _Filter.failed => 'חיוב נכשל',
+        _Filter.frozen => 'מוקפאים',
         _Filter.ending => 'מסתיימים',
+        _Filter.cancelling => 'בביטול',
+        _Filter.ended => 'הסתיימו / בוטלו',
       };
 }
 
@@ -33,20 +36,24 @@ class _MembersScreenState extends State<MembersScreen> {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final ending = store.expiringSoon.map((s) => s.id).toSet();
-    final subs = store.subscriptions.where((s) {
+    bool match(Subscription s, _Filter f) => switch (f) {
+          _Filter.all => true,
+          _Filter.active => s.status == SubStatus.active,
+          _Filter.pending => s.status == SubStatus.pendingPayment,
+          _Filter.debt => store.hasOverdue(s.id),
+          _Filter.failed => s.status == SubStatus.paymentFailed,
+          _Filter.frozen => s.status == SubStatus.frozen,
+          _Filter.ending => ending.contains(s.id),
+          _Filter.cancelling => s.cancelEffective != null && s.cancelEffective!.isAfter(store.today),
+          _Filter.ended => s.status == SubStatus.cancelled || s.status == SubStatus.expired,
+        };
+    bool search(Subscription s) {
+      if (q.isEmpty) return true;
       final c = store.customer(s.customerId)!;
-      if (q.isNotEmpty && !c.name.contains(q) && !c.phone.replaceAll('-', '').contains(q.replaceAll('-', ''))) {
-        return false;
-      }
-      return switch (filter) {
-        _Filter.all => true,
-        _Filter.active => s.status == SubStatus.active,
-        _Filter.pending => s.status == SubStatus.pendingPayment,
-        _Filter.frozen => s.status == SubStatus.frozen,
-        _Filter.failed => s.status == SubStatus.paymentFailed,
-        _Filter.ending => ending.contains(s.id),
-      };
-    }).toList()
+      return c.name.contains(q) || c.phone.replaceAll('-', '').contains(q.replaceAll('-', ''));
+    }
+
+    final subs = store.subscriptions.where((s) => search(s) && match(s, filter)).toList()
       ..sort((a, b) => store.customer(a.customerId)!.name.compareTo(store.customer(b.customerId)!.name));
 
     return Scaffold(
@@ -70,7 +77,8 @@ class _MembersScreenState extends State<MembersScreen> {
           child: Row(children: [
             for (final f in _Filter.values) ...[
               ChoiceChip(
-                label: Text(f.label),
+                key: Key('memberFilter-${f.name}'),
+                label: Text('${f.label} ${store.subscriptions.where((s) => search(s) && match(s, f)).length}'),
                 selected: filter == f,
                 labelStyle: TextStyle(color: filter == f ? Colors.white : Aura.ink),
                 onSelected: (_) => setState(() => filter = f),
@@ -128,7 +136,7 @@ class _MemberRow extends StatelessWidget {
             ]),
           ]),
         ),
-        const Icon(Icons.chevron_left, color: Aura.muted),
+        const ForwardChevron(),
       ]),
     );
   }

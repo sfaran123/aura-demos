@@ -5,6 +5,7 @@ import '../domain/checkout.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
 import 'checkout/card_sheet.dart';
+import 'links_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -82,6 +83,7 @@ class _SignupLinkSheetState extends State<_SignupLinkSheet> {
                 final l = store.sendSignupLink(to.text);
                 Navigator.pop(context);
                 showDone(context, 'הלינק נשלח ל${l.sentTo}');
+                showLinkLive(context, l);
               },
               icon: const Icon(Icons.send, size: 18),
               label: const Text('שליחה'),
@@ -134,6 +136,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
     super.initState();
     final store = StoreScope.read(context);
     final l = widget.link;
+    WidgetsBinding.instance.addPostFrameCallback((_) => store.linkStage(l, LinkStage.opened));
     if (l.planId != null) {
       plan = store.plan(l.planId!);
       step = 2;
@@ -246,7 +249,13 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
         steps: 3,
         bottom: FilledButton(
           key: const Key('linkToPay'),
-          onPressed: ok ? () => setState(() => step = 2) : null,
+          onPressed: ok
+              ? () {
+                  store.linkStage(widget.link, LinkStage.details);
+                  store.linkStage(widget.link, LinkStage.signed);
+                  setState(() => step = 2);
+                }
+              : null,
           child: const Text('המשך לתשלום'),
         ),
         children: [
@@ -354,7 +363,7 @@ class _CustomerLinkFlowState extends State<CustomerLinkFlow> {
             const Icon(Icons.lock_outline),
             const SizedBox(width: 10),
             Expanded(child: Text(card == null ? 'הזנת כרטיס אשראי' : 'כרטיס •••• $card', key: const Key('linkCard'))),
-            const Icon(Icons.chevron_left),
+            const ForwardChevron(),
           ]),
         ),
         if (maxI > 1)

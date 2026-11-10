@@ -48,8 +48,10 @@ double planPriceAfterDiscount(SubscriptionPlan p, int discountPct) => round2(p.p
 
 /// What the customer pays today: the plan price (first month for recurring
 /// plans) after discount, plus the registration fee unless waived.
-double subscriptionDueNow(SubscriptionPlan p, {int discountPct = 0, bool waiveRegistration = false}) =>
-    round2(planPriceAfterDiscount(p, discountPct) + (waiveRegistration ? 0 : p.registrationFee));
+double subscriptionDueNow(SubscriptionPlan p,
+        {int discountPct = 0, bool waiveRegistration = false, bool? prepayLastMonth}) =>
+    round2(planPriceAfterDiscount(p, discountPct) * ((prepayLastMonth ?? (p.isRecurring && p.prepayLastMonth)) ? 2 : 1) +
+        (waiveRegistration ? 0 : p.registrationFee));
 
 double cartTotal(Map<String, int> cart, List<ShopItem> items, double custom) {
   var t = custom;
