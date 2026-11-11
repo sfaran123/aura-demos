@@ -815,7 +815,11 @@ ReportData _serverDebtsReport(GymStore s, ServerDashboard dash) {
           for (final d in open)
             ReportRow(d.customerName.isEmpty ? '—' : d.customerName,
                 subtitle: t('{0} · מועד {1}', [
-                  d.kind == DebtKind.failedCharge ? t('אשראי נכשל') : t('חשבונית {0}', [d.reference ?? '']),
+                  switch (d.kind) {
+                    DebtKind.failedCharge => t('אשראי נכשל'),
+                    DebtKind.unpaidInvoice => t('חשבונית {0}', [d.reference ?? '']),
+                    DebtKind.manualDue => t('גבייה ידנית'),
+                  },
                   d.date == null ? '—' : fmtDate(d.date!),
                 ]),
                 value: money(d.amount),

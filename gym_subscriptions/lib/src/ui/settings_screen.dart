@@ -13,6 +13,7 @@ import 'sales_screen.dart';
 import 'report_picker.dart';
 import '../state/reports.dart' show allReports;
 import 'auth_screens.dart' show AuthScope, SyncScope, authErrorText;
+import 'tap_to_pay_test_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -93,6 +94,24 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: Text(t('הגדרות העסק')), actions: [HelpButton.topic(HelpTopic.settings)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         const _AccountCard(),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Panel(
+            key: const Key('openTapToPay'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TapToPayTestScreen())),
+            child: Row(children: [
+              const Icon(Icons.contactless, color: Aura.gold),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Tap to Pay', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+                  Text(t('בדיקת התשלום בנגיעה בטלפון'), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                ]),
+              ),
+              const ForwardChevron(),
+            ]),
+          ),
+        ),
         Panel(
           key: const Key('settingsGuide'),
           color: Aura.ink,
@@ -264,6 +283,38 @@ class SettingsScreen extends StatelessWidget {
               max: 60, unit: t(' ימים')),
           sw(t('הצהרת בריאות חובה'), s.requireHealthDeclaration, (v) => s.requireHealthDeclaration = v),
           sw(t('תעודת זהות חובה'), s.requireIdNumber, (v) => s.requireIdNumber = v),
+          // Signed in: the sign-up fee is its own line on the sale, as a product.
+          if (SyncScope.maybeOf(context) != null)
+            ListTile(
+              key: const Key('registrationFeeProduct'),
+              title: Text(t('מוצר דמי רישום')),
+              subtitle: Text(
+                  store.items.where((i) => i.id == s.registrationFeeProductId).firstOrNull?.name ??
+                      (s.registrationFeeProductId == null ? t('לא נבחר') : t('המוצר לא נמצא במחירון')),
+                  style: const TextStyle(fontSize: 12.5)),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () async {
+                final picked = await showModalBottomSheet<String>(
+                  context: context,
+                  builder: (ctx) => SafeArea(
+                    child: ListView(shrinkWrap: true, children: [
+                      ListTile(
+                          title: Text(t('המוצר בקבלה של מנוי חדש עם דמי רישום'),
+                              style: const TextStyle(fontWeight: FontWeight.w600))),
+                      ListTile(title: Text(t('ללא')), onTap: () => Navigator.pop(ctx, '')),
+                      for (final i in store.items)
+                        ListTile(
+                          title: Text(i.name),
+                          trailing: Text(money(i.price)),
+                          selected: i.id == s.registrationFeeProductId,
+                          onTap: () => Navigator.pop(ctx, i.id),
+                        ),
+                    ]),
+                  ),
+                );
+                if (picked != null) set(() => s.registrationFeeProductId = picked.isEmpty ? null : picked);
+              },
+            ),
         ]),
         group(t('הרשאות צוות'), '', [
           stepper(t('הנחה מקסימלית בקבלה'), s.staffMaxDiscountPct, (v) => s.staffMaxDiscountPct = v,

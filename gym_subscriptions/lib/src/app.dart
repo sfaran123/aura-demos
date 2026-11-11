@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'domain/l10n.dart';
+import 'integration/tap_to_pay_service.dart';
 import 'state/auth.dart';
 import 'state/gym_store.dart';
 import 'state/server_sync.dart';
@@ -40,7 +41,14 @@ class _AuraGymAppState extends State<AuraGymApp> {
   }
 
   void _onAuth() {
+    // Tap to Pay registers the device with the signed-in user's TPN / merchant code.
+    final session = widget.auth!.session;
+    TapToPayService.instance
+      ..userTpn = session?.tapToPayTpn
+      ..userMerchantCode = session?.tapToPayMerchantCode;
     final stage = widget.auth!.stage;
+    // Another user (or company) may sign in next: its own POS settings are loaded then.
+    if (stage != AuthStage.signedIn) widget.store.posSettings = null;
     if (stage == AuthStage.signedIn && _stage != AuthStage.signedIn) _sync!.pull();
     _stage = stage;
   }

@@ -4,6 +4,7 @@ import 'help.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
+import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkout/checkout_screens.dart' show methodIcon, PaymentDetailsFields;
 import 'theme.dart';
 import 'widgets.dart';
@@ -19,7 +20,8 @@ class CollectScreen extends StatelessWidget {
     final store = StoreScope.of(context);
     final list = store.toCollect;
     final s = store.settings;
-    final overdueSum = store.openDebt;
+    // Signed in: the server's open debt, the same number as the home screen.
+    final overdueSum = store.dashboard?.openDebt ?? store.openDebt;
     return Scaffold(
       appBar: AppBar(title: Text(t('לגבייה')), actions: [HelpButton.topic(HelpTopic.collect)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
@@ -68,6 +70,12 @@ class ChargeCard extends StatelessWidget {
     final plan = store.plan(sub.planId)!;
     final late = c.daysOverdue(store.today);
     final blocked = late > store.settings.graceDays && store.settings.blockEntryWhenOverdue;
+    // Signed in: payment links and reminders are not connected yet, so they are hidden.
+    final signedIn = SyncScope.maybeOf(context) != null;
+    // An unpaid membership invoice from the server: its document number.
+    final invoice = c.id.startsWith('sale-')
+        ? (store.dashboard?.debts.where((d) => d.id == c.id).firstOrNull?.reference ?? c.serverRef)
+        : null;
     final (tone, status) = c.status == ChargeStatus.failed
         ? (PillTone.bad, t('חיוב נכשל · {0} ניסיונות', [c.attempts]))
         : late > 0
@@ -85,7 +93,9 @@ class ChargeCard extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(cust.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text('${plan.name} · ${c.manual ? t('גבייה ידנית') : t('אשראי')} · ${cust.phone}',
+                Text(
+                    '${plan.name} · ${invoice != null ? t('חשבונית {0}', [invoice]) : c.manual ? t('גבייה ידנית') : t('אשראי')}'
+                    ' · ${cust.phone}',
                     style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
               ]),
             ),
@@ -109,28 +119,30 @@ class ChargeCard extends StatelessWidget {
                 label: Text(t('התקבל')),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
-                onPressed: () {
-                  store.sendChargeLink(c);
-                  showDone(context, t('לינק לתשלום {0} נשלח ל{1}', [money(c.amount), cust.name]));
-                },
-                icon: const Icon(Icons.link, size: 18),
-                label: Text(t('לינק')),
+            if (!signedIn) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  onPressed: () {
+                    store.sendChargeLink(c);
+                    showDone(context, t('לינק לתשלום {0} נשלח ל{1}', [money(c.amount), cust.name]));
+                  },
+                  icon: const Icon(Icons.link, size: 18),
+                  label: Text(t('לינק')),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              tooltip: t('תזכורת'),
-              onPressed: () {
-                store.remind(c);
-                showDone(context, t('תזכורת נשלחה ל{0}', [cust.name]));
-              },
-              icon: const Icon(Icons.notifications_none),
-            ),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                tooltip: t('תזכורת'),
+                onPressed: () {
+                  store.remind(c);
+                  showDone(context, t('תזכורת נשלחה ל{0}', [cust.name]));
+                },
+                icon: const Icon(Icons.notifications_none),
+              ),
+            ],
           ]),
         ]),
       ),
@@ -139,6 +151,7 @@ class ChargeCard extends StatelessWidget {
 
   Future<void> _collect(BuildContext context) async {
     final store = StoreScope.read(context);
+    final sync = SyncScope.maybeOf(context);
     final methods = [PayMethod.cash, PayMethod.card, PayMethod.cheque, PayMethod.bank]
         .where((m) => store.settings.enabledMethods.contains(m))
         .toList();
@@ -153,7 +166,10 @@ class ChargeCard extends StatelessWidget {
             ListTile(
               key: Key('collectWith-${x.name}'),
               leading: Icon(methodIcon(x)),
-              title: Text(x == PayMethod.card ? t('אשראי (כרטיס שמור או חדש)') : x.label),
+              // Signed in, a card is recorded as charged on the card terminal.
+              title: Text(x == PayMethod.card
+                  ? (sync != null ? t('אשראי (במסוף האשראי)') : t('אשראי (כרטיס שמור או חדש)'))
+                  : x.label),
               onTap: () => Navigator.pop(ctx, x),
             ),
           const SizedBox(height: 8),
@@ -165,6 +181,15 @@ class ChargeCard extends StatelessWidget {
     if (m == PayMethod.cheque || m == PayMethod.bank) {
       line = await showPaymentDetailsSheet(context, PaymentLine(method: m, amount: charge.amount));
       if (line == null || !context.mounted) return;
+    }
+    if (sync != null) {
+      // Signed in: recorded on the AURA server (document + payment), then everything reloads.
+      var reference = '';
+      final amount = charge.amount;
+      final ok = await runOnServer(context, () async => reference = await sync.collectCharge(charge, m, line: line));
+      if (!ok || !context.mounted) return;
+      showDone(context, t('התקבל · {0} · {1} ב{2}', [reference, money(amount), m.label]));
+      return;
     }
     final r = store.collect(charge, m, line: line);
     showDone(context, t('קבלה {0} הופקה · {1} ב{2}', [r.number, money(r.total), m.label]));

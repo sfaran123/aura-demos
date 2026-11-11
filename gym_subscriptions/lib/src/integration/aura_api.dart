@@ -72,6 +72,8 @@ class AuraSession {
     this.companyName = '',
     this.roleId = '',
     this.warehouseId,
+    this.tapToPayTpn = '',
+    this.tapToPayMerchantCode = '',
   });
 
   final String token;
@@ -82,6 +84,11 @@ class AuraSession {
   final String companyName;
   final String roleId;
   final int? warehouseId;
+
+  /// Dejavoo Tap to Pay TPN and merchant code of this user (web: Users > Setting Info);
+  /// empty when not set (a sandbox build then uses Dejavoo's sandbox pair).
+  final String tapToPayTpn;
+  final String tapToPayMerchantCode;
 
   /// Headers for authenticated API calls.
   Map<String, String> get headers => {'Content-Type': 'application/json', 'Accept': 'application/json', 'token': token};
@@ -102,6 +109,8 @@ class AuraSession {
       companyName: s('company_name'),
       roleId: s('role_id'),
       warehouseId: wh is int ? wh : int.tryParse('${wh ?? ''}'),
+      tapToPayTpn: s('tap_to_pay_tpn'),
+      tapToPayMerchantCode: s('tap_to_pay_merchant_code'),
     );
   }
 
@@ -114,6 +123,8 @@ class AuraSession {
         'companyName': companyName,
         'roleId': roleId,
         'warehouseId': warehouseId,
+        'tapToPayTpn': tapToPayTpn,
+        'tapToPayMerchantCode': tapToPayMerchantCode,
       };
 
   static AuraSession? fromJson(Object? j) {
@@ -129,6 +140,8 @@ class AuraSession {
       companyName: s('companyName'),
       roleId: s('roleId'),
       warehouseId: wh is int ? wh : null,
+      tapToPayTpn: s('tapToPayTpn'),
+      tapToPayMerchantCode: s('tapToPayMerchantCode'),
     );
   }
 }

@@ -50,7 +50,7 @@ void main() {
     final rows = d.sections.single.rows;
     expect(rows.map((r) => r.subtitle), ['Card failed · due 01/11/2026', 'Invoice TIR-1001 · due 05/11/2026']);
     expect(rows.first.chargeId, 'failed-3', reason: 'a failed charge can be collected from the report');
-    expect(rows.last.chargeId, isNull);
+    expect(rows.last.chargeId, 'sale-500', reason: 'an unpaid membership invoice can be collected too');
     // The hub card shows the same number.
     expect(allReports.firstWhere((r) => r.id == 'debts').headline!(s), money(299.1));
   });

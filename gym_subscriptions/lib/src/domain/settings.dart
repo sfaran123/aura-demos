@@ -148,6 +148,10 @@ class BusinessSettings {
   /// Staff may issue credit notes (refunds). Off = owner only, in the real app.
   bool staffCanRefund = true;
 
+  /// Sign-up fee: this product (from the AURA price list) is added to a new membership's sale.
+  /// Null = no sign-up fee line.
+  String? registrationFeeProductId;
+
   /// Discount steps the counter may offer.
   List<int> discountSteps() => [0, 5, 10, 15, 20, 25, 30, 40, 50].where((d) => d <= staffMaxDiscountPct).toList();
 
@@ -183,6 +187,7 @@ class BusinessSettings {
         'reminderChannels': [for (final c in reminderChannels) c.name],
         'accountantEmail': accountantEmail,
         'staffCanRefund': staffCanRefund,
+        if (registrationFeeProductId != null) 'registrationFeeProductId': registrationFeeProductId,
       };
 
   /// Reads settings saved by [toJson]; missing keys keep their defaults.
@@ -226,6 +231,7 @@ class BusinessSettings {
     }
     s.accountantEmail = g<String>('accountantEmail') ?? s.accountantEmail;
     s.staffCanRefund = g<bool>('staffCanRefund') ?? s.staffCanRefund;
+    s.registrationFeeProductId = g<String>('registrationFeeProductId');
     return s;
   }
 }

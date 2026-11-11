@@ -1,0 +1,20 @@
+gradle-wrapper.jar
+/.gradle
+/captures/
+/gradlew
+/gradlew.bat
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+/.kotlin/
+# Dejavoo SoftPos AARs (licensed SDK, 30 MB+): copied in by hand, never committed.
+/app/libs/*.aar
+# The prod finalizer file stays outside the repository.
+*.fin
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+key.properties
+**/*.keystore
+**/*.jks

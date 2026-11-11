@@ -246,6 +246,10 @@ List<Widget> _serverAlerts(BuildContext context, ServerDashboard dash) {
           DebtKind.failedCharge =>
             t('חיוב נכשל · {0} · {1}', [money(d.amount), d.date == null ? (d.description ?? '') : fmtDate(d.date!)]),
           DebtKind.unpaidInvoice => t('חשבונית {0} לא שולמה · נותרו {1}', [d.reference ?? '', money(d.amount)]),
+          DebtKind.manualDue => t('גבייה ידנית · {0} · באיחור של {1} ימים', [
+              money(d.amount),
+              d.date == null ? 0 : store.today.difference(DateTime(d.date!.year, d.date!.month, d.date!.day)).inDays,
+            ]),
         },
         onTap: () {
           final r = _receiptForSale(context, d.saleId);
@@ -291,7 +295,9 @@ class _ServerPaymentTile extends StatelessWidget {
     'check',
     'bank transfer',
     'bank_transfer',
-    'transfer'
+    'transfer',
+    // The web's bank transfer.
+    'deposit',
   };
 
   @override

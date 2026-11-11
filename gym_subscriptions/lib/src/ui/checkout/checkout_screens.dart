@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../domain/checkout.dart';
 import '../../domain/models.dart';
+import '../../domain/sale_builder.dart';
 import '../../domain/settings.dart';
 import '../../state/gym_store.dart';
 import '../auth_screens.dart' show SyncScope, authErrorText;
@@ -18,7 +19,7 @@ import '../../domain/l10n.dart';
 
 void startCheckout(BuildContext context, CheckoutFlow flow, {Customer? customer}) {
   final store = StoreScope.read(context);
-  final draft = CheckoutDraft(store, flow);
+  final draft = CheckoutDraft(store, flow, onServer: SyncScope.maybeOf(context) != null);
   if (customer != null) {
     draft.setCustomer(customer);
     Navigator.push(context, MaterialPageRoute(builder: (_) => _nextAfterCustomer(draft)));
@@ -449,29 +450,32 @@ class _ItemsStepState extends State<ItemsStep> {
           ),
           if (d.cart.isNotEmpty)
             Text(t('לחיצה על המספר מורידה פריט אחד.'), style: TextStyle(fontSize: 12, color: Aura.muted)),
-          SectionLabel(t('סכום חופשי')),
-          Row(children: [
-            Expanded(
-              flex: 2,
-              child: TextField(
-                key: const Key('customAmount'),
-                controller: amount,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: InputDecoration(labelText: t('סכום'), suffixText: '₪'),
-                onChanged: (_) => _custom(),
+          // Signed in, every sale line is an AURA product (as in the POS), so no free amount.
+          if (!d.onServer) ...[
+            SectionLabel(t('סכום חופשי')),
+            Row(children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  key: const Key('customAmount'),
+                  controller: amount,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                  decoration: InputDecoration(labelText: t('סכום'), suffixText: '₪'),
+                  onChanged: (_) => _custom(),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 3,
-              child: TextField(
-                controller: note,
-                decoration: InputDecoration(labelText: t('עבור (למשל: חוב אוקטובר)')),
-                onChanged: (_) => _custom(),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: note,
+                  decoration: InputDecoration(labelText: t('עבור (למשל: חוב אוקטובר)')),
+                  onChanged: (_) => _custom(),
+                ),
               ),
-            ),
-          ]),
+            ]),
+          ],
         ],
       ),
     );
@@ -580,7 +584,9 @@ class PaymentStep extends StatelessWidget {
                     enabled: d.allowed(m) && d.remaining > 0,
                     onTap: () async {
                       final l = d.addLine(m);
-                      if (m == PayMethod.card && l.cardSource == CardSource.newCard) await _needCard(context);
+                      if (!d.onServer && m == PayMethod.card && l.cardSource == CardSource.newCard) {
+                        await _needCard(context);
+                      }
                     },
                   ),
                 ),
@@ -710,7 +716,14 @@ class _LineEditorState extends State<_LineEditor> {
             icon: const Icon(Icons.close, color: Aura.muted),
           ),
         ]),
-        if (l.method == PayMethod.card) ...[
+        // Signed in: the card is charged on the payment terminal, as the POS's
+        // "other device" card; the sale records it as a card payment.
+        if (l.method == PayMethod.card && d.onServer)
+          Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(t('חייבו את הכרטיס במסוף הסליקה, ואשרו כאן רק אחרי שהעסקה אושרה.'),
+                  style: const TextStyle(fontSize: 12.5, color: Aura.muted))),
+        if (l.method == PayMethod.card && !d.onServer) ...[
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (card != null)
@@ -800,14 +813,24 @@ class SummaryStep extends StatefulWidget {
 class _SummaryStepState extends State<SummaryStep> {
   CheckoutDraft get draft => widget.draft;
 
-  /// Signed in: the membership is being created on the server.
+  /// Signed in: the membership and the sale are being saved on the server.
   bool busy = false;
   String? error;
 
-  /// Signed in: opens the membership on the AURA server first; the payment is
-  /// then recorded in the app exactly as before. Returns null when it failed
-  /// (the error is shown on this screen, nothing was created).
-  Future<({Subscription sub, Receipt receipt})?> _openOnServer(SubscriptionPlan p) async {
+  // Signed in: what a failed try already saved, kept so that "try again" goes on
+  // from there and nothing is saved twice. The sale's app_uuid stays the same.
+  ({Subscription sub, List<Charge> charges})? _created;
+  final String _appUuid = newAppUuid();
+  bool _saleSaved = false;
+  int? _saleId;
+  String _reference = '';
+
+  /// Signed in: saves everything on the AURA server, as the POS app and the
+  /// web do: the membership (POST gym/memberships), the paid sale with its
+  /// payments (POST sales/store-v2, the POS app's body), then the link between
+  /// them (POST gym/memberships/{id}/link-sale). A quick payment is the sale
+  /// only. Returns null when it failed (the error is shown on this screen).
+  Future<({Subscription? sub, Receipt receipt})?> _payOnServer(SubscriptionPlan? p) async {
     final d = draft;
     final sync = SyncScope.maybeOf(context)!;
     setState(() {
@@ -815,28 +838,91 @@ class _SummaryStepState extends State<SummaryStep> {
       error = null;
     });
     try {
-      final res = await sync.createMembership(
-        customer: d.customer!,
-        plan: p,
-        start: startDate(d.start, d.store.now),
-        discountPct: d.discountPct,
-        waiveRegistration: d.waiveRegistration,
-        recurring: d.recurring,
-      );
-      return d.store.openServerSubscription(
-        customer: d.customer!,
-        plan: p,
-        sub: res.sub,
-        charges: res.charges,
-        lines: d.lines,
-        recurring: d.recurring,
-        newCardLast4: d.newCardLast4,
-      );
+      // Everything is checked before anything is saved.
+      final pos = await sync.posSettings();
+      final List<SaleLine> lines;
+      try {
+        lines = d.saleLines();
+      } on StateError {
+        throw _CheckoutProblem(t('למסלול יש דמי רישום: בחרו בהגדרות את המוצר של דמי הרישום.'));
+      } on ArgumentError {
+        throw _CheckoutProblem(t('יש פריט שאינו מוצר במערכת AURA. סנכרנו ונסו שוב.'));
+      }
+      final total = saleTotals(lines, pos).grandTotal;
+      if ((total - d.assigned).abs() > 0.001 || (total - d.due).abs() > 0.001) {
+        throw _CheckoutProblem(t('הסכום לתשלום השתנה ל-{0}. חזרו לשלב התשלום.', [money(total.toDouble())]));
+      }
+      if (d.lines.any((l) => l.method == PayMethod.link)) {
+        throw _CheckoutProblem(t('תשלום בלינק עדיין לא זמין כאן.'));
+      }
+
+      Subscription? sub;
+      if (p != null) {
+        if (_created == null) {
+          final res = await sync.createMembership(
+            customer: d.customer!,
+            plan: p,
+            start: startDate(d.start, d.store.now),
+            discountPct: d.discountPct,
+            waiveRegistration: d.waiveRegistration,
+            recurring: d.recurring,
+          );
+          _created = (sub: res.sub, charges: res.charges);
+        }
+        sub = _created!.sub;
+      }
+      if (!_saleSaved) {
+        final sale = await sync.saveSale(
+          lines: lines,
+          payments: d.lines,
+          appUuid: _appUuid,
+          customer: d.walkIn ? null : d.customer,
+        );
+        _saleSaved = true;
+        _saleId = sale.saleId;
+        _reference = sale.reference;
+      }
+      if (sub != null) {
+        final ref = await sync.linkSale(sub.id, saleId: _saleId, appUuid: _appUuid);
+        if (ref.isNotEmpty) _reference = ref;
+      }
+
+      final ({Subscription? sub, Receipt receipt}) done;
+      if (p != null) {
+        final res = d.store.openServerSubscription(
+          customer: d.customer!,
+          plan: p,
+          sub: sub!,
+          charges: _created!.charges,
+          lines: d.lines,
+          recurring: d.recurring,
+          reference: _reference.isEmpty ? null : _reference,
+        );
+        done = (sub: res.sub, receipt: res.receipt);
+      } else {
+        done = (
+          sub: null,
+          receipt: d.store.quickPay(
+              customer: d.walkIn ? null : d.customer,
+              description: d.itemsDescription,
+              lines: d.lines,
+              reference: _reference.isEmpty ? null : _reference),
+        );
+      }
+      // The server's documents, the membership and the reports.
+      sync.pull();
+      return done;
     } catch (e) {
       if (mounted) {
         setState(() {
           busy = false;
-          error = authErrorText(e);
+          error = e is _CheckoutProblem
+              ? e.message
+              : [
+                  authErrorText(e),
+                  if (_created != null && !_saleSaved) t('המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.'),
+                  if (_saleSaved) t('התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.'),
+                ].join(' ');
         });
       }
       return null;
@@ -845,7 +931,9 @@ class _SummaryStepState extends State<SummaryStep> {
 
   String _lineText(PaymentLine l) {
     final b = StringBuffer(money(l.amount));
-    if (l.method == PayMethod.card) {
+    if (l.method == PayMethod.card && draft.onServer) {
+      b.write(t(' · במסוף הסליקה'));
+    } else if (l.method == PayMethod.card) {
       b.write(
           t(' · כרטיס {0}', [l.cardSource == CardSource.saved ? draft.customer!.savedCardLast4 : draft.newCardLast4]));
       if (l.installments > 1) b.write(t(' · {0} תשלומים', [l.installments]));
@@ -895,8 +983,8 @@ class _SummaryStepState extends State<SummaryStep> {
             : () async {
                 Receipt r;
                 Subscription? sub;
-                if (p != null && SyncScope.maybeOf(context) != null) {
-                  final res = await _openOnServer(p);
+                if (d.onServer) {
+                  final res = await _payOnServer(p);
                   if (res == null || !context.mounted) return;
                   r = res.receipt;
                   sub = res.sub;
@@ -982,7 +1070,7 @@ class DoneScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
-          Text('${draft.store.settings.docType.label} ${receipt.number} · ${money(receipt.total)}',
+          Text('${draft.store.settings.docType.label} ${receipt.docNo} · ${money(receipt.total)}',
               textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
           Center(
             child: TextButton.icon(
@@ -1137,4 +1225,10 @@ class PaymentDetailsFields extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// A reason the checkout cannot be saved, shown as it is.
+class _CheckoutProblem implements Exception {
+  _CheckoutProblem(this.message);
+  final String message;
 }

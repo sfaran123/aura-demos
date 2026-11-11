@@ -2,7 +2,9 @@
 
 import 'models.dart';
 
-enum DebtKind { failedCharge, unpaidInvoice }
+/// failedCharge: a card charge that failed (one per month); unpaidInvoice: a membership
+/// invoice not fully paid; manualDue: a monthly payment at the desk whose date has passed.
+enum DebtKind { failedCharge, unpaidInvoice, manualDue }
 
 class DebtItem {
   DebtItem({

@@ -2,15 +2,20 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/checkout.dart';
 import '../../domain/models.dart';
+import '../../domain/sale_builder.dart';
 import '../../state/gym_store.dart';
 import '../../domain/l10n.dart';
 
 /// Everything chosen during one checkout (new subscription or quick payment).
 class CheckoutDraft extends ChangeNotifier {
-  CheckoutDraft(this.store, this.flow);
+  CheckoutDraft(this.store, this.flow, {this.onServer = false});
 
   final GymStore store;
   final CheckoutFlow flow;
+
+  /// Signed in to AURA: the sale is saved on the server as the POS app saves one
+  /// (sales/store-v2), with the amounts worked out the same way.
+  final bool onServer;
 
   Customer? customer;
   bool walkIn = false;
@@ -28,9 +33,33 @@ class CheckoutDraft extends ChangeNotifier {
   bool get isSubscription => flow == CheckoutFlow.subscription;
   bool get hasSavedCard => customer?.hasSavedCard ?? false;
 
-  double get due => isSubscription
-      ? (plan == null ? 0 : subscriptionDueNow(plan!, discountPct: discountPct, waiveRegistration: waiveRegistration))
-      : cartTotal(cart, store.items, customAmount);
+  double get due {
+    final pos = store.posSettings;
+    if (onServer && pos != null) {
+      try {
+        return saleTotals(saleLines(), pos).grandTotal.toDouble();
+      } on Error {
+        // No sign-up fee product yet: the checkout stops on it at the end.
+      }
+    }
+    return isSubscription
+        ? (plan == null ? 0 : subscriptionDueNow(plan!, discountPct: discountPct, waiveRegistration: waiveRegistration))
+        : cartTotal(cart, store.items, customAmount);
+  }
+
+  /// The sale's product lines, as saved on the server. Throws [StateError] when the
+  /// plan has a sign-up fee and no fee product is chosen in Settings.
+  List<SaleLine> saleLines() {
+    if (!isSubscription) return cartSaleLines(cart, store.items);
+    if (plan == null) return const [];
+    final feeId = store.settings.registrationFeeProductId;
+    return membershipSaleLines(
+      plan: plan!,
+      discountPct: discountPct,
+      waiveRegistration: waiveRegistration,
+      feeProduct: feeId == null ? null : store.items.where((i) => i.id == feeId).firstOrNull,
+    );
+  }
 
   double get assigned => linesTotal(lines);
   double get remaining => round2(due - assigned);
@@ -39,17 +68,25 @@ class CheckoutDraft extends ChangeNotifier {
   String? get problem => paymentProblem(
         due: due,
         lines: lines,
-        newCardReady: newCardLast4 != null,
+        // Signed in, a card is charged on the payment terminal: nothing to type here.
+        newCardReady: onServer || newCardLast4 != null,
         plan: isSubscription ? plan : null,
         recurring: recurring,
       );
 
-  bool allowed(PayMethod m) => methodAllowed(m, store.settings, plan: isSubscription ? plan : null, walkIn: walkIn);
+  /// Signed in, a payment link is not offered yet (the sale is saved paid at the desk).
+  bool allowed(PayMethod m) =>
+      !(onServer && m == PayMethod.link) &&
+      methodAllowed(m, store.settings, plan: isSubscription ? plan : null, walkIn: walkIn);
 
   int get maxInstallments => maxInstallmentsFor(isSubscription ? plan : null, store.settings);
   int get maxCheques => maxChequesFor(isSubscription ? plan : null, store.settings);
 
-  List<RecurringMethod> get recurringChoices => recurringOptions(hasSavedCard: hasSavedCard, s: store.settings);
+  /// Signed in, the monthly card charge (a card kept on the server) is not offered yet.
+  List<RecurringMethod> get recurringChoices => [
+        for (final m in recurringOptions(hasSavedCard: hasSavedCard, s: store.settings))
+          if (!onServer || m == RecurringMethod.standingOrder || m == RecurringMethod.manual) m
+      ];
 
   void _resetPayment() {
     lines.clear();
@@ -116,6 +153,7 @@ class CheckoutDraft extends ChangeNotifier {
   /// Called when the payment step opens: a customer with a saved card gets a
   /// ready card line for the full amount, so most sales are one tap.
   void prefillPayment() {
+    if (onServer) return;
     if (lines.isEmpty && hasSavedCard && allowed(PayMethod.card)) {
       lines.add(newLine(PayMethod.card, due, hasSavedCard: true));
     }

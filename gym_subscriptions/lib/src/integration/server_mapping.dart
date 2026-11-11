@@ -102,6 +102,8 @@ List<SubscriptionPlan> mapPlans(Object? body) {
           active: true,
           badge: _s(s['badge']).isEmpty ? null : _s(s['badge']),
           prepayLastMonth: _b(s['prepay_last_month']),
+          taxRate: _d(p['tax_rate']),
+          taxMethod: p['tax_method'] == null ? null : _i(p['tax_method']),
         );
       }(),
   ];
@@ -212,7 +214,8 @@ RecurringMethod _recurring(Object? type) => switch (_s(type)) {
         amount: _d(f['amount']),
         manual: method == RecurringMethod.manual,
         status: ChargeStatus.failed,
-        attempts: 1,
+        attempts: f['attempts'] == null ? 1 : _i(f['attempts'], 1),
+        serverRef: _s(f['month_key']).isEmpty ? null : _s(f['month_key']),
       ));
     }
     // The next monthly charge of a running membership.
@@ -237,14 +240,16 @@ List<ShopItem> mapProducts(Object? body, {required Set<String> planIds}) {
   final seen = <String>{};
   return [
     for (final p in _list(body))
-      if (!planIds.contains(_s(p['id'])) && seen.add(_s(p['id']))) ShopItem(_s(p['id']), _s(p['name']), _d(p['price'])),
+      if (!planIds.contains(_s(p['id'])) && seen.add(_s(p['id']))) ShopItem(_s(p['id']), _s(p['name']), _d(p['price']),
+            taxRate: _d(p['tax_rate']), taxMethod: p['tax_method'] == null ? null : _i(p['tax_method'])),
   ];
 }
 
 PayMethod _payMethod(Object? m) => switch (_s(m).toLowerCase()) {
       'credit card' || 'card' => PayMethod.card,
       'cheque' || 'check' => PayMethod.cheque,
-      'bank transfer' || 'bank_transfer' || 'transfer' => PayMethod.bank,
+      // "Deposit" is the web's bank transfer (shown as "Bank Transfer" on its documents).
+      'bank transfer' || 'bank_transfer' || 'transfer' || 'deposit' => PayMethod.bank,
       _ => PayMethod.cash,
     };
 
@@ -301,7 +306,11 @@ ServerDashboard? mapDashboard(Object? body) {
     debts: [
       for (final x in _list(d['debts']))
         DebtItem(
-          kind: _s(x['kind']) == 'unpaid_invoice' ? DebtKind.unpaidInvoice : DebtKind.failedCharge,
+          kind: switch (_s(x['kind'])) {
+            'unpaid_invoice' => DebtKind.unpaidInvoice,
+            'manual_due' => DebtKind.manualDue,
+            _ => DebtKind.failedCharge,
+          },
           id: _s(x['id']),
           amount: _d(x['amount']),
           customerName: _s(x['customer_name']),
@@ -392,5 +401,27 @@ List<Receipt> mapGymSales(Object? body, {Map<String, String> names = const {}}) 
           allocationNumber: _s(d['allocation_number']).isEmpty ? null : _s(d['allocation_number']),
         );
       }(),
+  ];
+}
+
+/// Unpaid membership invoices of the home screen's debts, as charges for the
+/// "to collect" list (paid with the web's "Add Payment"). Only those whose
+/// membership is in [subscriptions], so every screen can show it.
+List<Charge> invoiceCharges(ServerDashboard? dash, List<Subscription> subscriptions) {
+  if (dash == null) return const [];
+  final subs = {for (final s in subscriptions) s.id: s};
+  return [
+    for (final d in dash.debts)
+      if (d.kind == DebtKind.unpaidInvoice && d.saleId != null && subs.containsKey(d.subscriptionId))
+        Charge(
+          id: d.id,
+          subscriptionId: d.subscriptionId!,
+          customerId: d.customerId ?? subs[d.subscriptionId]!.customerId,
+          dueDate: DateTime(
+              (d.date ?? DateTime.now()).year, (d.date ?? DateTime.now()).month, (d.date ?? DateTime.now()).day),
+          amount: d.amount,
+          manual: true,
+          serverRef: d.saleId,
+        ),
   ];
 }

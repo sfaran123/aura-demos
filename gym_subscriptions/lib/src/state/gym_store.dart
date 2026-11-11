@@ -7,6 +7,7 @@ import '../domain/checkout.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/notifier.dart';
+import '../domain/sale_builder.dart' show PosSettings;
 import '../domain/settings.dart';
 import '../domain/dashboard.dart';
 import '../integration/repository.dart';
@@ -160,6 +161,10 @@ class GymStore extends SimpleNotifier {
   ServerDashboard? dashboard;
   Map<String, dynamic>? _dashboardJson;
 
+  /// Signed in: how the AURA server saves a sale (GET gym/pos-settings), loaded by the sync.
+  /// Null in the demo: payments are then recorded in the app only.
+  PosSettings? posSettings;
+
   final DateTime Function() _clock;
   DateTime get now => _clock();
   DateTime get today => dateOnly(now);
@@ -194,7 +199,8 @@ class GymStore extends SimpleNotifier {
     if (i >= 0) {
       items[i] = item;
     } else {
-      items.add(ShopItem(item.id.isEmpty ? _next('item') : item.id, item.name, item.price));
+      items.add(ShopItem(item.id.isEmpty ? _next('item') : item.id, item.name, item.price,
+          taxRate: item.taxRate, taxMethod: item.taxMethod));
     }
     notifyListeners();
   }
@@ -221,7 +227,9 @@ class GymStore extends SimpleNotifier {
     for (final r in receipts) {
       r.customerName = retranslate(r.customerName);
     }
-    items = [for (final i in items) ShopItem(i.id, retranslate(i.name), i.price)];
+    items = [
+      for (final i in items) ShopItem(i.id, retranslate(i.name), i.price, taxRate: i.taxRate, taxMethod: i.taxMethod)
+    ];
     notifyListeners();
   }
 
@@ -320,10 +328,11 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind,
-      {DateTime? at, String? customerId, String? subscriptionId, String? chargeId}) {
+      {DateTime? at, String? customerId, String? subscriptionId, String? chargeId, String? reference}) {
     final no = ++_receiptNo;
     final r = Receipt(
         number: no,
+        reference: reference,
         customerId: customerId,
         subscriptionId: subscriptionId,
         chargeId: chargeId,
@@ -426,6 +435,7 @@ class GymStore extends SimpleNotifier {
     required List<PaymentLine> lines,
     RecurringMethod? recurring,
     String? newCardLast4,
+    String? reference,
   }) {
     if (newCardLast4 != null &&
         (lines.any((l) => l.method == PayMethod.card && l.cardSource == CardSource.newCard) ||
@@ -440,7 +450,7 @@ class GymStore extends SimpleNotifier {
       ..removeWhere((c) => c.subscriptionId == sub.id)
       ..addAll(charges);
     final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription,
-        customerId: customer.id, subscriptionId: sub.id);
+        customerId: customer.id, subscriptionId: sub.id, reference: reference);
     if (lines.any((l) => l.method == PayMethod.link)) {
       final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
       links.insert(
@@ -474,9 +484,10 @@ class GymStore extends SimpleNotifier {
     return sub;
   }
 
-  Receipt quickPay({Customer? customer, required String description, required List<PaymentLine> lines}) {
-    final r =
-        _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay, customerId: customer?.id);
+  Receipt quickPay(
+      {Customer? customer, required String description, required List<PaymentLine> lines, String? reference}) {
+    final r = _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay,
+        customerId: customer?.id, reference: reference);
     notifyListeners();
     return r;
   }

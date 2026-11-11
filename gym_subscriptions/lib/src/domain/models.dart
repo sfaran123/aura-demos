@@ -42,6 +42,8 @@ class SubscriptionPlan {
     this.active = true,
     this.badge,
     this.prepayLastMonth = false,
+    this.taxRate = 0,
+    this.taxMethod,
   });
 
   final String id;
@@ -84,6 +86,11 @@ class SubscriptionPlan {
   /// Cancelling needs a month's notice, and the last month is not charged.
   bool prepayLastMonth;
 
+  /// From the AURA server (the plan product's VAT): rate in %, and 1 when [price]
+  /// is before VAT (else it includes VAT). Used to save the sale as the POS does.
+  double taxRate;
+  int? taxMethod;
+
   bool get isRecurring => kind == PlanKind.recurring;
 
   SubscriptionPlan copy({String? id}) => SubscriptionPlan(
@@ -108,6 +115,8 @@ class SubscriptionPlan {
         active: active,
         badge: badge,
         prepayLastMonth: prepayLastMonth,
+        taxRate: taxRate,
+        taxMethod: taxMethod,
       );
 
   Map<String, Object?> toJson() => {
@@ -132,6 +141,8 @@ class SubscriptionPlan {
         'active': active,
         'badge': badge,
         'prepayLastMonth': prepayLastMonth,
+        if (taxRate != 0) 'taxRate': taxRate,
+        if (taxMethod != null) 'taxMethod': taxMethod,
       };
 
   factory SubscriptionPlan.fromJson(Map<String, dynamic> j) => SubscriptionPlan(
@@ -156,6 +167,8 @@ class SubscriptionPlan {
         active: j['active'] ?? true,
         badge: j['badge'],
         prepayLastMonth: j['prepayLastMonth'] ?? false,
+        taxRate: (j['taxRate'] as num? ?? 0).toDouble(),
+        taxMethod: j['taxMethod'],
       );
 
   /// Short feature labels shown on plan cards.
@@ -454,6 +467,7 @@ class Charge {
     this.paidAt,
     this.attempts = 0,
     this.reminders = 0,
+    this.serverRef,
   });
 
   final String id;
@@ -462,6 +476,10 @@ class Charge {
   final DateTime dueDate;
   final double amount;
   final bool manual;
+
+  /// From the AURA server: a failed month's key ("2026-10|12"), or the id of an
+  /// unpaid membership invoice. Null for charges made in the app.
+  final String? serverRef;
   ChargeStatus status;
   PayMethod? paidWith;
   DateTime? paidAt;
@@ -489,6 +507,7 @@ class Charge {
         'paidAt': _d(paidAt),
         'attempts': attempts,
         'reminders': reminders,
+        if (serverRef != null) 'serverRef': serverRef,
       };
 
   factory Charge.fromJson(Map<String, dynamic> j) => Charge(
@@ -503,6 +522,7 @@ class Charge {
         paidAt: _pd(j['paidAt']),
         attempts: j['attempts'] ?? 0,
         reminders: j['reminders'] ?? 0,
+        serverRef: j['serverRef'],
       );
 }
 
@@ -739,13 +759,25 @@ class Receipt {
 }
 
 class ShopItem {
-  const ShopItem(this.id, this.name, this.price);
+  const ShopItem(this.id, this.name, this.price, {this.taxRate = 0, this.taxMethod});
   final String id;
   final String name;
   final double price;
 
-  Map<String, Object?> toJson() => {'id': id, 'name': name, 'price': price};
-  factory ShopItem.fromJson(Map<String, dynamic> j) => ShopItem(j['id'], j['name'], (j['price'] as num).toDouble());
+  /// From the AURA server (products.tax_id / tax_method): VAT rate in %, and 1 when
+  /// [price] is before VAT (else it includes VAT). Used to save the sale as the POS does.
+  final double taxRate;
+  final int? taxMethod;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'name': name,
+        'price': price,
+        if (taxRate != 0) 'taxRate': taxRate,
+        if (taxMethod != null) 'taxMethod': taxMethod,
+      };
+  factory ShopItem.fromJson(Map<String, dynamic> j) => ShopItem(j['id'], j['name'], (j['price'] as num).toDouble(),
+      taxRate: (j['taxRate'] as num? ?? 0).toDouble(), taxMethod: j['taxMethod']);
 }
 
 enum LinkStatus { waiting, paid }

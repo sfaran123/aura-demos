@@ -742,3 +742,27 @@ class _BackdropPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+/// Signed in: runs [action] on the AURA server behind a progress dialog.
+/// Returns false, after showing the error, when it failed.
+Future<bool> runOnServer(BuildContext context, Future<void> Function() action) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
+  );
+  var ok = false;
+  try {
+    await action();
+    ok = true;
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(authErrorText(e))));
+    }
+  } finally {
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  }
+  return ok;
+}

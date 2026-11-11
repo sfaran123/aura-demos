@@ -221,7 +221,7 @@ class PriceListScreen extends StatelessWidget {
     );
     final p = double.tryParse(price.text) ?? 0;
     if (ok == true && name.text.trim().isNotEmpty && p > 0) {
-      store.saveItem(ShopItem(item?.id ?? '', name.text.trim(), p));
+      store.saveItem(ShopItem(item?.id ?? '', name.text.trim(), p, taxRate: item?.taxRate ?? 0, taxMethod: item?.taxMethod));
       if (context.mounted) showDone(context, t('המחירון עודכן'));
     }
   }

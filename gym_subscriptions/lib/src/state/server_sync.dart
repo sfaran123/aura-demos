@@ -5,6 +5,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/models.dart';
+import '../domain/sale_builder.dart';
 import '../integration/aura_api.dart';
 import '../integration/server_mapping.dart';
 import 'auth.dart';
@@ -151,6 +152,135 @@ class GymSync extends ChangeNotifier {
     }
   }
 
+  /// Records on the server that [c] was paid at the desk with [method] ([line]
+  /// has the cheque or transfer details), then loads everything again:
+  ///  - a failed month or a manual monthly payment: a tax invoice-receipt with the
+  ///    payment (POST gym/memberships/{id}/collect);
+  ///  - an unpaid membership invoice: the payment is added to it (POST gym/sales/{id}/payments).
+  /// A card is recorded as taken on another terminal. Returns the document number.
+  Future<String> collectCharge(Charge c, PayMethod method, {PaymentLine? line}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    String day(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    final details = <String, Object?>{
+      'method': switch (method) {
+        PayMethod.cash => 'cash',
+        PayMethod.card => 'card',
+        PayMethod.cheque => 'cheque',
+        _ => 'bank',
+      },
+      if (method == PayMethod.cheque && line != null) ...{
+        'cheque_number': line.cheque.number,
+        'cheque_bank': line.cheque.bank,
+        'cheque_branch': line.cheque.branch,
+        'cheque_account': line.cheque.account,
+        'cheque_date': day(line.cheque.firstDate ?? store.today),
+      },
+      if (method == PayMethod.bank && line != null) ...{
+        'transfer_reference': line.transfer.reference,
+        'transfer_bank': line.transfer.bank,
+        if (line.transfer.date != null) 'transfer_date': day(line.transfer.date!),
+      },
+    };
+    try {
+      final String reference;
+      if (c.id.startsWith('sale-') && c.serverRef != null) {
+        final res = await auth.api.postJson(ws, session, '/gym/sales/${c.serverRef}/payments', details);
+        final sale = res is Map && res['sale'] is Map ? res['sale'] as Map : null;
+        reference = '${sale?['reference_no'] ?? ''}';
+      } else {
+        final body = {
+          ...details,
+          if (c.serverRef != null) 'month_key': c.serverRef else 'due_date': day(c.dueDate),
+        };
+        final res = await auth.api.postJson(ws, session, '/gym/memberships/${c.subscriptionId}/collect', body);
+        final doc = res is Map && res['document'] is Map ? res['document'] as Map : null;
+        reference = '${doc?['reference_no'] ?? ''}';
+      }
+      // Paid on the server: off the list now; the sync brings the document and the next month.
+      c
+        ..status = ChargeStatus.paid
+        ..paidWith = method
+        ..paidAt = store.now;
+      store.touch();
+      await pull();
+      return reference;
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// How this server saves a sale (GET gym/pos-settings); loaded once per sign-in.
+  Future<PosSettings> posSettings() async {
+    final cached = store.posSettings;
+    if (cached != null) return cached;
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final body = await auth.api.getJson(ws, session, '/gym/pos-settings');
+      final data = body is Map && body['data'] is Map ? body['data'] as Map : null;
+      if (data == null) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      return store.posSettings = PosSettings.fromJson(data);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Saves a paid sale as the POS app does (POST sales/store-v2): the document
+  /// with its lines and payments. [appUuid] stays the same when the save is
+  /// tried again: the server then answers 409 and saves nothing twice, and
+  /// [saleId] is null (the sale is found by its app_uuid).
+  Future<({int? saleId, String reference})> saveSale({
+    required List<SaleLine> lines,
+    required List<PaymentLine> payments,
+    required String appUuid,
+    Customer? customer,
+    String? note,
+  }) async {
+    final pos = await posSettings();
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    final body = storeV2Body(
+      pos: pos,
+      lines: lines,
+      payments: payments,
+      appUuid: appUuid,
+      now: store.now,
+      customerId: customer == null ? null : int.tryParse(customer.id),
+      note: note,
+    );
+    try {
+      final res = await auth.api.postJson(ws, session, '/sales/store-v2', body);
+      final sale = res is Map && res['data'] is Map ? res['data'] as Map : null;
+      final id = sale?['id'];
+      if (sale == null || id == null) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      return (saleId: id is num ? id.toInt() : int.tryParse('$id'), reference: '${sale['reference_no'] ?? ''}');
+    } on AuraApiException catch (e) {
+      // Already saved by an earlier try whose answer was lost.
+      if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 409')) return (saleId: null, reference: '');
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Makes the saved sale the membership's sale (POST gym/memberships/{id}/link-sale),
+  /// by its id, else by its app_uuid. Returns the sale's document number.
+  Future<String> linkSale(String membershipId, {int? saleId, required String appUuid}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/memberships/$membershipId/link-sale',
+          saleId != null ? {'sale_id': saleId} : {'app_uuid': appUuid});
+      final sale = res is Map && res['sale'] is Map ? res['sale'] as Map : null;
+      return '${sale?['reference_no'] ?? ''}';
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
   /// Loads everything. A second call while one is running waits for that one.
   Future<void> pull() => _running ??= _pull().whenComplete(() => _running = null);
 
@@ -162,6 +292,15 @@ class GymSync extends ChangeNotifier {
     notifyListeners();
     try {
       Future<Object?> get(String path, [Map<String, String>? q]) => auth.api.getJson(ws, session, path, query: q);
+
+      // How a sale is saved here; a server without the endpoint yet keeps it null
+      // (taking payments then stops with a message).
+      try {
+        final pos = await get('/gym/pos-settings');
+        if (pos is Map && pos['data'] is Map) store.posSettings = PosSettings.fromJson(pos['data'] as Map);
+      } on AuraApiException catch (e) {
+        if (e.kind != AuraErrorKind.server) rethrow;
+      }
 
       final results = await Future.wait([get('/gym/members'), get('/gym/plans'), get('/gym/memberships')]);
       final customers = mapMembers(results[0]);
@@ -223,7 +362,8 @@ class GymSync extends ChangeNotifier {
         customers: customers,
         plans: plans,
         subscriptions: memberships.subscriptions,
-        charges: memberships.charges,
+        // Plus the unpaid membership invoices, so they can be collected too.
+        charges: [...memberships.charges, ...invoiceCharges(mapDashboard(dashboard), memberships.subscriptions)],
         items: items,
         receipts: receipts,
       );
