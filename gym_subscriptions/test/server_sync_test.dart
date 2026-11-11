@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -336,6 +338,17 @@ void main() {
       expect(p[1].allowCash, isTrue, reason: 'missing setting -> default');
     });
 
+    test('a membership status the app does not know is shown as the server wrote it', () {
+      final copy = jsonDecode(jsonEncode(memberships)) as Map<String, dynamic>;
+      ((copy['data'] as List).first as Map)['status'] = 'on_hold';
+      final m = mapMemberships(copy, customers: mapMembers(members), plans: mapPlans(plans), today: today);
+      expect(m.subscriptions.first.serverStatus, 'on_hold');
+      expect(m.subscriptions.first.statusText, 'on_hold');
+      final known = mapMemberships(memberships, customers: mapMembers(members), plans: mapPlans(plans), today: today);
+      expect(known.subscriptions.first.serverStatus, isNull);
+      expect(Subscription.fromJson(m.subscriptions.first.toJson()).serverStatus, 'on_hold', reason: 'kept on the device');
+    });
+
     test('memberships: statuses, charges, stand-ins for deactivated member/plan', () {
       final c = mapMembers(members), p = mapPlans(plans);
       final m = mapMemberships(memberships, customers: c, plans: p, today: today);
@@ -450,21 +463,145 @@ void main() {
     expect(auth.workspace?.company, 'aurademo1', reason: 'the business is kept');
   });
 
-  testWidgets('a missing permission keeps the data and shows the error; Sync retries', (t) async {
+  testWidgets('a failed first load: the error with "Try again", never the demo data', (t) async {
     final api = serverApi()..errors['/gym/plans'] = AuraApiException(AuraErrorKind.forbidden, 'No access');
     final (auth, _, store) = await boot(t, api: api);
     expect(auth.stage, AuthStage.signedIn);
-    expect(store.customers.any((c) => c.name == 'Dana Levi'), isFalse, reason: 'nothing replaced on a failed sync');
+    expect(store.customers, isEmpty, reason: 'the demo members are gone, nothing came from the server');
+    expect(find.byKey(const Key('navHome')), findsNothing, reason: 'the app does not open on no data');
+    expect(find.text("You don't have permission (No access)"), findsOneWidget);
+
+    api.errors.clear();
+    await t.tap(find.byKey(const Key('firstSyncRetry')));
+    await t.pumpAndSettle();
+    expect(store.customers.any((c) => c.name == 'Dana Levi'), isTrue);
+    expect(find.byKey(const Key('navHome')), findsOneWidget);
+  });
+
+  testWidgets('a failed first load: sign out from the error screen', (t) async {
+    final api = serverApi()..errors['/gym/plans'] = AuraApiException(AuraErrorKind.unreachable);
+    final (auth, _, _) = await boot(t, api: api);
+    await t.tap(find.byKey(const Key('firstSyncSignOut')));
+    await t.pumpAndSettle();
+    expect(auth.stage, AuthStage.login);
+  });
+
+  testWidgets('a later sync that fails keeps the data and shows the error; Sync retries', (t) async {
+    final api = serverApi();
+    final (_, _, store) = await boot(t, api: api);
+    api.errors['/gym/plans'] = AuraApiException(AuraErrorKind.forbidden, 'No access');
 
     await t.tap(find.byKey(const Key('navSettings')));
     await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('syncNow')));
+    await t.pumpAndSettle();
     expect(find.text("You don't have permission (No access)"), findsOneWidget);
+    expect(store.customers.any((c) => c.name == 'Dana Levi'), isTrue, reason: 'the loaded data stays');
 
     api.errors.clear();
     await t.tap(find.byKey(const Key('syncNow')));
     await t.pumpAndSettle();
-    expect(store.customers.any((c) => c.name == 'Dana Levi'), isTrue);
     expect(find.textContaining('Synced at'), findsOneWidget);
+  });
+
+  testWidgets('a server error on the sales list is shown, not replaced by another list', (t) async {
+    final api = serverApi()..errors['/gym/sales'] = AuraApiException(AuraErrorKind.server, 'HTTP 500');
+    await boot(t, api: api);
+    expect(api.calls, isNot(contains('GET /sales?page=1')), reason: 'only a missing endpoint (404) falls back');
+    expect(find.byKey(const Key('firstSyncError')), findsOneWidget);
+  });
+
+  testWidgets('a failed update: a banner on the home screen with the last update; Sync clears it', (t) async {
+    final api = serverApi();
+    final (_, _, store) = await boot(t, api: api);
+    expect(store.lastSynced, isNotNull);
+    expect(store.toJson()['lastSynced'], isNotNull, reason: 'kept between runs');
+    expect(find.byKey(const Key('syncBanner')), findsNothing);
+
+    api.errors['/gym/members'] = AuraApiException(AuraErrorKind.unreachable);
+    await t.tap(find.byKey(const Key('navSettings')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('syncNow')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('navHome')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('syncBanner')), findsOneWidget);
+    expect(find.textContaining('The data is not up to date'), findsOneWidget);
+    expect(find.text('No connection to the internet or the server. Check the connection and try again.'), findsWidgets);
+
+    api.errors.clear();
+    await t.tap(find.byKey(const Key('syncBannerRetry')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('syncBanner')), findsNothing);
+  });
+
+  testWidgets('the data is loaded again when the app comes back to the front, and every few minutes', (t) async {
+    final (_, api, _) = await boot(t);
+    int pulls() => api.calls.where((c) => c == 'GET /gym/members').length;
+    final first = pulls();
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pumpAndSettle();
+    expect(pulls(), first + 1);
+    await t.pump(const Duration(minutes: 5, seconds: 1));
+    await t.pumpAndSettle();
+    expect(pulls(), first + 2);
+  });
+
+  testWidgets('member card: call and WhatsApp buttons', (t) async {
+    await boot(t);
+    await t.tap(find.byKey(const Key('navMembers')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Dana Levi').first);
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('callMember')), findsOneWidget);
+    expect(find.byKey(const Key('whatsappMember')), findsOneWidget);
+  });
+
+  testWidgets('sign-out removes the business data from the device; the settings stay', (t) async {
+    final (auth, _, store) = await boot(t);
+    expect(store.customers, isNotEmpty);
+    store.settings.accountantEmail = 'acc@example.com';
+    await auth.signOut();
+    await t.pumpAndSettle();
+    expect(store.customers, isEmpty);
+    expect(store.receipts, isEmpty);
+    expect(store.subscriptions, isEmpty);
+    expect(store.serverLoaded, isFalse);
+    expect(store.toJson()['customers'], isEmpty, reason: 'what is saved on the device is empty too');
+    expect(store.settings.accountantEmail, 'acc@example.com');
+  });
+
+  testWidgets('data and settings of another business on the device are dropped at sign-in', (t) async {
+    t.view.physicalSize = const Size(1080, 2400);
+    t.view.devicePixelRatio = 3;
+    addTearDown(t.view.reset);
+    final store = GymStore(clock: () => today)
+      ..serverOwner = 'othergym.auratech2.tech'
+      ..serverLoaded = true;
+    store.settings.accountantEmail = 'other@example.com';
+    final other = store.customers.first.name;
+    final auth = AuthController(storage: signedIn(), api: serverApi());
+    await t.pumpWidget(AuraGymApp(store: store, auth: auth));
+    await t.pumpAndSettle();
+    expect(store.serverOwner, 'aurademo1.auratech2.tech');
+    expect(store.customers.any((c) => c.name == other), isFalse);
+    expect(store.customers.any((c) => c.name == 'Dana Levi'), isTrue);
+    expect(store.settings.accountantEmail, isNot('other@example.com'));
+  });
+
+  testWidgets('signed in: no demo or not-yet-connected actions', (t) async {
+    await boot(t);
+    expect(find.byKey(const Key('tileLink')), findsNothing);
+    expect(find.byKey(const Key('tileMembers')), findsOneWidget);
+    await t.tap(find.byKey(const Key('tileMembers')));
+    await t.pumpAndSettle();
+    expect(find.text('Search by name or phone'), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('navSettings')));
+    await t.pumpAndSettle();
+    await t.scrollUntilVisible(find.byKey(const Key('signOut')), 400, scrollable: find.byType(Scrollable).first);
+    expect(find.byKey(const Key('resetDemo'), skipOffstage: false), findsNothing);
   });
 
   testWidgets('a server without gym/sales: the POS app sales list is used', (t) async {

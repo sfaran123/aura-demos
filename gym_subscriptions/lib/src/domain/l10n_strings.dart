@@ -1793,6 +1793,17 @@ const Map<String, (String, String)> strings = {
   'תשלום בלינק עדיין לא זמין כאן.': ('الدفع عبر الرابط غير متاح هنا بعد.', 'Payment by link is not available here yet.'),
   'המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.': ('تم فتح الاشتراك في الخادم لكن الدفع لم يُحفظ. حاولوا مرة أخرى.', 'The membership was opened on the server but the payment was not saved. Try again.'),
   'התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.': ('تم حفظ الدفع. حاولوا مرة أخرى لربطه بالاشتراك.', 'The payment was saved. Try again to link it to the membership.'),
+  // Sync, connection, member card, version
+  'הנתונים לא עודכנו. עדכון אחרון: {0}': ('لم يتم تحديث البيانات. آخر تحديث: {0}', 'The data is not up to date. Last update: {0}'),
+  'אין חיבור לאינטרנט או לשרת. בדקו את החיבור ונסו שוב.': ('لا يوجد اتصال بالإنترنت أو بالخادم. افحصوا الاتصال وحاولوا مرة أخرى.', 'No connection to the internet or the server. Check the connection and try again.'),
+  'חיוג': ('اتصال', 'Call'),
+  'לא ניתן לפתוח במכשיר הזה': ('لا يمكن الفتح على هذا الجهاز', "Can't open this on this device"),
+  'גרסה {0}': ('النسخة {0}', 'Version {0}'),
+  'נקבע במערכת AURA לפי סוג העוסק. עוסק פטור: קבלה בלי מע״מ.': ('يُحدَّد في نظام AURA حسب نوع المشتغل. المشتغل المعفى: إيصال بدون ضريبة.', 'Set in the AURA system by the kind of dealer. Exempt dealer: a receipt without VAT.'),
+  // First load after sign-in
+  'טוען את נתוני העסק…': ('جارٍ تحميل بيانات العمل…', 'Loading your business data…'),
+  'לא הצלחנו לטעון את נתוני העסק': ('تعذّر تحميل بيانات العمل', "Couldn't load your business data"),
+  'ניסיון נוסף': ('محاولة أخرى', 'Try again'),
   'מוצר דמי רישום': ('منتج رسوم التسجيل', 'Sign-up fee product'),
   'לא נבחר': ('لم يتم الاختيار', 'Not chosen'),
   'המוצר לא נמצא במחירון': ('المنتج غير موجود في قائمة الأسعار', 'The product is not in the price list'),

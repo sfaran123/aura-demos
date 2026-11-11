@@ -17,6 +17,9 @@ class GymSync extends ChangeNotifier {
   final AuthController auth;
   final GymStore store;
 
+  /// Names the business whose data the store holds ([GymStore.serverOwner]).
+  static String ownerKey(AuraWorkspace ws) => '${ws.company}.${ws.domain}';
+
   /// GET /api/sales returns 10 sales a page; the last [maxSalePages] pages are loaded.
   final int maxSalePages;
 
@@ -24,12 +27,16 @@ class GymSync extends ChangeNotifier {
   final int maxGymSalePages;
 
   bool _syncing = false;
-  DateTime? _lastSynced;
   Object? _error;
   Future<void>? _running;
 
   bool get syncing => _syncing;
-  DateTime? get lastSynced => _lastSynced;
+  /// When the data on the screen last came from the server (kept between runs).
+  DateTime? get lastSynced => store.lastSynced;
+
+  /// A server that does not have this endpoint yet (404). Any other failure is a
+  /// real error: it is shown, never covered by numbers worked out in the app.
+  static bool _missing(AuraApiException e) => e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 404');
 
   /// The last failure (an [AuraApiException] or anything else); null after a successful sync.
   Object? get error => _error;
@@ -299,7 +306,7 @@ class GymSync extends ChangeNotifier {
         final pos = await get('/gym/pos-settings');
         if (pos is Map && pos['data'] is Map) store.posSettings = PosSettings.fromJson(pos['data'] as Map);
       } on AuraApiException catch (e) {
-        if (e.kind != AuraErrorKind.server) rethrow;
+        if (!_missing(e)) rethrow;
       }
 
       final results = await Future.wait([get('/gym/members'), get('/gym/plans'), get('/gym/memberships')]);
@@ -336,7 +343,7 @@ class GymSync extends ChangeNotifier {
         }
       } on AuraApiException catch (e) {
         // A server without gym/sales yet: the POS app's list (this user's, latest pages).
-        if (e.kind != AuraErrorKind.server) rethrow;
+        if (!_missing(e)) rethrow;
         receipts.clear();
         for (var page = 1; page <= maxSalePages; page++) {
           final body = await get('/sales', {'page': '$page'});
@@ -354,10 +361,17 @@ class GymSync extends ChangeNotifier {
         final body = await get('/gym/dashboard', {'expiring_days': '${store.settings.renewalReminderDaysBefore}'});
         if (body is Map) dashboard = body.cast<String, dynamic>();
       } on AuraApiException catch (e) {
-        if (e.kind != AuraErrorKind.server) rethrow;
+        if (!_missing(e)) rethrow;
       }
 
+      // Signed out, or another user or business signed in, while this was loading:
+      // the answer belongs to nobody on the screen now.
+      final nowWs = auth.workspace;
+      if (auth.session?.token != session.token || nowWs == null || ownerKey(nowWs) != ownerKey(ws)) return;
+
+      store.lastSynced = DateTime.now();
       store.applyServerData(
+        owner: ownerKey(ws),
         dashboardJson: dashboard,
         customers: customers,
         plans: plans,
@@ -367,7 +381,6 @@ class GymSync extends ChangeNotifier {
         items: items,
         receipts: receipts,
       );
-      _lastSynced = DateTime.now();
     } on AuraApiException catch (e) {
       _error = e;
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);

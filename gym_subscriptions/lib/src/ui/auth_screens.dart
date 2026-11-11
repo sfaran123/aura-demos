@@ -52,13 +52,130 @@ class AuthGate extends StatelessWidget {
             switchOutCurve: Curves.easeInCubic,
             transitionBuilder: (c, a) => FadeTransition(
               opacity: a,
-              child: SlideTransition(
-                  position: Tween(begin: const Offset(0, .03), end: Offset.zero).animate(a), child: c),
+              child:
+                  SlideTransition(position: Tween(begin: const Offset(0, .03), end: Offset.zero).animate(a), child: c),
             ),
             child: page,
           );
         },
       );
+}
+
+/// Signed in, shows [child] only once this business's data has been loaded from
+/// the server. Until then: a loading screen, or the error with "try again" and
+/// "sign out". Demo data or another business's data never shows.
+class FirstSyncGate extends StatefulWidget {
+  const FirstSyncGate({super.key, required this.sync, required this.store, required this.auth, required this.child});
+  final GymSync sync;
+  final GymStore store;
+  final AuthController auth;
+  final Widget child;
+
+  @override
+  State<FirstSyncGate> createState() => _FirstSyncGateState();
+}
+
+class _FirstSyncGateState extends State<FirstSyncGate> {
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store.addListener(_changed);
+    widget.sync.addListener(_changed);
+  }
+
+  @override
+  void dispose() {
+    widget.store.removeListener(_changed);
+    widget.sync.removeListener(_changed);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.store.serverLoaded) return widget.child;
+    final error = widget.sync.syncing ? null : widget.sync.error;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: error == null
+                ? Column(mainAxisSize: MainAxisSize.min, children: [
+                    const CircularProgressIndicator(key: Key('firstSyncSpin')),
+                    const SizedBox(height: 18),
+                    Text(t('טוען את נתוני העסק…'), style: const TextStyle(color: Aura.muted)),
+                  ])
+                : Column(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.cloud_off_outlined, size: 44, color: Aura.warn),
+                    const SizedBox(height: 14),
+                    Text(t('לא הצלחנו לטעון את נתוני העסק'),
+                        textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
+                    const SizedBox(height: 8),
+                    Text(authErrorText(error, workspace: widget.auth.workspace),
+                        key: const Key('firstSyncError'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Aura.muted)),
+                    const SizedBox(height: 18),
+                    FilledButton.icon(
+                      key: const Key('firstSyncRetry'),
+                      onPressed: widget.sync.pull,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(t('ניסיון נוסף')),
+                    ),
+                    const SizedBox(height: 6),
+                    TextButton(
+                      key: const Key('firstSyncSignOut'),
+                      onPressed: () => widget.auth.signOut(),
+                      child: Text(t('התנתקות')),
+                    ),
+                  ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Signed in, on top of the home screen when the last update from the server
+/// failed: what is on the screen may be old, since when, why, and "Sync".
+class SyncBanner extends StatelessWidget {
+  const SyncBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = SyncScope.maybeOf(context);
+    final error = sync?.error;
+    if (sync == null || error == null || sync.syncing) return const SizedBox.shrink();
+    final last = sync.lastSynced;
+    String two(int n) => n.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final sameDay = last != null && last.year == now.year && last.month == now.month && last.day == now.day;
+    final when = last == null
+        ? '—'
+        : '${sameDay ? '' : '${two(last.day)}/${two(last.month)} '}${two(last.hour)}:${two(last.minute)}';
+    return Container(
+      key: const Key('syncBanner'),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(color: Aura.warn.withValues(alpha: .10), borderRadius: BorderRadius.circular(14)),
+      child: Row(children: [
+        const Icon(Icons.cloud_off_outlined, size: 20, color: Aura.warn),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t('הנתונים לא עודכנו. עדכון אחרון: {0}', [when]),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            Text(authErrorText(error), style: const TextStyle(fontSize: 12, color: Aura.muted)),
+          ]),
+        ),
+        TextButton(key: const Key('syncBannerRetry'), onPressed: sync.pull, child: Text(t('סנכרון'))),
+      ]),
+    );
+  }
 }
 
 /// Translated message for a failed call.
@@ -70,7 +187,9 @@ String authErrorText(Object error, {AuraWorkspace? workspace, String? domain, St
     AuraErrorKind.noVerifyKey => t('בגרסה הזו חסר מפתח האימות (AURA_VERIFY_KEY). פנו לצוות AURA.'),
     AuraErrorKind.companyNotFound => t('לא נמצא עסק בשם "{0}" ב-{1}', [c, d]),
     AuraErrorKind.badCredentials => t('שם משתמש או סיסמה שגויים'),
-    AuraErrorKind.unreachable => t('אין חיבור ל-{0}. בדקו את האינטרנט ואת שם הדומיין.', [d]),
+    AuraErrorKind.unreachable => d.isEmpty
+        ? t('אין חיבור לאינטרנט או לשרת. בדקו את החיבור ונסו שוב.')
+        : t('אין חיבור ל-{0}. בדקו את האינטרנט ואת שם הדומיין.', [d]),
     AuraErrorKind.timeout => t('השרת לא ענה בזמן. נסו שוב.'),
     AuraErrorKind.server => t('שגיאת שרת ({0})', [error.detail]),
     AuraErrorKind.sessionExpired => t('החיבור פג. התחברו שוב.'),
@@ -371,8 +490,8 @@ class AuthLayout extends StatelessWidget {
                         const SizedBox(height: 22),
                         Text('Powered by AURA Tech',
                             textDirection: TextDirection.ltr,
-                            style: TextStyle(
-                                fontSize: 12, letterSpacing: .4, color: Colors.white.withValues(alpha: .38))),
+                            style:
+                                TextStyle(fontSize: 12, letterSpacing: .4, color: Colors.white.withValues(alpha: .38))),
                       ]),
                     ),
                   ),
@@ -446,7 +565,11 @@ class _Brand extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
           const Text('AURA',
               style: TextStyle(
-                  fontFamily: 'Rubik', fontSize: 30, fontWeight: FontWeight.w700, letterSpacing: 6, color: Colors.white)),
+                  fontFamily: 'Rubik',
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 6,
+                  color: Colors.white)),
           const SizedBox(width: 10),
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
@@ -462,8 +585,7 @@ class _Brand extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       Text(t('מנויים, תשלומים וגבייה – במקום אחד'),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: .62))),
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: .62))),
     ]);
   }
 }
@@ -526,8 +648,7 @@ class _ErrorBanner extends StatelessWidget {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Icon(Icons.error_outline_rounded, size: 20, color: Aura.warn),
           const SizedBox(width: 10),
-          Expanded(
-              child: Text(text, style: const TextStyle(fontSize: 13.5, color: Aura.warn, height: 1.35))),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13.5, color: Aura.warn, height: 1.35))),
         ]),
       );
 }
@@ -640,8 +761,7 @@ class AuthField extends StatelessWidget {
         labelStyle: const TextStyle(color: Aura.muted),
         floatingLabelStyle: const TextStyle(color: Aura.gold, fontWeight: FontWeight.w600),
         prefixIcon: Icon(icon, size: 21),
-        prefixIconColor: WidgetStateColor.resolveWith(
-            (s) => s.contains(WidgetState.focused) ? Aura.gold : Aura.muted),
+        prefixIconColor: WidgetStateColor.resolveWith((s) => s.contains(WidgetState.focused) ? Aura.gold : Aura.muted),
         suffixIcon: suffix,
         helperText: helperText,
         helperStyle: const TextStyle(color: Aura.muted, fontSize: 12.5),

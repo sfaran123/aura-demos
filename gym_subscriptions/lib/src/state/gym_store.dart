@@ -65,7 +65,40 @@ class GymStore extends SimpleNotifier {
         'links': [for (final x in links) x.toJson()],
         'items': [for (final x in items) x.toJson()],
         if (_dashboardJson != null) 'dashboard': _dashboardJson,
+        if (serverOwner != null) 'serverOwner': serverOwner,
+        'serverLoaded': serverLoaded,
+        if (lastSynced != null) 'lastSynced': lastSynced!.toIso8601String(),
       };
+
+  /// Signed in: when the data last came from the server.
+  DateTime? lastSynced;
+
+  /// Signed in: the business whose data and settings are in the store
+  /// ("company.domain"). Null in the demo.
+  String? serverOwner;
+
+  /// Signed in: the data of [serverOwner] has been loaded from the server.
+  /// Until then the app shows a loading screen, never demo or old data.
+  bool serverLoaded = false;
+
+  /// Removes members, plans, memberships, charges, documents, links and the
+  /// price list, from the screen and from the device: at sign-out, and before
+  /// another business's data is loaded. [settings] also puts the business
+  /// settings back to their defaults (another business signs in). The language stays.
+  void clearServerData({bool settings = false, String? owner}) {
+    for (final l in [plans, customers, subscriptions, charges, receipts, links]) {
+      l.clear();
+    }
+    items = [];
+    dashboard = null;
+    _dashboardJson = null;
+    posSettings = null;
+    serverLoaded = false;
+    lastSynced = null;
+    if (settings) this.settings = BusinessSettings();
+    if (owner != null) serverOwner = owner;
+    notifyListeners();
+  }
 
   bool _fromJson(Map<String, dynamic> j) {
     try {
@@ -101,6 +134,9 @@ class GymStore extends SimpleNotifier {
       items = it;
       _dashboardJson = j['dashboard'] is Map ? (j['dashboard'] as Map).cast<String, dynamic>() : null;
       dashboard = mapDashboard(_dashboardJson);
+      serverOwner = j['serverOwner'] is String ? j['serverOwner'] as String : null;
+      serverLoaded = j['serverLoaded'] == true;
+      lastSynced = j['lastSynced'] is String ? DateTime.tryParse(j['lastSynced'] as String) : null;
       _receiptNo = j['receiptNo'] ?? (r.isEmpty ? 30000 : r.map((x) => x.number).reduce((a, b) => a > b ? a : b));
       _id = j['idCounter'] ?? 1000;
       L10n.lang = AppLang.values.asNameMap()[j['language']] ?? L10n.lang;
@@ -114,6 +150,8 @@ class GymStore extends SimpleNotifier {
   void resetDemo() {
     dashboard = null;
     _dashboardJson = null;
+    serverOwner = null;
+    serverLoaded = false;
     for (final l in [plans, customers, subscriptions, charges, receipts, links]) {
       l.clear();
     }
@@ -135,7 +173,10 @@ class GymStore extends SimpleNotifier {
     required List<ShopItem> items,
     required List<Receipt> receipts,
     Map<String, dynamic>? dashboardJson,
+    String? owner,
   }) {
+    if (owner != null) serverOwner = owner;
+    serverLoaded = true;
     this.plans
       ..clear()
       ..addAll(plans);
@@ -442,7 +483,6 @@ class GymStore extends SimpleNotifier {
             recurring == RecurringMethod.newCard)) {
       customer.savedCardLast4 = newCardLast4;
     }
-    if (isPending(lines)) sub.status = SubStatus.pendingPayment;
     subscriptions
       ..removeWhere((s) => s.id == sub.id)
       ..add(sub);

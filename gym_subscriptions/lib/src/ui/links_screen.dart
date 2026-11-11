@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'links.dart';
+import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -219,12 +220,13 @@ class _LinkLiveSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (link.stage != LinkStage.paid) ...[
-            FilledButton.icon(
-              key: const Key('simulateLink'),
-              onPressed: live ? null : () => store.simulateLink(link),
-              icon: const Icon(Icons.play_arrow),
-              label: Text(live ? t('הלקוח מתקדם…') : t('הדגמה חיה: הלקוח ממלא ומשלם')),
-            ),
+            if (SyncScope.maybeOf(context) == null)
+              FilledButton.icon(
+                key: const Key('simulateLink'),
+                onPressed: live ? null : () => store.simulateLink(link),
+                icon: const Icon(Icons.play_arrow),
+                label: Text(live ? t('הלקוח מתקדם…') : t('הדגמה חיה: הלקוח ממלא ומשלם')),
+              ),
             const SizedBox(height: 8),
             Row(children: [
               Expanded(

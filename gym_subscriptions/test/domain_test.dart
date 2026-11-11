@@ -169,6 +169,9 @@ void main() {
       expect(isValidPhone('052-1234567'), isTrue);
       expect(isValidPhone('0521234'), isFalse);
       expect(formatPhone('0521234567'), '052-1234567');
+      expect(whatsappNumber('052-1234567'), '972521234567');
+      expect(whatsappNumber('+972 52 123 4567'), '972521234567');
+      expect(whatsappNumber(''), '');
     });
 
     test('plan validation', () {

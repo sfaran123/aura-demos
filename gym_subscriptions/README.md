@@ -75,3 +75,13 @@ flutter pub get
 flutter test
 flutter run
 ```
+
+In the browser (local testing only). The AURA server does not allow calls from
+web pages (no CORS headers), so Chrome has to be started with that check off;
+Flutter opens a separate Chrome window with its own temporary profile:
+
+```
+flutter run -d chrome --dart-define-from-file=dart_defines.json --web-browser-flag=--disable-web-security
+```
+
+Sign-in and data are kept in the browser's localStorage.

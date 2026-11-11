@@ -6,6 +6,8 @@ import '../domain/doc_types.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
+import '../state/gym_store.dart';
+import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -52,6 +54,9 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
 
   @override
   Widget build(BuildContext context) {
+    // Signed in, nothing is really sent yet (no SMS / WhatsApp / email provider is
+    // connected), so the panel is not offered.
+    if (SyncScope.maybeOf(context) != null) return const SizedBox.shrink();
     final r = widget.receipt;
     return Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -121,6 +126,21 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
   }
 }
 
+/// The VAT inside a document. A server document carries its own VAT; signed in to an
+/// exempt dealer there is none; only the demo works it out from the settings.
+double docVat(Receipt r, GymStore store) {
+  if (r.docType != null) return r.vat ?? 0;
+  if (store.posSettings?.noVat ?? false) return 0;
+  final s = store.settings;
+  return s.docType == DocType.taxInvoiceReceipt ? round2(r.total * s.vatPct / (100 + s.vatPct)) : 0.0;
+}
+
+/// Signed in: the name of a document saved on the server. A stand-in shown before
+/// the server's own copy arrives is named by how this business saves sales.
+String serverDocLabel(Receipt r, GymStore store) => r.docType != null
+    ? docLabel(r, store.settings.docType)
+    : ((store.posSettings?.noVat ?? false) ? DocType.receipt : DocType.taxInvoiceReceipt).label;
+
 /// The document's name as printed: invoice-receipt, receipt, or a credit note.
 String docLabel(Receipt r, DocType type) => r.docType != null
     // A server document: its own type on the web.
@@ -130,34 +150,38 @@ String docLabel(Receipt r, DocType type) => r.docType != null
         : type.label;
 
 /// The receipt as the customer gets it, with the send panel under it.
-Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          ReceiptCard(receipt: r),
+Future<void> showReceiptSheet(BuildContext context, Receipt r) {
+  final signedIn = SyncScope.maybeOf(context) != null;
+  return showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+      child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        ReceiptCard(receipt: r),
+        const SizedBox(height: 10),
+        ReceiptSendPanel(receipt: r),
+        // Signed in, a credit note is not saved on the server yet (and refunds nothing): not offered.
+        if (!signedIn && !r.isCredit && r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund) ...[
           const SizedBox(height: 10),
-          ReceiptSendPanel(receipt: r),
-          if (!r.isCredit && r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund) ...[
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              key: const Key('creditReceipt'),
-              style: OutlinedButton.styleFrom(foregroundColor: Aura.warn, minimumSize: const Size.fromHeight(44)),
-              onPressed: () async {
-                Navigator.pop(ctx);
-                await showCreditSheet(context, r);
-              },
-              icon: const Icon(Icons.undo),
-              label: Text(t('זיכוי / ביטול עסקה')),
-            ),
-          ],
-        ])),
-      ),
-    );
+          OutlinedButton.icon(
+            key: const Key('creditReceipt'),
+            style: OutlinedButton.styleFrom(foregroundColor: Aura.warn, minimumSize: const Size.fromHeight(44)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await showCreditSheet(context, r);
+            },
+            icon: const Icon(Icons.undo),
+            label: Text(t('זיכוי / ביטול עסקה')),
+          ),
+        ],
+      ])),
+    ),
+  );
+}
 
 class ReceiptCard extends StatelessWidget {
   const ReceiptCard({super.key, required this.receipt});
@@ -171,7 +195,10 @@ class ReceiptCard extends StatelessWidget {
     // Signed in: the company name from the AURA server, as on the home screen.
     final serverName = store.dashboard?.businessName ?? '';
     final businessName = serverName.isNotEmpty ? serverName : s.businessName;
-    final vat = s.docType == DocType.taxInvoiceReceipt ? round2(r.total * s.vatPct / (100 + s.vatPct)) : 0.0;
+    // A server document: its own total (an unpaid invoice has no payment lines) and VAT.
+    final total = r.docTotal ?? r.total;
+    final vat = docVat(r, store);
+    final vatPct = total - vat == 0 ? 0 : (vat / (total - vat) * 100).round();
     Widget line(String a, String b, {bool bold = false}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -219,10 +246,10 @@ class ReceiptCard extends StatelessWidget {
         ],
         const Divider(height: 20),
         if (vat > 0) ...[
-          line(t('לפני מע״מ'), money(round2(r.total - vat))),
-          line(t('מע״מ {0}%', [s.vatPct.round()]), money(vat)),
+          line(t('לפני מע״מ'), money(round2(total - vat))),
+          line(t('מע״מ {0}%', [vatPct]), money(vat)),
         ],
-        line(t('סה״כ'), money(r.total), bold: true),
+        line(t('סה״כ'), money(total), bold: true),
       ]),
     );
   }

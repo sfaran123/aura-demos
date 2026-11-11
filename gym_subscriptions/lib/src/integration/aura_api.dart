@@ -13,7 +13,8 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:http/http.dart' as http;
 
 class AuraConfig {
   /// Prefilled on the domain screen.
@@ -189,8 +190,8 @@ class _Response {
 }
 
 class AuraApi {
-  AuraApi({HttpClient Function()? client}) : _newClient = client ?? HttpClient.new;
-  final HttpClient Function() _newClient;
+  AuraApi({http.Client Function()? client}) : _newClient = client ?? http.Client.new;
+  final http.Client Function() _newClient;
 
   /// Checks that [company] exists on [domain] (e.g. "aurademo1" on "auratech2.tech").
   Future<void> verifyCompany({required String domain, required String company}) async {
@@ -244,40 +245,33 @@ class AuraApi {
     throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}${msg == null ? '' : ': $msg'}');
   }
 
+  /// package:http, so the same code runs on devices and in the browser.
   Future<_Response> _send(String method, Uri uri, {Map<String, String> headers = const {}, Object? body}) async {
-    final client = _newClient()..connectionTimeout = AuraConfig.timeout;
+    final client = _newClient();
     try {
-      return await () async {
-        final req = await client.openUrl(method, uri);
-        req.headers.set(HttpHeaders.acceptHeader, 'application/json');
-        headers.forEach(req.headers.set);
-        if (body != null) {
-          final bytes = utf8.encode(jsonEncode(body));
-          req.headers.contentType = ContentType.json;
-          req.contentLength = bytes.length;
-          req.add(bytes);
-        }
-        final res = await req.close();
-        final text = await res.transform(utf8.decoder).join();
-        Object? json;
-        try {
-          json = text.isEmpty ? null : jsonDecode(text);
-        } on FormatException {
-          json = null;
-        }
-        return _Response(res.statusCode, json);
-      }()
-          .timeout(AuraConfig.timeout);
+      final req = http.Request(method, uri)
+        ..headers['Accept'] = 'application/json'
+        ..headers.addAll(headers);
+      if (body != null) {
+        req.headers['Content-Type'] = 'application/json; charset=utf-8';
+        req.bodyBytes = utf8.encode(jsonEncode(body));
+      }
+      final res = await client.send(req).then(http.Response.fromStream).timeout(AuraConfig.timeout);
+      Object? json;
+      try {
+        json = res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
+      } on FormatException {
+        json = null;
+      }
+      return _Response(res.statusCode, json);
     } on TimeoutException {
       throw AuraApiException(AuraErrorKind.timeout);
-    } on SocketException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HandshakeException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HttpException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } on Exception catch (e) {
+      // No internet, DNS, TLS, refused connection; in the browser also a
+      // server that does not allow the page's origin (CORS).
+      throw AuraApiException(AuraErrorKind.unreachable, e is http.ClientException ? e.message : '$e');
     } finally {
-      client.close(force: true);
+      client.close();
     }
   }
 }
