@@ -4,6 +4,7 @@
 import '../domain/checkout.dart';
 import '../domain/help.dart';
 import '../domain/models.dart';
+import '../domain/settings.dart';
 import 'gym_store.dart';
 import '../domain/l10n.dart';
 
@@ -85,11 +86,12 @@ class ReportData {
   }
 }
 
-enum ReportGroup { overview, money, collection, members, links }
+enum ReportGroup { overview, accounting, money, collection, members, links }
 
 extension ReportGroupLabel on ReportGroup {
   String get label => switch (this) {
         ReportGroup.overview => t('סיכום'),
+        ReportGroup.accounting => t('הנהלת חשבונות'),
         ReportGroup.money => t('כספים'),
         ReportGroup.collection => t('גבייה וחובות'),
         ReportGroup.members => t('מנויים'),
@@ -99,12 +101,16 @@ extension ReportGroupLabel on ReportGroup {
 
 /// One report in the reports hub.
 class ReportDef {
-  const ReportDef(this.id, this.group, this.title, this.subtitle, this.build, {this.usesPeriod = false, this.headline});
+  const ReportDef(this.id, this.group, this.title, this.subtitle, this.build,
+      {this.usesPeriod = false, this.headline, this.periods});
   final String id;
   final ReportGroup group;
   final String title;
   final String subtitle;
   final bool usesPeriod;
+
+  /// Periods offered for this report (all of them when null).
+  final List<Period>? periods;
   final ReportData Function(GymStore s, Period p) build;
 
   /// The number shown on the report's card in the hub.
@@ -123,6 +129,7 @@ String _receiptKind(ReceiptKind k) => switch (k) {
       ReceiptKind.collection => t('גבייה חודשית'),
       ReceiptKind.quickPay => t('תשלום מהיר'),
       ReceiptKind.link => t('תשלום בלינק'),
+      ReceiptKind.credit => t('זיכויים'),
     };
 
 // ------------------------------------------------------------------ summary
@@ -302,6 +309,160 @@ ReportData summaryReport(GymStore s, Period p) {
             subtitle: money(soldSum[e.key] ?? 0), value: t('{0} פעמים', [e.value]), bar: e.value / maxSold),
     ]),
   ], note: t('השוואה לתקופה באורך זהה שלפניה. "החודש" מושווה לאותם ימים בחודש הקודם.'));
+}
+
+// ------------------------------------------------------------------ accounting
+/// Net and VAT of an amount that includes VAT.
+(double, double) splitVat(double gross, double vatPct) {
+  final vat = round2(gross * vatPct / (100 + vatPct));
+  return (round2(gross - vat), vat);
+}
+
+/// Invoices above this amount before VAT, to a business customer, need a Tax
+/// Authority allocation number (Israel Invoice model, from 1 June 2026).
+const allocationThreshold = 5000.0;
+
+ReportData accountantReport(GymStore s, Period p) {
+  final r = (p == Period.lastMonth ? Period.lastMonth : Period.month).range(s.today);
+  final vatPct = s.settings.docType == DocType.taxInvoiceReceipt ? s.settings.vatPct : 0.0;
+  final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.number.compareTo(b.number));
+  final sales = docs.where((x) => !x.isCredit).toList();
+  final credits = docs.where((x) => x.isCredit).toList();
+  final gross = _sum(sales.map((x) => x.total));
+  final creditGross = _sum(credits.map((x) => -x.total));
+  final (net, vat) = splitVat(gross, vatPct);
+  final (cNet, cVat) = splitVat(creditGross, vatPct);
+  final numbers = docs.map((x) => x.number).toList();
+  final gaps = <int>[];
+  for (var i = 1; i < numbers.length; i++) {
+    for (var n = numbers[i - 1] + 1; n < numbers[i]; n++) {
+      gaps.add(n);
+    }
+  }
+  final big =
+      sales.where((x) => splitVat(x.total, vatPct).$1 > allocationThreshold && x.allocationNumber == null).toList();
+  final pending = sales.where((x) => x.lines.any((l) => l.method.isDeferred)).toList();
+
+  final byMethod = <PayMethod, double>{};
+  for (final x in docs) {
+    for (final l in x.lines) {
+      byMethod[l.method] = round2((byMethod[l.method] ?? 0) + l.amount);
+    }
+  }
+  final cheques = [
+    for (final x in sales)
+      for (final l in x.lines.where((l) => l.method == PayMethod.cheque))
+        for (var i = 0; i < l.cheques; i++)
+          (
+            x,
+            addMonths(dateOnly(l.cheque.firstDate ?? x.date), i),
+            round2(l.amount / l.cheques),
+            l.cheque.number.isEmpty
+                ? ''
+                : t('שיק {0} · בנק {1} · סניף {2}', [l.cheque.numberAt(i), l.cheque.bank, l.cheque.branch]),
+          )
+  ];
+  String label(Receipt x) =>
+      x.isCredit ? (vatPct > 0 ? t('חשבונית מס זיכוי') : t('קבלת החזר')) : s.settings.docType.label;
+
+  return ReportData(
+      kpis: [
+        Kpi(t('מחזור כולל מע״מ'), money(gross), tone: Tone.ok, sub: t('{0} מסמכים', [sales.length])),
+        Kpi(t('זיכויים'), money(creditGross),
+            tone: creditGross > 0 ? Tone.warn : Tone.plain, sub: t('{0} מסמכים', [credits.length])),
+        Kpi(t('לפני מע״מ (נטו)'), money(round2(net - cNet))),
+        Kpi(t('מע״מ עסקאות לתשלום'), money(round2(vat - cVat)), tone: Tone.info, sub: t('מע״מ {0}%', [vatPct.round()])),
+        Kpi(t('טווח מספרים'), numbers.isEmpty ? '—' : '${numbers.first}–${numbers.last}',
+            sub: gaps.isEmpty ? t('רציף, בלי חורים') : t('{0} מספרים חסרים', [gaps.length]),
+            subTone: gaps.isEmpty ? Tone.ok : Tone.bad),
+        Kpi(t('לבדיקה'), '${big.length + pending.length}',
+            tone: big.isEmpty && pending.isEmpty ? Tone.ok : Tone.warn, sub: t('מספרי הקצאה ותקבולים ממתינים')),
+      ],
+      sections: [
+        ReportSection(t('סיכום מע״מ לתקופה'), [
+          ReportRow(t('עסקאות חייבות לפני מע״מ'), value: money(net)),
+          ReportRow(t('מע״מ על עסקאות'), value: money(vat)),
+          ReportRow(t('זיכויים לפני מע״מ'), value: money(-cNet), tone: cNet > 0 ? Tone.warn : Tone.plain),
+          ReportRow(t('מע״מ על זיכויים'), value: money(-cVat), tone: cVat > 0 ? Tone.warn : Tone.plain),
+          ReportRow(t('סה״כ מע״מ עסקאות לדיווח'), value: money(round2(vat - cVat)), tone: Tone.info),
+        ]),
+        ReportSection(t('תקבולים לפי אמצעי תשלום'), [
+          for (final m in PayMethod.values)
+            if (byMethod[m] != null)
+              ReportRow(m.label,
+                  subtitle: m.isDeferred ? t('כולל חלקים שעוד לא אושרו') : null, value: money(byMethod[m]!)),
+        ]),
+        ReportSection(t('בדיקות לפני הגשה'), [
+          ReportRow(t('מספור רציף של מסמכים'),
+              subtitle: gaps.isEmpty ? null : t('חסרים: {0}', [gaps.take(10).join(', ')]),
+              tag: gaps.isEmpty ? t('תקין') : t('לבדוק'),
+              tone: gaps.isEmpty ? Tone.ok : Tone.bad),
+          ReportRow(t('חשבוניות מעל {0} לפני מע״מ בלי מספר הקצאה', [money(allocationThreshold)]),
+              subtitle: t('נדרש מספר הקצאה אם הלקוח הוא עסק (חשבוניות ישראל)'),
+              value: '${big.length}',
+              tone: big.isEmpty ? Tone.ok : Tone.warn),
+          for (final x in big)
+            ReportRow('${label(x)} ${x.number}',
+                subtitle: '${fmtDate(x.date)} · ${x.customerName}', value: money(x.total), tone: Tone.warn),
+          ReportRow(t('תקבולים בהעברה או בלינק שעוד לא אושרו'),
+              value: '${pending.length}', tone: pending.isEmpty ? Tone.ok : Tone.warn),
+          ReportRow(t('זיכויים בלי סיבה'),
+              value: '${credits.where((x) => x.reason == null).length}',
+              tone: credits.every((x) => x.reason != null) ? Tone.ok : Tone.warn),
+        ]),
+        ReportSection(t('יומן מסמכים'), [
+          for (final x in docs)
+            ReportRow('${label(x)} ${x.number}',
+                subtitle: '${fmtDate(x.date)} · ${x.customerName} · ${x.lines.map((l) => l.method.label).join(' + ')}'
+                    '${x.isCredit && x.creditOf != null ? ' · ${t('זיכוי למסמך {0}', [x.creditOf])}' : ''}',
+                value: money(x.total),
+                tag: vatPct > 0 ? t('מע״מ {0}', [money(splitVat(x.total, vatPct).$2)]) : null,
+                tone: x.isCredit ? Tone.bad : Tone.plain),
+        ]),
+        ReportSection(t('שיקים שהתקבלו'), [
+          for (final c in cheques)
+            ReportRow(c.$1.customerName,
+                subtitle: [
+                  fmtDate(c.$2),
+                  if (c.$4.isNotEmpty) c.$4,
+                  t('מסמך {0}', [c.$1.number])
+                ].join(' · '),
+                value: money(c.$3)),
+        ]),
+      ],
+      note: t(
+          'הדוח מוכן להעברה לרואה החשבון (העתקה לאקסל). קובץ במבנה אחיד לרשות המסים ובקשת מספרי הקצאה מופקים בצד השרת, אחרי החיבור למערכת.'));
+}
+
+/// Daily close (Z report): what came in today and how, to check the cash drawer.
+ReportData dailyReport(GymStore s, Period p) {
+  final r = p == Period.week ? Period.week.range(s.today) : Period.today.range(s.today);
+  final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.date.compareTo(b.date));
+  double by(PayMethod m) => _sum([
+        for (final x in docs)
+          for (final l in x.lines.where((l) => l.method == m)) l.amount
+      ]);
+  final total = _sum(docs.map((x) => x.collectedNow));
+  final credits = docs.where((x) => x.isCredit).toList();
+  return ReportData(kpis: [
+    Kpi(t('נכנס'), money(total), tone: Tone.ok, sub: t('{0} מסמכים', [docs.length])),
+    Kpi(t('מזומן בקופה'), money(by(PayMethod.cash)), tone: Tone.info, sub: t('לספור ולהשוות')),
+    Kpi(t('אשראי'), money(by(PayMethod.card))),
+    Kpi(t('שיקים'), money(by(PayMethod.cheque))),
+    Kpi(t('העברות'), money(by(PayMethod.bank))),
+    Kpi(t('זיכויים'), money(-_sum(credits.map((x) => x.total))),
+        tone: credits.isEmpty ? Tone.plain : Tone.warn, sub: t('{0} מסמכים', [credits.length])),
+  ], sections: [
+    ReportSection(t('מסמכים'), [
+      for (final x in docs.reversed)
+        ReportRow(x.customerName,
+            subtitle:
+                '${fmtDate(x.date)} ${x.date.hour.toString().padLeft(2, '0')}:${x.date.minute.toString().padLeft(2, '0')}'
+                ' · ${x.number} · ${x.lines.map((l) => l.method.label).join(' + ')}',
+            value: money(x.total),
+            tone: x.isCredit ? Tone.bad : Tone.plain),
+    ]),
+  ], note: t('בסוף היום סופרים את המזומן בקופה ומשווים ל"מזומן בקופה". הפרש צריך הסבר.'));
 }
 
 // ------------------------------------------------------------------ money
@@ -664,6 +825,16 @@ List<ReportDef> get allReports => [
       ReportDef(
           'summary', ReportGroup.overview, t('סיכום העסק'), t('כל הפעילות במבט אחד, מול התקופה הקודמת'), summaryReport,
           usesPeriod: true, headline: (s) => summaryReport(s, Period.month).kpis.first.value),
+      ReportDef('accountant', ReportGroup.accounting, t('חבילה לרואה חשבון'),
+          t('מע״מ, יומן מסמכים, זיכויים, שיקים ובדיקות לפני הגשה'), accountantReport,
+          usesPeriod: true,
+          periods: const [Period.month, Period.lastMonth],
+          headline: (s) => accountantReport(s, Period.lastMonth).kpis[3].value),
+      ReportDef('daily', ReportGroup.accounting, t('סגירת קופה יומית'), t('מה נכנס היום ובאיזה אמצעי, לספירת הקופה'),
+          dailyReport,
+          usesPeriod: true,
+          periods: const [Period.today, Period.week],
+          headline: (s) => dailyReport(s, Period.today).kpis.first.value),
       ReportDef('revenue', ReportGroup.money, t('הכנסות'), t('נגבה לפי תקופה, אמצעי תשלום ומקור'), revenueReport,
           usesPeriod: true, headline: (s) => revenueReport(s, Period.month).kpis.first.value),
       ReportDef('forecast', ReportGroup.money, t('צפי ל-30 יום'), t('חיובים, גבייה ידנית ושיקים שצפויים להיכנס'),
@@ -676,7 +847,9 @@ List<ReportDef> get allReports => [
           headline: (s) => depositsReport(s, Period.month).kpis[1].value),
       ReportDef('manual', ReportGroup.collection, t('גבייה ידנית חודשית'),
           t('ממי צריך לגבות במזומן / שיק / העברה החודש'), manualMonthlyReport,
-          usesPeriod: true, headline: (s) => manualMonthlyReport(s, Period.month).kpis[2].value),
+          usesPeriod: true,
+          periods: const [Period.month, Period.lastMonth],
+          headline: (s) => manualMonthlyReport(s, Period.month).kpis[2].value),
       ReportDef('debts', ReportGroup.collection, t('חובות ופיגורים'), t('מי חייב, כמה ימים ומי חסום'), debtsReport,
           headline: (s) => debtsReport(s, Period.month).kpis.first.value),
       ReportDef('failed', ReportGroup.collection, t('חיובים שנכשלו'), t('כרטיסים שנדחו ומה לעשות'), failedReport,

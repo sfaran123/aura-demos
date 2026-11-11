@@ -9,7 +9,9 @@ import 'help.dart';
 import 'links.dart' show showSignupLinkSheet;
 import 'links_screen.dart';
 import 'plans_screen.dart';
+import '../state/reports.dart' show allReports;
 import 'report_picker.dart';
+import 'reports_screen.dart' show ReportScreen;
 import 'sales_screen.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -91,6 +93,9 @@ class _TopicTile extends StatelessWidget {
   final GuideTopic topic;
   final bool open;
 
+  void _report(BuildContext context, String id) => Navigator.push(
+      context, MaterialPageRoute(builder: (_) => ReportScreen(report: allReports.firstWhere((r) => r.id == id))));
+
   void _go(BuildContext context, GuideAction a) {
     void tab(int i) {
       Navigator.of(context).popUntil((r) => r.isFirst);
@@ -98,6 +103,10 @@ class _TopicTile extends StatelessWidget {
     }
 
     switch (a) {
+      case GuideAction.accountant:
+        _report(context, 'accountant');
+      case GuideAction.daily:
+        _report(context, 'daily');
       case GuideAction.sales:
         Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen()));
       case GuideAction.prices:

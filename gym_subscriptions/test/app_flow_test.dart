@@ -463,4 +463,62 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('10 ₪'), findsWidgets);
   });
+
+
+  testWidgets('a receipt is credited from the sales list with a reason', (t) async {
+    await boot(t);
+    final orig = store.quickPay(description: 'מגבת', lines: [PaymentLine(method: PayMethod.cash, amount: 30)]);
+    await t.pumpAndSettle();
+    await tapKey(t, 'homeSales');
+    await t.enterText(find.byKey(const Key('salesSearch')), '${orig.number}');
+    await t.pumpAndSettle();
+    await tapKey(t, 'sale-${orig.number}');
+    await tapKey(t, 'creditReceipt');
+    expect(find.text('צריך לכתוב סיבה'), findsOneWidget);
+    await t.enterText(find.byKey(const Key('creditReason')), 'טעות במחיר');
+    await t.pumpAndSettle();
+    await tapKey(t, 'creditConfirm');
+    final cr = store.receipts.last;
+    expect(cr.isCredit, isTrue);
+    expect(cr.total, -30);
+    expect(cr.reason, 'טעות במחיר');
+    expect(orig.creditable, 0);
+    expect(find.text('חשבונית מס זיכוי ${cr.number}'), findsOneWidget);
+  });
+
+  testWidgets('member card shows the payment history', (t) async {
+    await boot(t);
+    await tapKey(t, 'navMembers');
+    await tap(t, find.text('לינה סעד'));
+    expect(await seen(t, find.text('היסטוריית תשלומים')), findsOneWidget);
+    final last = store.receiptsOf('c11').first;
+    await tapKey(t, 'history-${last.number}');
+    expect(find.byKey(const Key('receiptCard')), findsOneWidget);
+    expect(find.textContaining('שיק 0041'), findsWidgets);
+  });
+
+  testWidgets('accountant package: checks, VAT and sending to the accountant', (t) async {
+    await boot(t);
+    await tapKey(t, 'navReports');
+    await tapKey(t, 'report-accountant');
+    expect(find.text('חבילה לרואה חשבון'), findsWidgets);
+    expect(await seen(t, find.text('בדיקות לפני הגשה')), findsOneWidget);
+    await tap(t, find.byKey(const Key('sendAccountant')));
+    await t.enterText(find.byKey(const Key('accountantEmail')), 'cpa@example.com');
+    await tapKey(t, 'accountantEmailSave');
+    expect(store.settings.accountantEmail, 'cpa@example.com');
+    await t.tap(find.byType(BackButton).last);
+    await t.pumpAndSettle();
+    await tapKey(t, 'report-daily');
+    expect(find.text('מזומן בקופה'), findsOneWidget);
+  });
+
+  testWidgets('settings can reset to the demo data', (t) async {
+    await boot(t);
+    store.plans.removeWhere((p) => p.id == 'p6');
+    await tapKey(t, 'navSettings');
+    await tapKey(t, 'resetDemo');
+    await tapKey(t, 'resetConfirm');
+    expect(store.plans.any((p) => p.id == 'p6'), isTrue);
+  });
 }

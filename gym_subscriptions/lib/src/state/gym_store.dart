@@ -8,18 +8,119 @@ import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/notifier.dart';
 import '../domain/settings.dart';
+import '../integration/repository.dart';
 import 'demo_data.dart';
 
 class GymStore extends SimpleNotifier {
-  GymStore({DateTime Function()? clock, bool seed = true}) : _clock = clock ?? DateTime.now {
+  /// [repository] keeps the data between runs: it is loaded here and saved
+  /// after every change. Without one (tests), everything stays in memory.
+  GymStore({DateTime Function()? clock, bool seed = true, this.repository}) : _clock = clock ?? DateTime.now {
+    final saved = repository?.load();
+    if (saved != null && _fromJson(saved)) return;
     if (seed) _seed();
+  }
+
+  final GymRepository? repository;
+  Timer? _saveTimer;
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    if (repository != null) {
+      _saveTimer?.cancel();
+      _saveTimer = Timer(const Duration(milliseconds: 400), save);
+    }
+  }
+
+  /// Writes the snapshot now (also called 0.4 s after every change).
+  Future<void> save() async {
+    _saveTimer?.cancel();
+    try {
+      await repository?.save(toJson());
+      lastSaveError = null;
+    } catch (e) {
+      lastSaveError = '$e'; // Shown nowhere yet; the backend version reports sync errors.
+    }
+  }
+
+  /// The last save failure, if any.
+  String? lastSaveError;
+
+  /// Everything the app holds, as JSON. This is also the data contract for
+  /// the AURA backend (see HANDOFF.md).
+  Map<String, dynamic> toJson() => {
+        'version': 1,
+        'language': L10n.lang.name,
+        'receiptNo': _receiptNo,
+        'idCounter': _id,
+        'settings': settings.toJson(),
+        'plans': [for (final x in plans) x.toJson()],
+        'customers': [for (final x in customers) x.toJson()],
+        'subscriptions': [for (final x in subscriptions) x.toJson()],
+        'charges': [for (final x in charges) x.toJson()],
+        'receipts': [for (final x in receipts) x.toJson()],
+        'links': [for (final x in links) x.toJson()],
+        'items': [for (final x in items) x.toJson()],
+      };
+
+  bool _fromJson(Map<String, dynamic> j) {
+    try {
+      List<Map<String, dynamic>> l(String k) =>
+          [for (final x in (j[k] as List? ?? const [])) (x as Map).cast<String, dynamic>()];
+      final s = BusinessSettings.fromJson((j['settings'] as Map).cast<String, dynamic>());
+      final p = [for (final x in l('plans')) SubscriptionPlan.fromJson(x)];
+      final c = [for (final x in l('customers')) Customer.fromJson(x)];
+      final su = [for (final x in l('subscriptions')) Subscription.fromJson(x)];
+      final ch = [for (final x in l('charges')) Charge.fromJson(x)];
+      final r = [for (final x in l('receipts')) Receipt.fromJson(x)];
+      final li = [for (final x in l('links')) SignupLink.fromJson(x)];
+      final it = [for (final x in l('items')) ShopItem.fromJson(x)];
+      settings = s;
+      plans
+        ..clear()
+        ..addAll(p);
+      customers
+        ..clear()
+        ..addAll(c);
+      subscriptions
+        ..clear()
+        ..addAll(su);
+      charges
+        ..clear()
+        ..addAll(ch);
+      receipts
+        ..clear()
+        ..addAll(r);
+      links
+        ..clear()
+        ..addAll(li);
+      items = it;
+      _receiptNo = j['receiptNo'] ?? (r.isEmpty ? 30000 : r.map((x) => x.number).reduce((a, b) => a > b ? a : b));
+      _id = j['idCounter'] ?? 1000;
+      L10n.lang = AppLang.values.asNameMap()[j['language']] ?? L10n.lang;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Back to the demo data (the saved data is replaced).
+  void resetDemo() {
+    for (final l in [plans, customers, subscriptions, charges, receipts, links]) {
+      l.clear();
+    }
+    settings = BusinessSettings();
+    items = [..._defaultItems];
+    _id = 100;
+    _seed();
+    notifyListeners();
   }
 
   final DateTime Function() _clock;
   DateTime get now => _clock();
   DateTime get today => dateOnly(now);
 
-  final BusinessSettings settings = BusinessSettings();
+  BusinessSettings settings = BusinessSettings();
   final List<SubscriptionPlan> plans = [];
   final List<Customer> customers = [];
   final List<Subscription> subscriptions = [];
@@ -30,7 +131,9 @@ class GymStore extends SimpleNotifier {
   int _id = 100;
   String _next(String p) => '$p${_id++}';
 
-  List<ShopItem> items = [
+  List<ShopItem> items = [..._defaultItems];
+
+  static final List<ShopItem> _defaultItems = [
     ShopItem('water', t('בקבוק מים'), 8),
     ShopItem('shake', t('שייק חלבון'), 22),
     ShopItem('pt', t('אימון אישי'), 180),
@@ -157,23 +260,20 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind,
-      {DateTime? at, String? customerId}) {
+      {DateTime? at, String? customerId, String? subscriptionId, String? chargeId}) {
+    final no = ++_receiptNo;
     final r = Receipt(
-        number: ++_receiptNo,
+        number: no,
         customerId: customerId,
+        subscriptionId: subscriptionId,
+        chargeId: chargeId,
         customerName: name,
         description: desc,
         kind: kind,
-        lines: lines
-            .map((l) => PaymentLine(
-                method: l.method,
-                amount: l.amount,
-                cardSource: l.cardSource,
-                installments: l.installments,
-                cheques: l.cheques,
-                cheque: l.cheque,
-                transfer: l.transfer))
-            .toList(),
+        lines: [
+          for (final (i, l) in lines.indexed)
+            l.copy()..transactionId = l.method == PayMethod.card ? (l.transactionId ?? 'TX-$no-${i + 1}') : null
+        ],
         date: at ?? now);
     receipts.add(r);
     return r;
@@ -237,7 +337,8 @@ class GymStore extends SimpleNotifier {
     );
     subscriptions.add(sub);
     if (plan.isRecurring) _schedule(sub, addMonths(s0, 1), monthly!, recurring == RecurringMethod.manual);
-    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription, customerId: customer.id);
+    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription,
+        customerId: customer.id, subscriptionId: sub.id);
     if (lines.any((l) => l.method == PayMethod.link)) {
       final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
       links.insert(
@@ -278,10 +379,75 @@ class GymStore extends SimpleNotifier {
     if (!hasLater) _schedule(sub, next, c.amount, c.manual);
     final r = _receipt(cust.name, '${plan(sub.planId)?.name ?? t('מנוי')} · ${c.dueDate.month}/${c.dueDate.year}',
         [line ?? PaymentLine(method: method, amount: c.amount)], ReceiptKind.collection,
-        customerId: cust.id);
+        customerId: cust.id, subscriptionId: sub.id, chargeId: c.id);
     notifyListeners();
     return r;
   }
+
+  // ---------- credit notes ----------
+  /// How a credit is refunded by default: card back to the card, otherwise cash.
+  PayMethod defaultRefundMethod(Receipt r) =>
+      r.lines.any((l) => l.method == PayMethod.card) ? PayMethod.card : PayMethod.cash;
+
+  /// Issues a credit note (חשבונית זיכוי) for [amount] of [original], refunded
+  /// by [method]. A fully credited monthly payment goes back to "to collect";
+  /// [cancelMembership] also ends the membership the document paid for.
+  Receipt credit(Receipt original,
+      {required double amount, required PayMethod method, String reason = '', bool cancelMembership = false}) {
+    if (original.isCredit) throw ArgumentError('A credit note cannot be credited');
+    final a = round2(amount);
+    if (a <= 0 || a > original.creditable + 0.001) {
+      throw ArgumentError('Amount must be 0 < amount <= ${original.creditable}');
+    }
+    final card = original.lines.where((l) => l.method == PayMethod.card).firstOrNull;
+    final no = ++_receiptNo;
+    final r = Receipt(
+      number: no,
+      kind: ReceiptKind.credit,
+      customerId: original.customerId,
+      customerName: original.customerName,
+      description: t('זיכוי למסמך {0} · {1}', [original.number, original.description]),
+      lines: [
+        PaymentLine(
+            method: method,
+            amount: -a,
+            transactionId: method == PayMethod.card
+                ? 'RF-$no${card?.transactionId == null ? '' : '/${card!.transactionId}'}'
+                : null)
+      ],
+      date: now,
+      creditOf: original.number,
+      reason: reason.trim().isEmpty ? null : reason.trim(),
+      subscriptionId: original.subscriptionId,
+      chargeId: original.chargeId,
+    );
+    original.credited = round2(original.credited + a);
+    final ch = original.chargeId == null ? null : charges.where((c) => c.id == original.chargeId).firstOrNull;
+    if (ch != null && original.creditable <= 0.001) {
+      ch
+        ..status = ChargeStatus.due
+        ..paidWith = null
+        ..paidAt = null;
+    }
+    final sub = original.subscriptionId == null
+        ? null
+        : subscriptions.where((s) => s.id == original.subscriptionId).firstOrNull;
+    if (cancelMembership && sub != null) {
+      sub
+        ..status = SubStatus.cancelled
+        ..cancelledAt = now
+        ..cancelEffective = today
+        ..nextCharge = null;
+      charges.removeWhere((c) => c.subscriptionId == sub.id && c.isOpen());
+    }
+    receipts.add(r);
+    notifyListeners();
+    return r;
+  }
+
+  /// Every document of a customer, newest first.
+  List<Receipt> receiptsOf(String customerId) =>
+      receipts.where((r) => r.customerId == customerId).toList().reversed.toList();
 
   /// Records that a receipt was sent. In the AURA app this calls the SMS /
   /// WhatsApp / email provider with a link to the receipt PDF.
@@ -494,6 +660,8 @@ class GymStore extends SimpleNotifier {
         lines: r.receipt.lines,
         date: r.receipt.date,
         customerId: r.receipt.customerId,
+        subscriptionId: r.receipt.subscriptionId,
+        chargeId: r.receipt.chargeId,
         kind: ReceiptKind.link));
     return r.sub;
   }
@@ -769,9 +937,14 @@ class GymStore extends SimpleNotifier {
               receipts[i].customerId ?? customers.where((c) => c.name == receipts[i].customerName).firstOrNull?.id,
           customerName: receipts[i].customerName,
           description: receipts[i].description,
-          lines: receipts[i].lines,
+          lines: [
+            for (final (k, l) in receipts[i].lines.indexed)
+              l.copy()..transactionId = l.method == PayMethod.card ? 'TX-${28001 + i}-${k + 1}' : null
+          ],
           date: receipts[i].date,
           kind: receipts[i].kind,
+          subscriptionId: receipts[i].subscriptionId,
+          chargeId: receipts[i].chargeId,
         )
     ];
     receipts

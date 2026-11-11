@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../domain/help.dart';
 import 'help.dart';
+import 'receipt_view.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
@@ -240,6 +241,8 @@ class _MemberSheet extends StatelessWidget {
                 label: Text(t('ביטול מנוי')),
               ),
           ]),
+          const SizedBox(height: 16),
+          CustomerHistory(customerId: c.id),
         ]),
       ),
     );

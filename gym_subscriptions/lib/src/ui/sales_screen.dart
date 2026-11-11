@@ -18,6 +18,7 @@ String receiptKindLabel(ReceiptKind k) => switch (k) {
       ReceiptKind.collection => t('גבייה חודשית'),
       ReceiptKind.quickPay => t('תשלום מהיר'),
       ReceiptKind.link => t('תשלום בלינק'),
+      ReceiptKind.credit => t('זיכויים'),
     };
 
 /// Every invoice-receipt issued, newest first, with search and filters.
@@ -144,7 +145,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   onTap: () => showReceiptSheet(context, x),
                   title: Text(x.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(
-                    '${s.docType.label} ${x.number} · ${fmtDate(x.date)}\n${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
+                    '${docLabel(x, s.docType)} ${x.number} · ${fmtDate(x.date)}\n${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
                     style: const TextStyle(fontSize: 12.5),
                   ),
                   isThreeLine: true,
@@ -152,7 +153,8 @@ class _SalesScreenState extends State<SalesScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(money(x.total), style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text(money(x.total),
+                            style: TextStyle(fontWeight: FontWeight.w700, color: x.isCredit ? Aura.warn : Aura.ink)),
                         if (x.sent.isNotEmpty) const Icon(Icons.mark_email_read_outlined, size: 16, color: Aura.ok),
                       ]),
                 ),

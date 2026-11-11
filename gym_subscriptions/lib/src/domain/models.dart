@@ -110,6 +110,54 @@ class SubscriptionPlan {
         prepayLastMonth: prepayLastMonth,
       );
 
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'name': name,
+        'kind': kind.name,
+        'price': price,
+        'months': months,
+        'entries': entries,
+        'validMonths': validMonths,
+        'commitMonths': commitMonths,
+        'cancelNoticeDays': cancelNoticeDays,
+        'registrationFee': registrationFee,
+        'weeklyLimit': weeklyLimit,
+        'freezeDaysPerYear': freezeDaysPerYear,
+        'maxInstallments': maxInstallments,
+        'maxCheques': maxCheques,
+        'autoRenew': autoRenew,
+        'allowCash': allowCash,
+        'allowCheques': allowCheques,
+        'onlineSignup': onlineSignup,
+        'active': active,
+        'badge': badge,
+        'prepayLastMonth': prepayLastMonth,
+      };
+
+  factory SubscriptionPlan.fromJson(Map<String, dynamic> j) => SubscriptionPlan(
+        id: j['id'],
+        name: j['name'],
+        kind: PlanKind.values.byName(j['kind']),
+        price: (j['price'] as num).toDouble(),
+        months: j['months'] ?? 1,
+        entries: j['entries'] ?? 10,
+        validMonths: j['validMonths'] ?? 3,
+        commitMonths: j['commitMonths'] ?? 0,
+        cancelNoticeDays: j['cancelNoticeDays'] ?? 30,
+        registrationFee: (j['registrationFee'] as num? ?? 0).toDouble(),
+        weeklyLimit: j['weeklyLimit'] ?? 0,
+        freezeDaysPerYear: j['freezeDaysPerYear'] ?? 0,
+        maxInstallments: j['maxInstallments'] ?? 1,
+        maxCheques: j['maxCheques'] ?? 0,
+        autoRenew: j['autoRenew'] ?? false,
+        allowCash: j['allowCash'] ?? true,
+        allowCheques: j['allowCheques'] ?? false,
+        onlineSignup: j['onlineSignup'] ?? true,
+        active: j['active'] ?? true,
+        badge: j['badge'],
+        prepayLastMonth: j['prepayLastMonth'] ?? false,
+      );
+
   /// Short feature labels shown on plan cards.
   List<String> features() {
     final f = <String>[];
@@ -161,6 +209,24 @@ class Customer {
 
   bool get hasSavedCard => savedCardLast4 != null;
   String get initial => name.trim().isEmpty ? '?' : name.trim().substring(0, 1);
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'name': name,
+        'phone': phone,
+        'idNumber': idNumber,
+        'savedCardLast4': savedCardLast4,
+        'healthDeclared': healthDeclared,
+      };
+
+  factory Customer.fromJson(Map<String, dynamic> j) => Customer(
+        id: j['id'],
+        name: j['name'],
+        phone: j['phone'],
+        idNumber: j['idNumber'],
+        savedCardLast4: j['savedCardLast4'],
+        healthDeclared: j['healthDeclared'] ?? false,
+      );
 }
 
 enum PayMethod { card, cash, cheque, bank, link }
@@ -190,8 +256,12 @@ class PaymentLine {
     this.cheques = 1,
     ChequeDetails? cheque,
     TransferDetails? transfer,
+    this.transactionId,
   })  : cheque = cheque ?? ChequeDetails(),
         transfer = transfer ?? TransferDetails();
+
+  /// Card processor's transaction id, needed to refund a card payment.
+  String? transactionId;
 
   final PayMethod method;
   double amount;
@@ -218,7 +288,43 @@ class PaymentLine {
         PayMethod.bank when transfer.isComplete => transfer.text,
         _ => '',
       };
+
+  PaymentLine copy({double? amount}) => PaymentLine(
+        method: method,
+        amount: amount ?? this.amount,
+        cardSource: cardSource,
+        installments: installments,
+        cheques: cheques,
+        cheque: cheque,
+        transfer: transfer,
+        transactionId: transactionId,
+      );
+
+  Map<String, Object?> toJson() => {
+        'method': method.name,
+        'amount': amount,
+        'cardSource': cardSource.name,
+        'installments': installments,
+        'cheques': cheques,
+        if (method == PayMethod.cheque) 'cheque': cheque.toJson(),
+        if (method == PayMethod.bank) 'transfer': transfer.toJson(),
+        if (transactionId != null) 'transactionId': transactionId,
+      };
+
+  factory PaymentLine.fromJson(Map<String, dynamic> j) => PaymentLine(
+        method: PayMethod.values.byName(j['method']),
+        amount: (j['amount'] as num).toDouble(),
+        cardSource: CardSource.values.byName(j['cardSource'] ?? 'saved'),
+        installments: j['installments'] ?? 1,
+        cheques: j['cheques'] ?? 1,
+        cheque: j['cheque'] == null ? null : ChequeDetails.fromJson(j['cheque']),
+        transfer: j['transfer'] == null ? null : TransferDetails.fromJson(j['transfer']),
+        transactionId: j['transactionId'],
+      );
 }
+
+String? _d(DateTime? d) => d?.toIso8601String();
+DateTime? _pd(Object? s) => s == null ? null : DateTime.parse(s as String);
 
 /// Israeli bank codes shown next to the number the staff types.
 const Map<String, String> israeliBanks = {
@@ -273,6 +379,16 @@ class ChequeDetails {
     final nums = count > 1 ? '${numberAt(0)}–${numberAt(count - 1)}' : number;
     return t('שיק {0} · בנק {1}{2} · סניף {3} · חשבון {4}', [nums, bank, b.isEmpty ? '' : ' ($b)', branch, account]);
   }
+
+  Map<String, Object?> toJson() =>
+      {'number': number, 'bank': bank, 'branch': branch, 'account': account, 'firstDate': _d(firstDate)};
+
+  factory ChequeDetails.fromJson(Map<String, dynamic> j) => ChequeDetails(
+      number: j['number'] ?? '',
+      bank: j['bank'] ?? '',
+      branch: j['branch'] ?? '',
+      account: j['account'] ?? '',
+      firstDate: _pd(j['firstDate']));
 }
 
 class TransferDetails {
@@ -297,6 +413,11 @@ class TransferDetails {
     final b = bankName(bank);
     return t('העברה · אסמכתא {0} · בנק {1}{2}', [reference, bank, b.isEmpty ? '' : ' ($b)']);
   }
+
+  Map<String, Object?> toJson() => {'reference': reference, 'bank': bank, 'date': _d(date)};
+
+  factory TransferDetails.fromJson(Map<String, dynamic> j) =>
+      TransferDetails(reference: j['reference'] ?? '', bank: j['bank'] ?? '', date: _pd(j['date']));
 }
 
 /// How a recurring plan is charged every month after the first payment.
@@ -355,6 +476,34 @@ class Charge {
   }
 
   bool isOpen() => status == ChargeStatus.due || status == ChargeStatus.failed;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'subscriptionId': subscriptionId,
+        'customerId': customerId,
+        'dueDate': _d(dueDate),
+        'amount': amount,
+        'manual': manual,
+        'status': status.name,
+        'paidWith': paidWith?.name,
+        'paidAt': _d(paidAt),
+        'attempts': attempts,
+        'reminders': reminders,
+      };
+
+  factory Charge.fromJson(Map<String, dynamic> j) => Charge(
+        id: j['id'],
+        subscriptionId: j['subscriptionId'],
+        customerId: j['customerId'],
+        dueDate: _pd(j['dueDate'])!,
+        amount: (j['amount'] as num).toDouble(),
+        manual: j['manual'],
+        status: ChargeStatus.values.byName(j['status']),
+        paidWith: j['paidWith'] == null ? null : PayMethod.values.byName(j['paidWith']),
+        paidAt: _pd(j['paidAt']),
+        attempts: j['attempts'] ?? 0,
+        reminders: j['reminders'] ?? 0,
+      );
 }
 
 enum SubStatus { active, pendingPayment, frozen, paymentFailed, cancelled, expired }
@@ -412,11 +561,54 @@ class Subscription {
   double prepaidAmount;
   final DateTime joinedAt;
   DateTime? cancelledAt;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'customerId': customerId,
+        'planId': planId,
+        'start': _d(start),
+        'end': _d(end),
+        'status': status.name,
+        'discountPct': discountPct,
+        'registrationWaived': registrationWaived,
+        'monthlyAmount': monthlyAmount,
+        'recurringMethod': recurringMethod?.name,
+        'entriesLeft': entriesLeft,
+        'frozenUntil': _d(frozenUntil),
+        'freezeDaysUsed': freezeDaysUsed,
+        'nextCharge': _d(nextCharge),
+        'cancelEffective': _d(cancelEffective),
+        'prepaidAmount': prepaidAmount,
+        'joinedAt': _d(joinedAt),
+        'cancelledAt': _d(cancelledAt),
+      };
+
+  factory Subscription.fromJson(Map<String, dynamic> j) => Subscription(
+        id: j['id'],
+        customerId: j['customerId'],
+        planId: j['planId'],
+        start: _pd(j['start'])!,
+        end: _pd(j['end']),
+        status: SubStatus.values.byName(j['status']),
+        discountPct: j['discountPct'] ?? 0,
+        registrationWaived: j['registrationWaived'] ?? false,
+        monthlyAmount: (j['monthlyAmount'] as num?)?.toDouble(),
+        recurringMethod: j['recurringMethod'] == null ? null : RecurringMethod.values.byName(j['recurringMethod']),
+        entriesLeft: j['entriesLeft'],
+        frozenUntil: _pd(j['frozenUntil']),
+        freezeDaysUsed: j['freezeDaysUsed'] ?? 0,
+        nextCharge: _pd(j['nextCharge']),
+        cancelEffective: _pd(j['cancelEffective']),
+        prepaidAmount: (j['prepaidAmount'] as num? ?? 0).toDouble(),
+        joinedAt: _pd(j['joinedAt']),
+        cancelledAt: _pd(j['cancelledAt']),
+      );
 }
 
-enum ReceiptKind { subscription, collection, quickPay, link }
+enum ReceiptKind { subscription, collection, quickPay, link, credit }
 
-/// A tax invoice-receipt covering every payment line of one action.
+/// A tax invoice-receipt covering every payment line of one action. A credit
+/// note ([isCredit]) has negative lines and points to the document it credits.
 class Receipt {
   Receipt({
     required this.number,
@@ -426,10 +618,30 @@ class Receipt {
     required this.date,
     this.kind = ReceiptKind.subscription,
     this.customerId,
+    this.subscriptionId,
+    this.chargeId,
+    this.creditOf,
+    this.reason,
+    this.credited = 0,
+    this.allocationNumber,
   });
 
   final ReceiptKind kind;
   final String? customerId;
+
+  /// The membership or monthly charge this document paid for, if any.
+  final String? subscriptionId;
+  final String? chargeId;
+
+  /// Credit notes: number of the credited document and why.
+  final int? creditOf;
+  final String? reason;
+
+  /// Amount already credited on this document (positive).
+  double credited;
+
+  /// Tax Authority allocation number (Israel Invoice model), set by the backend.
+  String? allocationNumber;
 
   /// Where the receipt was sent: (channel, address, when).
   final List<(String, String, DateTime)> sent = [];
@@ -440,8 +652,53 @@ class Receipt {
   final List<PaymentLine> lines;
   final DateTime date;
 
+  bool get isCredit => kind == ReceiptKind.credit;
   double get total => lines.fold(0, (a, l) => a + l.amount);
   double get collectedNow => lines.where((l) => !l.method.isDeferred).fold(0, (a, l) => a + l.amount);
+
+  /// What can still be credited on this document.
+  double get creditable => isCredit ? 0 : ((total - credited) * 100).round() / 100;
+
+  Map<String, Object?> toJson() => {
+        'number': number,
+        'kind': kind.name,
+        'customerId': customerId,
+        'customerName': customerName,
+        'description': description,
+        'date': _d(date),
+        'lines': [for (final l in lines) l.toJson()],
+        'subscriptionId': subscriptionId,
+        'chargeId': chargeId,
+        'creditOf': creditOf,
+        'reason': reason,
+        'credited': credited,
+        'allocationNumber': allocationNumber,
+        'sent': [
+          for (final s in sent) {'channel': s.$1, 'to': s.$2, 'at': _d(s.$3)}
+        ],
+      };
+
+  factory Receipt.fromJson(Map<String, dynamic> j) {
+    final r = Receipt(
+      number: j['number'],
+      kind: ReceiptKind.values.byName(j['kind']),
+      customerId: j['customerId'],
+      customerName: j['customerName'],
+      description: j['description'],
+      date: _pd(j['date'])!,
+      lines: [for (final l in j['lines'] as List) PaymentLine.fromJson(l)],
+      subscriptionId: j['subscriptionId'],
+      chargeId: j['chargeId'],
+      creditOf: j['creditOf'],
+      reason: j['reason'],
+      credited: (j['credited'] as num? ?? 0).toDouble(),
+      allocationNumber: j['allocationNumber'],
+    );
+    for (final s in (j['sent'] as List? ?? const [])) {
+      r.sent.add((s['channel'], s['to'], _pd(s['at'])!));
+    }
+    return r;
+  }
 }
 
 class ShopItem {
@@ -449,6 +706,9 @@ class ShopItem {
   final String id;
   final String name;
   final double price;
+
+  Map<String, Object?> toJson() => {'id': id, 'name': name, 'price': price};
+  factory ShopItem.fromJson(Map<String, dynamic> j) => ShopItem(j['id'], j['name'], (j['price'] as num).toDouble());
 }
 
 enum LinkStatus { waiting, paid }
@@ -497,6 +757,30 @@ class SignupLink {
   LinkStatus get status => _stage == LinkStage.paid ? LinkStatus.paid : LinkStatus.waiting;
 
   String get url => 'fitclub.aura.link/${planId == null ? 'join' : 'pay'}/$id';
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'sentTo': sentTo,
+        'createdAt': _d(createdAt),
+        'planId': planId,
+        'customerId': customerId,
+        'amount': amount,
+        'stage': _stage.name,
+        'timeline': {for (final e in timeline.entries) e.key.name: _d(e.value)},
+      };
+
+  factory SignupLink.fromJson(Map<String, dynamic> j) => SignupLink(
+        id: j['id'],
+        sentTo: j['sentTo'],
+        createdAt: _pd(j['createdAt'])!,
+        planId: j['planId'],
+        customerId: j['customerId'],
+        amount: (j['amount'] as num?)?.toDouble(),
+        stage: LinkStage.values.byName(j['stage']),
+        timeline: {
+          for (final e in (j['timeline'] as Map).entries) LinkStage.values.byName(e.key): _pd(e.value)!,
+        },
+      );
 }
 
 /// Money in shekels, no trailing ".0".

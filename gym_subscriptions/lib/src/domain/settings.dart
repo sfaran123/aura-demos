@@ -67,7 +67,7 @@ extension BusinessTypeInfo on BusinessType {
   /// Reports that matter most for this kind of business.
   Set<String> get recommendedReports {
     const all = {
-      'summary', 'revenue', 'forecast', 'cheques', 'deposits', 'manual', 'debts', 'failed', //
+      'summary', 'accountant', 'daily', 'revenue', 'forecast', 'cheques', 'deposits', 'manual', 'debts', 'failed', //
       'active', 'expiring', 'joins', 'frozen', 'links'
     };
     return switch (this) {
@@ -80,6 +80,8 @@ extension BusinessTypeInfo on BusinessType {
         all.difference({'deposits', 'frozen'}),
       BusinessType.beauty || BusinessType.clinic => {
           'summary',
+          'accountant',
+          'daily',
           'revenue',
           'forecast',
           'manual',
@@ -140,6 +142,90 @@ class BusinessSettings {
   Set<Channel> receiptChannels = {Channel.whatsapp};
   Set<Channel> reminderChannels = {Channel.whatsapp, Channel.sms};
 
+  /// Where the monthly accountant package is sent.
+  String accountantEmail = '';
+
+  /// Staff may issue credit notes (refunds). Off = owner only, in the real app.
+  bool staffCanRefund = true;
+
   /// Discount steps the counter may offer.
   List<int> discountSteps() => [0, 5, 10, 15, 20, 25, 30, 40, 50].where((d) => d <= staffMaxDiscountPct).toList();
+
+  Map<String, Object?> toJson() => {
+        'businessName': businessName,
+        'businessId': businessId,
+        'businessType': businessType.name,
+        'enabledReports': enabledReports.toList(),
+        'docType': docType.name,
+        'vatPct': vatPct,
+        'enabledMethods': [for (final m in enabledMethods) m.name],
+        'maxInstallments': maxInstallments,
+        'maxCheques': maxCheques,
+        'allowStandingOrder': allowStandingOrder,
+        'allowManualMonthly': allowManualMonthly,
+        'requireHealthDeclaration': requireHealthDeclaration,
+        'requireIdNumber': requireIdNumber,
+        'freezeMinDays': freezeMinDays,
+        'freezeFeePerMonth': freezeFeePerMonth,
+        'staffMaxDiscountPct': staffMaxDiscountPct,
+        'staffCanWaiveRegistration': staffCanWaiveRegistration,
+        'chargeDay': chargeDay.name,
+        'retryAttempts': retryAttempts,
+        'retryDays': retryDays,
+        'graceDays': graceDays,
+        'blockEntryWhenOverdue': blockEntryWhenOverdue,
+        'manualReminderDaysBefore': manualReminderDaysBefore,
+        'renewalReminderDaysBefore': renewalReminderDaysBefore,
+        'expiringCardReminder': expiringCardReminder,
+        'signupLinkEnabled': signupLinkEnabled,
+        'linkSlug': linkSlug,
+        'receiptChannels': [for (final c in receiptChannels) c.name],
+        'reminderChannels': [for (final c in reminderChannels) c.name],
+        'accountantEmail': accountantEmail,
+        'staffCanRefund': staffCanRefund,
+      };
+
+  /// Reads settings saved by [toJson]; missing keys keep their defaults.
+  static BusinessSettings fromJson(Map<String, dynamic> j) {
+    final s = BusinessSettings();
+    T? g<T>(String k) => j[k] is T ? j[k] as T : null;
+    s.businessName = g<String>('businessName') ?? s.businessName;
+    s.businessId = g<String>('businessId') ?? s.businessId;
+    s.businessType = BusinessType.values.asNameMap()[j['businessType']] ?? s.businessType;
+    if (j['enabledReports'] is List) s.enabledReports = {...(j['enabledReports'] as List).cast<String>()};
+    s.docType = DocType.values.asNameMap()[j['docType']] ?? s.docType;
+    s.vatPct = (g<num>('vatPct') ?? s.vatPct).toDouble();
+    if (j['enabledMethods'] is List) {
+      s.enabledMethods = {for (final m in j['enabledMethods'] as List) PayMethod.values.byName(m)};
+    }
+    s.maxInstallments = g<int>('maxInstallments') ?? s.maxInstallments;
+    s.maxCheques = g<int>('maxCheques') ?? s.maxCheques;
+    s.allowStandingOrder = g<bool>('allowStandingOrder') ?? s.allowStandingOrder;
+    s.allowManualMonthly = g<bool>('allowManualMonthly') ?? s.allowManualMonthly;
+    s.requireHealthDeclaration = g<bool>('requireHealthDeclaration') ?? s.requireHealthDeclaration;
+    s.requireIdNumber = g<bool>('requireIdNumber') ?? s.requireIdNumber;
+    s.freezeMinDays = g<int>('freezeMinDays') ?? s.freezeMinDays;
+    s.freezeFeePerMonth = (g<num>('freezeFeePerMonth') ?? s.freezeFeePerMonth).toDouble();
+    s.staffMaxDiscountPct = g<int>('staffMaxDiscountPct') ?? s.staffMaxDiscountPct;
+    s.staffCanWaiveRegistration = g<bool>('staffCanWaiveRegistration') ?? s.staffCanWaiveRegistration;
+    s.chargeDay = ChargeDay.values.asNameMap()[j['chargeDay']] ?? s.chargeDay;
+    s.retryAttempts = g<int>('retryAttempts') ?? s.retryAttempts;
+    if (j['retryDays'] is List) s.retryDays = (j['retryDays'] as List).cast<int>();
+    s.graceDays = g<int>('graceDays') ?? s.graceDays;
+    s.blockEntryWhenOverdue = g<bool>('blockEntryWhenOverdue') ?? s.blockEntryWhenOverdue;
+    s.manualReminderDaysBefore = g<int>('manualReminderDaysBefore') ?? s.manualReminderDaysBefore;
+    s.renewalReminderDaysBefore = g<int>('renewalReminderDaysBefore') ?? s.renewalReminderDaysBefore;
+    s.expiringCardReminder = g<bool>('expiringCardReminder') ?? s.expiringCardReminder;
+    s.signupLinkEnabled = g<bool>('signupLinkEnabled') ?? s.signupLinkEnabled;
+    s.linkSlug = g<String>('linkSlug') ?? s.linkSlug;
+    if (j['receiptChannels'] is List) {
+      s.receiptChannels = {for (final c in j['receiptChannels'] as List) Channel.values.byName(c)};
+    }
+    if (j['reminderChannels'] is List) {
+      s.reminderChannels = {for (final c in j['reminderChannels'] as List) Channel.values.byName(c)};
+    }
+    s.accountantEmail = g<String>('accountantEmail') ?? s.accountantEmail;
+    s.staffCanRefund = g<bool>('staffCanRefund') ?? s.staffCanRefund;
+    return s;
+  }
 }

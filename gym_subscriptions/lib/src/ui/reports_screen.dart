@@ -27,6 +27,8 @@ IconData _icon(String id) => switch (id) {
       'frozen' => Icons.ac_unit,
       'links' => Icons.link,
       'summary' => Icons.dashboard_outlined,
+      'accountant' => Icons.account_balance_outlined,
+      'daily' => Icons.point_of_sale,
       _ => Icons.insert_chart_outlined,
     };
 
@@ -230,7 +232,7 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
-  Period period = Period.month;
+  late Period period = widget.report.periods?.first ?? Period.month;
   final Set<String> expanded = {};
   static const _rowsShown = 15;
 
@@ -270,6 +272,45 @@ class _ReportScreenState extends State<ReportScreen> {
           ),
         ),
       );
+
+  Future<void> _sendToAccountant(BuildContext context, ReportData data, String title) async {
+    final store = StoreScope.read(context);
+    var email = store.settings.accountantEmail;
+    if (email.isEmpty) {
+      final c = TextEditingController();
+      final v = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(t('המייל של רואה החשבון')),
+          content: TextField(
+            key: const Key('accountantEmail'),
+            controller: c,
+            keyboardType: TextInputType.emailAddress,
+            textDirection: TextDirection.ltr,
+            decoration: const InputDecoration(hintText: 'name@example.com'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t('ביטול'))),
+            FilledButton(
+                key: const Key('accountantEmailSave'),
+                onPressed: () => Navigator.pop(ctx, c.text.trim()),
+                child: Text(t('שמירה'))),
+          ],
+        ),
+      );
+      if (v == null || !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v)) {
+        if (v != null && context.mounted) showDone(context, t('כתובת המייל לא תקינה'));
+        return;
+      }
+      email = v;
+      store.settings.accountantEmail = v;
+      store.touch();
+    }
+    await Clipboard.setData(ClipboardData(text: data.toCsv('$title · ${period.label}')));
+    if (context.mounted) {
+      showDone(context, t('הדוח הועתק. בגרסה המחוברת הוא יישלח ל-{0} כקובץ אקסל', [email]));
+    }
+  }
 
   Widget _row(BuildContext context, ReportRow row) {
     final store = StoreScope.of(context);
@@ -358,10 +399,21 @@ class _ReportScreenState extends State<ReportScreen> {
         if (r.usesPeriod) ...[
           const SizedBox(height: 10),
           ChoiceRow<Period>(
-            values: r.id == 'manual' ? const [Period.month, Period.lastMonth] : Period.values,
-            selected: r.id == 'manual' && period != Period.lastMonth ? Period.month : period,
+            values: r.periods ?? Period.values,
+            selected: (r.periods ?? Period.values).contains(period) ? period : (r.periods ?? Period.values).first,
             label: (p) => p.label,
             onSelected: (p) => setState(() => period = p),
+          ),
+        ],
+        if (r.id == 'accountant') ...[
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: const Key('sendAccountant'),
+            onPressed: () => _sendToAccountant(context, data, r.title),
+            icon: const Icon(Icons.forward_to_inbox_outlined),
+            label: Text(store.settings.accountantEmail.isEmpty
+                ? t('שליחה לרואה החשבון')
+                : t('שליחה ל-{0}', [store.settings.accountantEmail])),
           ),
         ],
         if (openCharges.isNotEmpty) ...[

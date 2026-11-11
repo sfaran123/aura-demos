@@ -288,7 +288,57 @@ class SettingsScreen extends StatelessWidget {
               (c) => s.receiptChannels.contains(c) ? s.receiptChannels.remove(c) : s.receiptChannels.add(c),
               (c) => c.label),
         ]),
-        Note(t('ההגדרות נשמרות במכשיר בגרסת ההדגמה. בחיבור למערכת AURA הן נשמרות בשרת לכל הסניפים.')),
+        group(t('הנהלת חשבונות'), t('זיכויים ודוחות לרואה החשבון.'), [
+          ListTile(
+            key: const Key('accountantEmailTile'),
+            title: Text(t('המייל של רואה החשבון')),
+            subtitle: Text(s.accountantEmail.isEmpty ? t('לא הוגדר') : s.accountantEmail),
+            trailing: const Icon(Icons.edit_outlined),
+            onTap: () async {
+              final v = await _askText(context, t('המייל של רואה החשבון'), s.accountantEmail, latin: true);
+              if (v != null) set(() => s.accountantEmail = v.trim());
+            },
+          ),
+          sw(t('הצוות יכול להפיק זיכוי'), s.staffCanRefund, (v) => s.staffCanRefund = v,
+              key: const Key('staffCanRefund'), sub: t('כבוי = רק בעל העסק (בחיבור למערכת, לפי הרשאות)')),
+        ]),
+        group(t('נתונים'), '', [
+          ListTile(
+            leading: const Icon(Icons.save_outlined, color: Aura.ok),
+            title: Text(t('הנתונים נשמרים במכשיר')),
+            subtitle: Text(t('כל פעולה נשמרת מיד, גם כשסוגרים את האפליקציה. בחיבור למערכת AURA הנתונים יישמרו בשרת.'),
+                style: const TextStyle(fontSize: 12.5)),
+          ),
+          ListTile(
+            key: const Key('resetDemo'),
+            leading: const Icon(Icons.restart_alt, color: Aura.warn),
+            title: Text(t('איפוס לנתוני הדגמה'), style: const TextStyle(color: Aura.warn)),
+            subtitle: Text(t('מוחק את מה שנעשה במכשיר ומחזיר את נתוני ההדגמה'), style: const TextStyle(fontSize: 12.5)),
+            onTap: () async {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(t('לאפס את הנתונים?')),
+                  content:
+                      Text(t('כל המנויים, התשלומים וההגדרות שנעשו במכשיר יימחקו ויוחלפו בנתוני ההדגמה. אי אפשר לבטל.')),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('ביטול'))),
+                    FilledButton(
+                      key: const Key('resetConfirm'),
+                      style: FilledButton.styleFrom(backgroundColor: Aura.warn),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: Text(t('איפוס')),
+                    ),
+                  ],
+                ),
+              );
+              if (ok == true) {
+                store.resetDemo();
+                if (context.mounted) showDone(context, t('הנתונים אופסו לנתוני ההדגמה'));
+              }
+            },
+          ),
+        ]),
         const SizedBox(height: 8),
         Text(t('אמצעי תשלום פעילים: {0}', [s.enabledMethods.map((m) => m.label).join(' · ')]),
             style: const TextStyle(fontSize: 12, color: Aura.muted)),

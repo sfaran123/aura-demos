@@ -120,6 +120,10 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
   }
 }
 
+/// The document's name as printed: invoice-receipt, receipt, or a credit note.
+String docLabel(Receipt r, DocType type) =>
+    r.isCredit ? (type == DocType.taxInvoiceReceipt ? t('חשבונית מס זיכוי') : t('קבלת החזר')) : type.label;
+
 /// The receipt as the customer gets it, with the send panel under it.
 Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBottomSheet(
       context: context,
@@ -129,8 +133,24 @@ Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBotto
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
         child: SingleChildScrollView(
-            child:
-                Column(children: [ReceiptCard(receipt: r), const SizedBox(height: 10), ReceiptSendPanel(receipt: r)])),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          ReceiptCard(receipt: r),
+          const SizedBox(height: 10),
+          ReceiptSendPanel(receipt: r),
+          if (!r.isCredit && r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              key: const Key('creditReceipt'),
+              style: OutlinedButton.styleFrom(foregroundColor: Aura.warn, minimumSize: const Size.fromHeight(44)),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await showCreditSheet(context, r);
+              },
+              icon: const Icon(Icons.undo),
+              label: Text(t('זיכוי / ביטול עסקה')),
+            ),
+          ],
+        ])),
       ),
     );
 
@@ -157,14 +177,25 @@ class ReceiptCard extends StatelessWidget {
           Expanded(
             child: Text(s.businessName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           ),
-          Pill('${s.docType.label} ${r.number}', tone: PillTone.info),
+          Pill('${docLabel(r, s.docType)} ${r.number}', tone: r.isCredit ? PillTone.bad : PillTone.info),
         ]),
         if (s.businessId.isNotEmpty)
           Text(t('ח.פ / ע.מ {0}', [s.businessId]), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
         const SizedBox(height: 4),
         Text('${fmtDate(r.date)} · ${r.customerName}', style: const TextStyle(color: Aura.muted)),
+        if (r.allocationNumber != null)
+          Text(t('מספר הקצאה {0}', [r.allocationNumber]), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
         const Divider(height: 20),
         Text(r.description, style: const TextStyle(fontWeight: FontWeight.w500)),
+        if (r.reason != null)
+          Text(t('סיבה: {0}', [r.reason]), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+        if (!r.isCredit && r.credited > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Pill(
+                r.creditable <= 0 ? t('זוכה במלואו') : t('זוכה {0} מתוך {1}', [money(r.credited), money(r.total)]),
+                tone: PillTone.bad),
+          ),
         const SizedBox(height: 6),
         for (final l in r.lines) ...[
           line(
@@ -181,5 +212,187 @@ class ReceiptCard extends StatelessWidget {
         line(t('סה״כ'), money(r.total), bold: true),
       ]),
     );
+  }
+}
+
+/// Issues a credit note for a receipt: how much, how the money goes back, and why.
+Future<void> showCreditSheet(BuildContext context, Receipt r) async {
+  final store = StoreScope.read(context);
+  final amount = TextEditingController(text: _fmt(r.creditable));
+  final reason = TextEditingController();
+  var method = store.defaultRefundMethod(r);
+  var cancelSub = false;
+  final sub = r.subscriptionId == null ? null : store.subscriptions.where((s) => s.id == r.subscriptionId).firstOrNull;
+  final methods = [
+    if (r.lines.any((l) => l.method == PayMethod.card)) PayMethod.card,
+    PayMethod.cash,
+    PayMethod.bank,
+  ];
+  final done = await showModalBottomSheet<Receipt>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
+      final a = double.tryParse(amount.text) ?? 0;
+      final problem = a <= 0
+          ? t('צריך סכום לזיכוי')
+          : a > r.creditable + 0.001
+              ? t('אפשר לזכות עד {0}', [money(r.creditable)])
+              : reason.text.trim().length < 2
+                  ? t('צריך לכתוב סיבה')
+                  : null;
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+            Text(t('זיכוי למסמך {0}', [r.number]), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text('${r.customerName} · ${r.description} · ${money(r.total)}', style: const TextStyle(color: Aura.muted)),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  key: const Key('creditAmount'),
+                  controller: amount,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                  decoration: InputDecoration(labelText: t('סכום לזיכוי'), suffixText: '₪'),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                key: const Key('creditFull'),
+                onPressed: () => setState(() => amount.text = _fmt(r.creditable)),
+                child: Text(t('הכל')),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Text(t('איך מחזירים את הכסף?'), style: const TextStyle(fontSize: 13, color: Aura.muted)),
+            const SizedBox(height: 6),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final m in methods)
+                ChoiceChip(
+                  key: Key('refund-${m.name}'),
+                  label: Text(m == PayMethod.card ? t('החזר לכרטיס') : m.label),
+                  selected: method == m,
+                  labelStyle: TextStyle(color: method == m ? Colors.white : Aura.ink),
+                  onSelected: (_) => setState(() => method = m),
+                ),
+            ]),
+            const SizedBox(height: 12),
+            TextField(
+              key: const Key('creditReason'),
+              controller: reason,
+              decoration:
+                  InputDecoration(labelText: t('סיבה'), hintText: t('לדוגמה: חיוב כפול, ביטול מנוי, טעות במחיר')),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (sub != null && sub.status != SubStatus.cancelled)
+              SwitchListTile(
+                key: const Key('creditCancelSub'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(t('לבטל גם את המנוי')),
+                subtitle: Text(t('המנוי מסתיים היום והחיובים הפתוחים נמחקים'), style: const TextStyle(fontSize: 12.5)),
+                value: cancelSub,
+                onChanged: (v) => setState(() => cancelSub = v),
+              ),
+            const SizedBox(height: 6),
+            Note(t('תופק חשבונית זיכוי עם מספר חדש. המסמך המקורי לא נמחק ולא משתנה, כנדרש בניהול ספרים.')),
+            if (problem != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(problem, style: const TextStyle(color: Aura.warn)),
+              ),
+            const SizedBox(height: 10),
+            FilledButton(
+              key: const Key('creditConfirm'),
+              style: FilledButton.styleFrom(backgroundColor: Aura.warn),
+              onPressed: problem != null
+                  ? null
+                  : () => Navigator.pop(ctx,
+                      store.credit(r, amount: a, method: method, reason: reason.text, cancelMembership: cancelSub)),
+              child: Text(t('הפקת זיכוי · {0}', [money(a)])),
+            ),
+          ]),
+        ),
+      );
+    }),
+  );
+  if (done != null && context.mounted) {
+    showDone(context, t('הופקה {0} {1}', [docLabel(done, store.settings.docType), done.number]));
+    await showReceiptSheet(context, done);
+  }
+}
+
+String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+
+/// Everything a customer paid, was credited, and still owes.
+class CustomerHistory extends StatelessWidget {
+  const CustomerHistory({super.key, required this.customerId});
+  final String customerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final docs = store.receiptsOf(customerId);
+    final paid = round2(docs.fold(0.0, (a, r) => a + r.collectedNow));
+    final open = store.charges.where((c) => c.customerId == customerId && c.isOpen()).toList();
+    final owed = round2(open.fold(0.0, (a, c) => a + c.amount));
+    final type = store.settings.docType;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SectionLabel(t('היסטוריית תשלומים'), trailing: Text('${docs.length}', style: const TextStyle(color: Aura.muted))),
+      const SizedBox(height: 4),
+      Row(children: [
+        Expanded(
+          child: Panel(
+            padding: const EdgeInsets.all(10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t('שולם בסך הכל'), style: const TextStyle(fontSize: 12, color: Aura.muted)),
+              Text(money(paid),
+                  key: const Key('historyPaid'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17)),
+            ]),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Panel(
+            padding: const EdgeInsets.all(10),
+            color: owed > 0 ? Aura.warnBg : null,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t('פתוח לתשלום'), style: const TextStyle(fontSize: 12, color: Aura.muted)),
+              Text(money(owed),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: owed > 0 ? Aura.warn : Aura.ok)),
+            ]),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      if (docs.isEmpty) Note(t('עוד אין מסמכים ללקוח הזה.')),
+      if (docs.isNotEmpty)
+        Panel(
+          padding: EdgeInsets.zero,
+          child: Column(children: [
+            for (final (i, r) in docs.take(12).indexed) ...[
+              if (i > 0) const Divider(height: 1),
+              ListTile(
+                key: Key('history-${r.number}'),
+                dense: true,
+                onTap: () => showReceiptSheet(context, r),
+                title: Text(r.description, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text('${docLabel(r, type)} ${r.number} · ${fmtDate(r.date)}'
+                    '${r.credited > 0 ? ' · ${t('זוכה')}' : ''}'),
+                trailing: Text(money(r.total),
+                    style: TextStyle(fontWeight: FontWeight.w700, color: r.isCredit ? Aura.warn : Aura.ink)),
+              ),
+            ],
+            if (docs.length > 12)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(t('ועוד {0} במסך המכירות', [docs.length - 12]), style: const TextStyle(color: Aura.muted)),
+              ),
+          ]),
+        ),
+    ]);
   }
 }

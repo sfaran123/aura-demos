@@ -17,7 +17,7 @@ Flutter module for gyms: opening memberships at the counter, quick payments, spl
 | Members | filters for every status with counts (active, awaiting payment, debt, failed charge, frozen, ending, being cancelled, ended), member card: freeze, end freeze, renew/change plan, pay, cancel (respects notice and commitment) |
 | Plans (Settings → plans) | create/edit: type (recurring / term / punch card), price, months/entries/validity, commitment, cancel notice, registration fee, weekly limit, freeze days, max installments/cheques, auto-renew, cash/cheques allowed, available on link, active, **last month paid upfront** (join pays first + last month; cancellation needs a month's notice and the last month is not charged) |
 | Settings | document type, VAT, payment methods, installments, standing order, manual monthly, charge day, retries, grace days, entry blocking, reminders, freeze rules, staff permissions, sign-up link, receipt channels |
-| Reports (tab) | 13 reports, each two taps away, grouped: Money (revenue, 30-day forecast, cheques to clear, last-month deposits), Collection & debt (**monthly manual collection** – who still owes cash/cheque/transfer this month, debts and arrears, failed charges), Members (active and MRR, ending and renewals, joins/cancellations and churn, frozen), Links (funnel). Period chips, KPI tiles, copy to Excel |
+| Reports (tab) | 15 reports, each two taps away, grouped: Money (revenue, 30-day forecast, cheques to clear, last-month deposits), Collection & debt (**monthly manual collection** – who still owes cash/cheque/transfer this month, debts and arrears, failed charges), Members (active and MRR, ending and renewals, joins/cancellations and churn, frozen), Links (funnel). Period chips, KPI tiles, copy to Excel |
 | Sent links (live) | every payment/sign-up link with its stage – sent, opened, filled details, signed, paid, failed – filters by stage, and a live timeline that updates as the customer moves on (with a built-in live demo) |
 | Business summary | one report for the whole business vs the previous period: revenue, joins/cancellations, collection rate, open debt, link conversion, 6-month trend, best sellers, what needs attention |
 | Collect from reports | debts, failed charges and manual collection rows have a "Collect" button (cash / card / cheque / transfer / link / reminder) |
@@ -27,8 +27,14 @@ Flutter module for gyms: opening memberships at the counter, quick payments, spl
 | Cheques & transfers | cheque number, bank, branch, account and first date (consecutive monthly cheques); transfer reference, bank and date – required before confirming |
 | Business type | gym, studio, CrossFit, martial arts, pool, dance, beauty/pedicure, clinic, classes, kids club – each with a recommended report set; reports can be turned on/off per business |
 | Help & guide | "?" on every screen (why it helps, what you get) and a searchable user guide with numbered steps and "take me there" |
+| Credit notes | full or partial credit for any document (refund to card / cash / transfer, reason required); original stays unchanged; a fully credited monthly payment returns to "To collect"; option to cancel the membership |
+| Customer history | member card shows total paid, open balance and every document |
+| Accountant | monthly package (VAT summary, document journal with numbering check, receipts by method, cheques, credits, allocation-number alerts) and daily cash close; send to the accountant's email |
+| Data | saved on the device (JSON) after every change; reset to demo data in Settings |
 | Languages | Hebrew, Arabic and English (Settings → language); RTL/LTR switch, Cairo font for Arabic |
 | Customer link | plan → details + health declaration + terms → card payment → active membership (previewed inside the app) |
+
+For connecting the backend and card processing, see **[HANDOFF.md](HANDOFF.md)**.
 
 ## Code layout
 

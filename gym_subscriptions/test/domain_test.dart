@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:aura_gym/src/domain/checkout.dart';
 import 'package:aura_gym/src/domain/models.dart';
 import 'package:aura_gym/src/domain/settings.dart';
+import 'package:aura_gym/src/integration/repository.dart';
 import 'package:aura_gym/src/state/gym_store.dart';
 import 'package:aura_gym/src/state/reports.dart';
 
@@ -351,6 +352,195 @@ void main() {
       final d = debtsReport(st, Period.month);
       expect(d.kpis.first.value,
           money(st.charges.where((c) => c.isOpen() && c.daysOverdue(st.today) > 0).fold(0.0, (a, c) => a + c.amount)));
+    });
+  });
+
+
+  group('credit notes', () {
+    Receipt paidCollection(GymStore st) =>
+        st.receipts.lastWhere((r) => r.kind == ReceiptKind.collection && r.chargeId != null);
+
+    test('a full credit reopens the monthly charge and is a negative document', () {
+      final st = newStore();
+      final orig = paidCollection(st);
+      final ch = st.charges.firstWhere((c) => c.id == orig.chargeId);
+      expect(ch.status, ChargeStatus.paid);
+      final before = st.receipts.length;
+      final cr = st.credit(orig, amount: orig.total, method: PayMethod.cash, reason: 'חיוב כפול');
+      expect(st.receipts.length, before + 1);
+      expect(cr.isCredit, isTrue);
+      expect(cr.total, -orig.total);
+      expect(cr.creditOf, orig.number);
+      expect(cr.number, greaterThan(orig.number));
+      expect(orig.creditable, 0);
+      expect(ch.status, ChargeStatus.due);
+      expect(() => st.credit(orig, amount: 1, method: PayMethod.cash), throwsArgumentError);
+      expect(() => st.credit(cr, amount: 1, method: PayMethod.cash), throwsArgumentError);
+    });
+
+    test('a partial credit keeps the charge paid and allows the rest later', () {
+      final st = newStore();
+      final orig = paidCollection(st);
+      final ch = st.charges.firstWhere((c) => c.id == orig.chargeId);
+      st.credit(orig, amount: 50, method: PayMethod.cash, reason: 'הנחה');
+      expect(ch.status, ChargeStatus.paid);
+      expect(orig.creditable, closeTo(orig.total - 50, 0.001));
+      expect(() => st.credit(orig, amount: orig.total, method: PayMethod.cash), throwsArgumentError);
+    });
+
+    test('card payments are refunded to the card by default, with a transaction reference', () {
+      final st = newStore();
+      final orig = st.receipts.lastWhere((r) => !r.isCredit && r.lines.any((l) => l.method == PayMethod.card));
+      expect(orig.lines.firstWhere((l) => l.method == PayMethod.card).transactionId, isNotNull);
+      expect(st.defaultRefundMethod(orig), PayMethod.card);
+      final cr = st.credit(orig, amount: orig.total, method: PayMethod.card, reason: 'x');
+      expect(cr.lines.single.transactionId, startsWith('RF-'));
+    });
+
+    test('credit can cancel the membership it paid for', () {
+      final st = newStore();
+      final c = st.customers.firstWhere((c) => c.id == 'c1');
+      final r = st.openSubscription(
+        customer: c,
+        plan: st.plan('p1')!,
+        start: StartOption.today,
+        discountPct: 0,
+        waiveRegistration: false,
+        lines: [PaymentLine(method: PayMethod.cash, amount: 299)],
+        recurring: RecurringMethod.manual,
+      );
+      st.credit(r.receipt, amount: 299, method: PayMethod.cash, reason: 'התחרט', cancelMembership: true);
+      expect(r.sub.status, SubStatus.cancelled);
+      expect(st.charges.where((x) => x.subscriptionId == r.sub.id && x.isOpen()), isEmpty);
+    });
+
+    test('revenue drops by the credited amount', () {
+      final st = newStore();
+      final before = revenueReport(st, Period.today).kpis.first.value;
+      final r = st.quickPay(description: 'x', lines: [PaymentLine(method: PayMethod.cash, amount: 100)]);
+      expect(revenueReport(st, Period.today).kpis.first.value, isNot(before));
+      st.credit(r, amount: 100, method: PayMethod.cash, reason: 'x');
+      expect(revenueReport(st, Period.today).kpis.first.value, before);
+    });
+  });
+
+  group('customer history', () {
+    test('lists every document of the customer, newest first', () {
+      final st = newStore();
+      final c = st.customers.firstWhere((c) => c.id == 'c1');
+      st.quickPay(customer: c, description: 'מגבת', lines: [PaymentLine(method: PayMethod.cash, amount: 30)]);
+      final h = st.receiptsOf('c1');
+      expect(h.first.description, 'מגבת');
+      expect(h.every((r) => r.customerId == 'c1'), isTrue);
+      for (var i = 1; i < h.length; i++) {
+        expect(h[i - 1].number, greaterThan(h[i].number));
+      }
+    });
+  });
+
+  group('saving data', () {
+    test('everything survives a restart through the repository', () {
+      final repo = MemoryGymRepository();
+      final a = GymStore(clock: () => fixedNow, repository: repo);
+      a.settings.businessName = 'Studio X';
+      a.settings.accountantEmail = 'cpa@example.com';
+      final r = a.quickPay(
+          description: 'שיקים',
+          lines: [
+            PaymentLine(
+                method: PayMethod.cheque,
+                amount: 300,
+                cheques: 3,
+                cheque: ChequeDetails(number: '1001', bank: '12', branch: '614', account: '338210'))
+          ]);
+      a.credit(r, amount: 100, method: PayMethod.cash, reason: 'x');
+      a.receipts.last.sent.add(('SMS', '052-1111111', fixedNow));
+      repo.data = a.toJson();
+
+      final b = GymStore(clock: () => fixedNow, repository: repo);
+      expect(b.settings.businessName, 'Studio X');
+      expect(b.settings.accountantEmail, 'cpa@example.com');
+      expect(b.receipts.length, a.receipts.length);
+      expect(b.customers.length, a.customers.length);
+      expect(b.subscriptions.length, a.subscriptions.length);
+      expect(b.charges.length, a.charges.length);
+      expect(b.links.length, a.links.length);
+      expect(b.items.length, a.items.length);
+      final r2 = b.receipts.firstWhere((x) => x.number == r.number);
+      expect(r2.credited, 100);
+      expect(r2.lines.single.cheque.number, '1001');
+      expect(b.receipts.last.sent.single.$1, 'SMS');
+      expect(b.toJson().toString(), a.toJson().toString());
+      // New numbers continue after the saved ones.
+      final next = b.quickPay(description: 'x', lines: [PaymentLine(method: PayMethod.cash, amount: 1)]);
+      expect(next.number, a.receipts.map((x) => x.number).reduce((x, y) => x > y ? x : y) + 1);
+    });
+
+    test('a broken snapshot falls back to demo data', () {
+      final repo = MemoryGymRepository()..data = {'settings': 'nonsense'};
+      final st = GymStore(clock: () => fixedNow, repository: repo);
+      expect(st.plans, isNotEmpty);
+    });
+
+    test('settings round-trip keeps every field', () {
+      final s = BusinessSettings()
+        ..vatPct = 17
+        ..businessType = BusinessType.beauty
+        ..enabledMethods = {PayMethod.cash}
+        ..retryDays = [2, 5]
+        ..staffCanRefund = false;
+      final b = BusinessSettings.fromJson(s.toJson());
+      expect(b.toJson().toString(), s.toJson().toString());
+    });
+
+    test('reset brings back the demo data', () {
+      final st = newStore();
+      st.plans.clear();
+      st.resetDemo();
+      expect(st.plans, isNotEmpty);
+      expect(st.settings.businessName, 'Fit Club');
+    });
+  });
+
+  group('accountant package', () {
+    test('VAT is split out of the gross and credits are deducted', () {
+      final st = newStore();
+      final d = accountantReport(st, Period.month);
+      final docs = st.receipts.where((r) => r.date.year == fixedNow.year && r.date.month == fixedNow.month);
+      final gross = docs.where((r) => !r.isCredit).fold(0.0, (a, r) => a + r.total);
+      expect(d.kpis.first.value, money(gross));
+      final vat = round2(gross * 18 / 118);
+      expect(d.kpis[3].value, money(vat));
+      final r = st.quickPay(description: 'x', lines: [PaymentLine(method: PayMethod.cash, amount: 118)]);
+      st.credit(r, amount: 118, method: PayMethod.cash, reason: 'x');
+      final d2 = accountantReport(st, Period.month);
+      expect(d2.kpis[3].value, money(vat)); // +18 VAT on the sale, -18 on the credit
+    });
+
+    test('document numbers are continuous, and a gap is reported', () {
+      final st = newStore();
+      expect(accountantReport(st, Period.month).kpis[4].sub, isNot(contains('חסרים')));
+      final mid = st.receipts.where((r) => r.date.month == fixedNow.month).toList()[3];
+      st.receipts.remove(mid);
+      final d = accountantReport(st, Period.month);
+      expect(d.kpis[4].subTone, Tone.bad);
+      expect(d.sections.firstWhere((x) => x.title == 'בדיקות לפני הגשה').rows.first.subtitle, contains('${mid.number}'));
+    });
+
+    test('a large invoice is flagged for an allocation number', () {
+      final st = newStore();
+      st.quickPay(description: 'חבילה שנתית', lines: [PaymentLine(method: PayMethod.card, amount: 7080)]);
+      final d = accountantReport(st, Period.month);
+      final checks = d.sections.firstWhere((x) => x.title == 'בדיקות לפני הגשה').rows;
+      expect(checks[1].value, '1');
+    });
+
+    test('daily close adds up today by method', () {
+      final st = newStore();
+      final d = dailyReport(st, Period.today);
+      final today = st.receipts.where((r) => dateOnly(r.date) == st.today);
+      final cash = today.expand((r) => r.lines).where((l) => l.method == PayMethod.cash).fold(0.0, (a, l) => a + l.amount);
+      expect(d.kpis[1].value, money(round2(cash)));
     });
   });
 }

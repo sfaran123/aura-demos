@@ -32,9 +32,18 @@ void seedDemoHistory(GymStore s) {
   final newReceipts = <Receipt>[];
   var chargeNo = 0;
 
-  Receipt rec(String customerId, String name, String desc, List<PaymentLine> lines, DateTime date, ReceiptKind kind) {
+  Receipt rec(String customerId, String name, String desc, List<PaymentLine> lines, DateTime date, ReceiptKind kind,
+      {String? sub, String? charge}) {
     final x = Receipt(
-        number: 0, customerId: customerId, customerName: name, description: desc, lines: lines, date: date, kind: kind);
+        number: 0,
+        customerId: customerId,
+        customerName: name,
+        description: desc,
+        lines: lines,
+        date: date,
+        kind: kind,
+        subscriptionId: sub,
+        chargeId: charge);
     newReceipts.add(x);
     return x;
   }
@@ -101,7 +110,8 @@ void seedDemoHistory(GymStore s) {
                 : (chance(0.3) ? transfer(first, join) : PaymentLine(method: PayMethod.cash, amount: first))
           ],
           at(join),
-          viaLink ? ReceiptKind.link : ReceiptKind.subscription);
+          viaLink ? ReceiptKind.link : ReceiptKind.subscription,
+          sub: subId);
 
       DateTime? cancelledAt, cancelEffective;
       if (chance(0.14) && td.difference(join).inDays > 35) {
@@ -152,7 +162,9 @@ void seedDemoHistory(GymStore s) {
               '${p.name} · ${due.month}/${due.year}',
               [m == PayMethod.bank ? transfer(p.price, paidAt) : PaymentLine(method: m, amount: p.price)],
               dt,
-              ReceiptKind.collection);
+              ReceiptKind.collection,
+              sub: subId,
+              charge: ch.id);
         }
         s.charges.add(ch);
         due = addMonths(due, 1);
@@ -186,7 +198,7 @@ void seedDemoHistory(GymStore s) {
             ? PaymentLine(method: PayMethod.card, amount: total)
             : PaymentLine(method: PayMethod.cash, amount: total),
       };
-      rec(c.id, c.name, p.name, [line], at(join), viaLink ? ReceiptKind.link : ReceiptKind.subscription);
+      rec(c.id, c.name, p.name, [line], at(join), viaLink ? ReceiptKind.link : ReceiptKind.subscription, sub: subId);
       final end = endDate(p, join);
       final sub = Subscription(
         id: subId,
@@ -261,5 +273,7 @@ void seedDemoHistory(GymStore s) {
         lines: x.lines,
         date: x.date,
         kind: x.kind,
+        subscriptionId: x.subscriptionId,
+        chargeId: x.chargeId,
       )));
 }

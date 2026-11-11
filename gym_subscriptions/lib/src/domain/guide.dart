@@ -4,7 +4,22 @@
 import 'l10n.dart';
 
 /// Where "Take me there" goes.
-enum GuideAction { sales, prices, newSub, quickPay, link, collect, members, reports, settings, plans, reportPicker, links }
+enum GuideAction {
+  sales,
+  prices,
+  newSub,
+  quickPay,
+  link,
+  collect,
+  members,
+  reports,
+  settings,
+  plans,
+  reportPicker,
+  links,
+  accountant,
+  daily
+}
 
 enum GuideChapter { start, desk, collection, members, reports }
 
@@ -282,7 +297,63 @@ List<GuideTopic> get guideTopics => [
           ],
           action: GuideAction.plans,
           words: 'פיקדון חודש אחרון מראש'),
+      GuideTopic(
+        'credit',
+        GuideChapter.desk,
+        t('מבטלים עסקה או מחזירים כסף'),
+        t('חיוב כפול, טעות במחיר, או לקוח שמבטל ומקבל החזר.'),
+        [
+          t('פותחים את החשבונית: מ"מכירות וחשבוניות", מ"תשלומים אחרונים" או מכרטיס הלקוח.'),
+          t('לוחצים "זיכוי / ביטול עסקה".'),
+          t('בוחרים סכום (הכל או חלק), איך מחזירים את הכסף, וכותבים סיבה.'),
+          t('אם זה מנוי, אפשר לבטל אותו באותה פעולה.'),
+          t('מופקת חשבונית זיכוי עם מספר חדש. המסמך המקורי נשאר כמו שהוא.'),
+        ],
+        tip: t('זיכוי על תשלום חודשי מחזיר את החודש לרשימת "לגבייה".'),
+        action: GuideAction.sales,
+        words: 'זיכוי ביטול החזר כסף חשבונית זיכוי',
+      ),
+      GuideTopic(
+        'history',
+        GuideChapter.members,
+        t('רואים את כל התשלומים של לקוח'),
+        t('לקוח שואל כמה שילם, או שיש ויכוח על תשלום.'),
+        [
+          t('ב"מנויים" לוחצים על הלקוח.'),
+          t('למטה, ב"היסטוריית תשלומים", רואים כמה שילם בסך הכל, כמה פתוח, וכל המסמכים.'),
+          t('לוחצים על מסמך כדי לראות אותו, לשלוח אותו או לזכות אותו.'),
+        ],
+        action: GuideAction.members,
+        words: 'היסטוריה תשלומים לקוח כמה שילם',
+      ),
       // ---- reports
+      GuideTopic(
+        'accountant',
+        GuideChapter.reports,
+        t('שולחים חומר לרואה החשבון'),
+        t('פעם בחודש, לדיווח המע״מ.'),
+        [
+          t('בדוחות לוחצים "חבילה לרואה חשבון" ובוחרים את החודש הקודם.'),
+          t('בודקים את "בדיקות לפני הגשה": מספור רציף, מספרי הקצאה ותקבולים ממתינים.'),
+          t('לוחצים "שליחה לרואה החשבון". בפעם הראשונה רושמים את המייל שלו.'),
+        ],
+        tip: t('בגרסת ההדגמה הדוח מועתק כקובץ לאקסל. בחיבור למערכת הוא יישלח במייל.'),
+        action: GuideAction.accountant,
+        words: 'רואה חשבון מעמ מע״מ דיווח חודשי הנהלת חשבונות',
+      ),
+      GuideTopic(
+        'daily',
+        GuideChapter.reports,
+        t('סוגרים קופה בסוף היום'),
+        t('לפני שהולכים הביתה.'),
+        [
+          t('בדוחות לוחצים "סגירת קופה יומית".'),
+          t('סופרים את המזומן בקופה ומשווים ל"מזומן בקופה".'),
+          t('אם יש הפרש, בודקים ברשימת המסמכים של היום.'),
+        ],
+        action: GuideAction.daily,
+        words: 'קופה סגירה יומית מזומן Z',
+      ),
       GuideTopic(
           'summary',
           GuideChapter.reports,
