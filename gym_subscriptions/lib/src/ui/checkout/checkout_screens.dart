@@ -6,6 +6,7 @@ import '../../domain/checkout.dart';
 import '../../domain/models.dart';
 import '../../domain/settings.dart';
 import '../../state/gym_store.dart';
+import '../auth_screens.dart' show SyncScope, authErrorText;
 import '../theme.dart';
 import '../widgets.dart';
 import '../plans_screen.dart' show PlanEditor;
@@ -140,6 +141,7 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
   final phone = TextEditingController();
   final idn = TextEditingController();
   String? error;
+  bool saving = false;
 
   @override
   void dispose() {
@@ -149,7 +151,8 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (saving) return;
     final s = widget.store.settings;
     if (name.text.trim().length < 2) return setState(() => error = t('צריך שם מלא'));
     if (!isValidPhone(phone.text)) return setState(() => error = t('מספר הטלפון לא תקין'));
@@ -164,8 +167,37 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
       Navigator.pop(context, dup);
       return;
     }
-    final c =
-        widget.store.addCustomer(name.text, phone.text, idNumber: idn.text.trim().isEmpty ? null : idn.text.trim());
+    final idNumber = idn.text.trim().isEmpty ? null : idn.text.trim();
+
+    // Signed in: the member is created on the AURA server (a web customer).
+    final sync = SyncScope.maybeOf(context);
+    if (sync != null) {
+      setState(() {
+        saving = true;
+        error = null;
+      });
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        final res = await sync.addMember(name: name.text.trim(), phone: formatPhone(phone.text), idNumber: idNumber);
+        if (!mounted) return;
+        if (res.existing) {
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+                SnackBar(content: Text(t('כבר קיים לקוח עם הטלפון הזה: {0}. הוא נבחר.', [res.customer.name]))));
+        }
+        Navigator.pop(context, res.customer);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          saving = false;
+          error = authErrorText(e);
+        });
+      }
+      return;
+    }
+
+    final c = widget.store.addCustomer(name.text, phone.text, idNumber: idNumber);
     Navigator.pop(context, c);
   }
 
@@ -205,7 +237,14 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
         Text(t('הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.'),
             style: TextStyle(fontSize: 12.5, color: Aura.muted)),
         const SizedBox(height: 12),
-        FilledButton(key: const Key('ncSave'), onPressed: _save, child: Text(t('שמירה והמשך'))),
+        FilledButton(
+          key: const Key('ncSave'),
+          onPressed: saving ? null : _save,
+          child: saving
+              ? const SizedBox(
+                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight))
+              : Text(t('שמירה והמשך')),
+        ),
       ]),
     );
   }
@@ -750,9 +789,59 @@ class _LineEditorState extends State<_LineEditor> {
 }
 
 // ---------------------------------------------------------------- summary
-class SummaryStep extends StatelessWidget {
+class SummaryStep extends StatefulWidget {
   const SummaryStep({super.key, required this.draft});
   final CheckoutDraft draft;
+
+  @override
+  State<SummaryStep> createState() => _SummaryStepState();
+}
+
+class _SummaryStepState extends State<SummaryStep> {
+  CheckoutDraft get draft => widget.draft;
+
+  /// Signed in: the membership is being created on the server.
+  bool busy = false;
+  String? error;
+
+  /// Signed in: opens the membership on the AURA server first; the payment is
+  /// then recorded in the app exactly as before. Returns null when it failed
+  /// (the error is shown on this screen, nothing was created).
+  Future<({Subscription sub, Receipt receipt})?> _openOnServer(SubscriptionPlan p) async {
+    final d = draft;
+    final sync = SyncScope.maybeOf(context)!;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final res = await sync.createMembership(
+        customer: d.customer!,
+        plan: p,
+        start: startDate(d.start, d.store.now),
+        discountPct: d.discountPct,
+        waiveRegistration: d.waiveRegistration,
+        recurring: d.recurring,
+      );
+      return d.store.openServerSubscription(
+        customer: d.customer!,
+        plan: p,
+        sub: res.sub,
+        charges: res.charges,
+        lines: d.lines,
+        recurring: d.recurring,
+        newCardLast4: d.newCardLast4,
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          busy = false;
+          error = authErrorText(e);
+        });
+      }
+      return null;
+    }
+  }
 
   String _lineText(PaymentLine l) {
     final b = StringBuffer(money(l.amount));
@@ -801,34 +890,44 @@ class SummaryStep extends StatelessWidget {
       bottom: FilledButton(
         key: const Key('confirm'),
         style: FilledButton.styleFrom(backgroundColor: Aura.goldLight, foregroundColor: Aura.ink),
-        onPressed: () {
-          Receipt r;
-          Subscription? sub;
-          if (p != null) {
-            final res = store.openSubscription(
-              customer: d.customer!,
-              plan: p,
-              start: d.start,
-              discountPct: d.discountPct,
-              waiveRegistration: d.waiveRegistration,
-              lines: d.lines,
-              recurring: d.recurring,
-              newCardLast4: d.newCardLast4,
-            );
-            r = res.receipt;
-            sub = res.sub;
-          } else {
-            r = store.quickPay(customer: d.customer, description: d.itemsDescription, lines: d.lines);
-          }
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => DoneScreen(draft: d, receipt: r, sub: sub)),
-            (route) => route.isFirst,
-          );
-        },
-        child: Text('${p != null ? t('פתיחת המנוי') : t('ביצוע התשלום')} · ${money(d.due)}'),
+        onPressed: busy
+            ? null
+            : () async {
+                Receipt r;
+                Subscription? sub;
+                if (p != null && SyncScope.maybeOf(context) != null) {
+                  final res = await _openOnServer(p);
+                  if (res == null || !context.mounted) return;
+                  r = res.receipt;
+                  sub = res.sub;
+                } else if (p != null) {
+                  final res = store.openSubscription(
+                    customer: d.customer!,
+                    plan: p,
+                    start: d.start,
+                    discountPct: d.discountPct,
+                    waiveRegistration: d.waiveRegistration,
+                    lines: d.lines,
+                    recurring: d.recurring,
+                    newCardLast4: d.newCardLast4,
+                  );
+                  r = res.receipt;
+                  sub = res.sub;
+                } else {
+                  r = store.quickPay(customer: d.customer, description: d.itemsDescription, lines: d.lines);
+                }
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => DoneScreen(draft: d, receipt: r, sub: sub)),
+                  (route) => route.isFirst,
+                );
+              },
+        child: busy
+            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.ink))
+            : Text('${p != null ? t('פתיחת המנוי') : t('ביצוע התשלום')} · ${money(d.due)}'),
       ),
       children: [
+        if (error != null) Note(error!, warn: true),
         SummaryBox(rows: rows),
         SectionLabel(t('תשלום')),
         SummaryBox(

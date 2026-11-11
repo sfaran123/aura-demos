@@ -2,6 +2,8 @@
 // neutral structure (KPIs + sections of rows) that one screen renders.
 
 import '../domain/checkout.dart';
+import '../domain/dashboard.dart';
+import '../domain/doc_types.dart';
 import '../domain/help.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
@@ -120,6 +122,15 @@ class ReportDef {
 }
 
 bool _inRange(DateTime d, (DateTime, DateTime) r) => !d.isBefore(r.$1) && d.isBefore(r.$2);
+
+/// Signed in and synced: the data is the AURA server's.
+bool _fromServer(GymStore s) => s.dashboard != null;
+
+/// Memberships counted as active. From the server: running, i.e. not cancelled
+/// and not ended (the home screen's definition). In the app alone: active or frozen.
+List<Subscription> _live(GymStore s) => _fromServer(s)
+    ? s.subscriptions.where((x) => x.status != SubStatus.cancelled && x.status != SubStatus.expired).toList()
+    : s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).toList();
 double _sum(Iterable<double> v) => round2(v.fold(0.0, (a, b) => a + b));
 String _name(GymStore s, String customerId) => s.customer(customerId)?.name ?? '—';
 String _plan(GymStore s, String planId) => s.plan(planId)?.name ?? '—';
@@ -173,14 +184,30 @@ ReportData summaryReport(GymStore s, Period p) {
   final joinsPrev = s.subscriptions.where((x) => _inRange(x.joinedAt, prev)).length;
   final cancels = s.subscriptions.where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, r)).length;
   final cancelsPrev = s.subscriptions.where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, prev)).length;
-  final live = s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).toList();
+  final dash = s.dashboard;
+  final live = _live(s);
+  // From the server, members are counted once (as the home screen).
+  final liveCount = dash != null ? live.map((x) => x.customerId).toSet().length : live.length;
 
   // Monthly charges that fell due in the period (up to today) and how many were collected.
-  final due = s.charges.where((c) => c.status != ChargeStatus.covered && _inRange(c.dueDate, cut)).toList();
-  final dueSum = _sum(due.map((c) => c.amount));
-  final paidSum = _sum(due.where((c) => c.status == ChargeStatus.paid).map((c) => c.amount));
-  final openSum = _sum(due.where((c) => c.isOpen()).map((c) => c.amount));
-  final failedSum = _sum(due.where((c) => c.status == ChargeStatus.failed).map((c) => c.amount));
+  // From the server: collected = membership payments in the period; open = the
+  // server's debts (failed charges, unpaid membership invoices) dated in the period.
+  final double dueSum, paidSum, openSum, failedSum;
+  if (dash != null) {
+    final debts = dash.debts.where((d) => d.date != null && _inRange(d.date!, cut)).toList();
+    paidSum = _sum(s.receipts
+        .where((x) => x.kind == ReceiptKind.subscription && _inRange(x.date, cut))
+        .map((x) => x.collectedNow));
+    openSum = _sum(debts.map((d) => d.amount));
+    failedSum = _sum(debts.where((d) => d.kind == DebtKind.failedCharge).map((d) => d.amount));
+    dueSum = round2(paidSum + openSum);
+  } else {
+    final due = s.charges.where((c) => c.status != ChargeStatus.covered && _inRange(c.dueDate, cut)).toList();
+    dueSum = _sum(due.map((c) => c.amount));
+    paidSum = _sum(due.where((c) => c.status == ChargeStatus.paid).map((c) => c.amount));
+    openSum = _sum(due.where((c) => c.isOpen()).map((c) => c.amount));
+    failedSum = _sum(due.where((c) => c.status == ChargeStatus.failed).map((c) => c.amount));
+  }
   final rate = dueSum == 0 ? 100 : (paidSum / dueSum * 100).round();
 
   final sent = s.links.where((l) => _inRange(l.createdAt, r)).toList();
@@ -205,7 +232,7 @@ ReportData summaryReport(GymStore s, Period p) {
   final byMethod = <PayMethod, double>{};
   for (final x in receipts) {
     byKind[x.kind] = round2((byKind[x.kind] ?? 0) + x.collectedNow);
-    for (final l in x.lines.where((l) => !l.method.isDeferred)) {
+    for (final l in x.lines.where(x.isCollected)) {
       byMethod[l.method] = round2((byMethod[l.method] ?? 0) + l.amount);
     }
   }
@@ -224,6 +251,11 @@ ReportData summaryReport(GymStore s, Period p) {
   final maxSold = top.isEmpty ? 1 : top.first.value;
 
   final overdue = s.charges.where((c) => c.isOpen() && c.daysOverdue(s.today) > 0).toList();
+  // Open debt: from the server, the home screen's list and total.
+  final debtSum = dash != null ? dash.openDebt : _sum(overdue.map((c) => c.amount));
+  final debtCustomers = dash != null
+      ? dash.debts.map((d) => d.customerId ?? d.customerName).toSet().length
+      : overdue.map((c) => c.customerId).toSet().length;
   final failed = s.charges.where((c) => c.status == ChargeStatus.failed).length;
   final blocked = s.customers.where((c) => s.entryBlocked(c.id)).length;
   final waitingLinks = s.links.where((l) => l.stage != LinkStage.paid && l.stage != LinkStage.failed).length;
@@ -243,7 +275,7 @@ ReportData summaryReport(GymStore s, Period p) {
         tone: Tone.ok,
         sub: t('{0} מול התקופה הקודמת', [_delta(revenue, revenuePrev)]),
         subTone: _deltaTone(revenue, revenuePrev)),
-    Kpi(t('מנויים פעילים'), '${live.length}',
+    Kpi(t('מנויים פעילים'), '$liveCount',
         sub: t('{0} מוקפאים', [live.where((x) => x.status == SubStatus.frozen).length])),
     Kpi(t('הצטרפו'), '$joins',
         tone: Tone.ok,
@@ -256,24 +288,23 @@ ReportData summaryReport(GymStore s, Period p) {
     Kpi(t('אחוז גבייה'), '$rate%',
         tone: rate >= 90 ? Tone.ok : (rate >= 75 ? Tone.warn : Tone.bad),
         sub: t('{0} מתוך {1}', [money(paidSum), money(dueSum)])),
-    Kpi(t('חוב פתוח'), money(_sum(overdue.map((c) => c.amount))),
-        tone: overdue.isEmpty ? Tone.ok : Tone.bad,
-        sub: t('{0} לקוחות', [overdue.map((c) => c.customerId).toSet().length])),
+    Kpi(t('חוב פתוח'), money(debtSum),
+        tone: debtSum <= 0 ? Tone.ok : Tone.bad, sub: t('{0} לקוחות', [debtCustomers])),
     Kpi(t('קבלות'), '${receipts.length}',
         sub: t('ממוצע {0}', [money(receipts.isEmpty ? 0 : revenue / receipts.length)])),
-    Kpi(t('המרת לינקים'), sent.isEmpty ? '—' : '${(linkPaid / sent.length * 100).round()}%',
-        tone: Tone.info, sub: t('{0} מתוך {1} שילמו', [linkPaid, sent.length])),
+    // Sign-up links are not on the server yet: left out while signed in.
+    if (dash == null)
+      Kpi(t('המרת לינקים'), sent.isEmpty ? '—' : '${(linkPaid / sent.length * 100).round()}%',
+          tone: Tone.info, sub: t('{0} מתוך {1} שילמו', [linkPaid, sent.length])),
   ], sections: [
     ReportSection(t('דורש טיפול עכשיו'), [
       ReportRow(t('לקוחות באיחור'),
-          value: '${overdue.map((c) => c.customerId).toSet().length}',
-          tone: n(overdue.length),
-          tag: overdue.isEmpty ? null : money(_sum(overdue.map((c) => c.amount)))),
+          value: '$debtCustomers', tone: n(debtCustomers), tag: debtSum <= 0 ? null : money(debtSum)),
       ReportRow(t('חיובי אשראי שנכשלו'), value: '$failed', tone: failed > 0 ? Tone.bad : Tone.ok),
       ReportRow(t('כניסה חסומה'), value: '$blocked', tone: blocked > 0 ? Tone.bad : Tone.ok),
       ReportRow(t('מסתיימים ב-30 יום – להציע חידוש'), value: '$ending', tone: n(ending)),
       ReportRow(t('בתהליך ביטול'), value: '$cancelling', tone: n(cancelling)),
-      ReportRow(t('לינקים שעוד לא שולמו'), value: '$waitingLinks', tone: n(waitingLinks)),
+      if (dash == null) ReportRow(t('לינקים שעוד לא שולמו'), value: '$waitingLinks', tone: n(waitingLinks)),
     ]),
     ReportSection(t('מגמה – 6 חודשים'), [
       for (final m in trend.reversed)
@@ -322,8 +353,101 @@ ReportData summaryReport(GymStore s, Period p) {
 /// Authority allocation number (Israel Invoice model, from 1 June 2026).
 const allocationThreshold = 5000.0;
 
+/// Accountant package from the server's documents. VAT comes from the tax
+/// documents themselves (types 7, 27 and credit 10, as the web's accounting
+/// export), with each document's own total and VAT; receipts and other
+/// documents carry no VAT. Numbering is done by the server per document type.
+ReportData _serverAccountantReport(GymStore s, (DateTime, DateTime) r) {
+  final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.date.compareTo(b.date));
+  final tax = docs.where((x) => x.isTaxDocument).toList();
+  final sales = tax.where((x) => !x.isCredit).toList();
+  final credits = tax.where((x) => x.isCredit).toList();
+  double docTotal(Receipt x) => x.docTotal ?? x.total;
+  final gross = _sum(sales.map(docTotal));
+  final vat = _sum(sales.map((x) => x.vat ?? 0));
+  final creditGross = _sum(credits.map((x) => docTotal(x).abs()));
+  final cVat = _sum(credits.map((x) => (x.vat ?? 0).abs()));
+  final net = round2(gross - vat), cNet = round2(creditGross - cVat);
+  final big = sales.where((x) => docTotal(x) - (x.vat ?? 0) > allocationThreshold && x.allocationNumber == null).toList();
+
+  final byMethod = <PayMethod, double>{};
+  for (final x in docs) {
+    for (final l in x.lines) {
+      byMethod[l.method] = round2((byMethod[l.method] ?? 0) + l.amount);
+    }
+  }
+  final cheques = [
+    for (final x in docs)
+      for (final l in x.lines.where((l) => l.method == PayMethod.cheque && l.amount > 0))
+        (
+          x,
+          dateOnly(l.cheque.firstDate ?? x.date),
+          l.amount,
+          l.cheque.number.isEmpty ? '' : t('שיק {0} · בנק {1} · סניף {2}', [l.cheque.number, l.cheque.bank, l.cheque.branch]),
+        )
+  ];
+  String label(Receipt x) => '${serverDocTypeLabel(x.docType ?? 0)} ${x.docNo}';
+
+  return ReportData(
+      kpis: [
+        Kpi(t('מחזור כולל מע״מ'), money(gross), tone: Tone.ok, sub: t('{0} מסמכים', [sales.length])),
+        Kpi(t('זיכויים'), money(creditGross),
+            tone: creditGross > 0 ? Tone.warn : Tone.plain, sub: t('{0} מסמכים', [credits.length])),
+        Kpi(t('לפני מע״מ (נטו)'), money(round2(net - cNet))),
+        Kpi(t('מע״מ עסקאות לתשלום'), money(round2(vat - cVat)), tone: Tone.info, sub: t('לפי המסמכים')),
+        Kpi(t('טווח מספרים'), '—', sub: t('מספור בשרת, לפי סוג מסמך')),
+        Kpi(t('לבדיקה'), '${big.length}',
+            tone: big.isEmpty ? Tone.ok : Tone.warn, sub: t('מספרי הקצאה ותקבולים ממתינים')),
+      ],
+      sections: [
+        ReportSection(t('סיכום מע״מ לתקופה'), [
+          ReportRow(t('עסקאות חייבות לפני מע״מ'), value: money(net)),
+          ReportRow(t('מע״מ על עסקאות'), value: money(vat)),
+          ReportRow(t('זיכויים לפני מע״מ'), value: money(-cNet), tone: cNet > 0 ? Tone.warn : Tone.plain),
+          ReportRow(t('מע״מ על זיכויים'), value: money(-cVat), tone: cVat > 0 ? Tone.warn : Tone.plain),
+          ReportRow(t('סה״כ מע״מ עסקאות לדיווח'), value: money(round2(vat - cVat)), tone: Tone.info),
+        ]),
+        ReportSection(t('תקבולים לפי אמצעי תשלום'), [
+          for (final m in PayMethod.values)
+            if (byMethod[m] != null) ReportRow(m.label, value: money(byMethod[m]!)),
+        ]),
+        ReportSection(t('בדיקות לפני הגשה'), [
+          ReportRow(t('מספור רציף של מסמכים'), subtitle: t('מספור בשרת, לפי סוג מסמך')),
+          ReportRow(t('חשבוניות מעל {0} לפני מע״מ בלי מספר הקצאה', [money(allocationThreshold)]),
+              subtitle: t('נדרש מספר הקצאה אם הלקוח הוא עסק (חשבוניות ישראל)'),
+              value: '${big.length}',
+              tone: big.isEmpty ? Tone.ok : Tone.warn),
+          for (final x in big)
+            ReportRow(label(x),
+                subtitle: '${fmtDate(x.date)} · ${x.customerName}', value: money(docTotal(x)), tone: Tone.warn),
+        ]),
+        ReportSection(t('יומן מסמכים'), [
+          for (final x in docs)
+            ReportRow(label(x),
+                subtitle: [
+                  fmtDate(x.date),
+                  x.customerName,
+                  if (x.lines.isNotEmpty) x.lines.map((l) => l.method.label).join(' + '),
+                  if (x.isTaxDocument && (x.vat ?? 0) != 0) t('מע״מ {0}', [money(x.vat!)]),
+                  if (x.allocationNumber != null) t('מספר הקצאה {0}', [x.allocationNumber]),
+                ].join(' · '),
+                value: money(docTotal(x)),
+                tag: x.cancelled ? t('בוטל') : null,
+                tone: x.isCredit || x.cancelled ? Tone.bad : Tone.plain),
+        ]),
+        ReportSection(t('שיקים שהתקבלו'), [
+          for (final c in cheques)
+            ReportRow(c.$1.customerName,
+                subtitle: [fmtDate(c.$2), if (c.$4.isNotEmpty) c.$4, c.$1.docNo].join(' · '), value: money(c.$3)),
+        ]),
+      ],
+      note: t(
+          'הדוח מוכן להעברה לרואה החשבון (העתקה לאקסל). קובץ במבנה אחיד לרשות המסים ובקשת מספרי הקצאה מופקים בצד השרת, אחרי החיבור למערכת.'));
+}
+
 ReportData accountantReport(GymStore s, Period p) {
   final r = (p == Period.lastMonth ? Period.lastMonth : Period.month).range(s.today);
+  if (_fromServer(s)) return _serverAccountantReport(s, r);
   final vatPct = s.settings.docType == DocType.taxInvoiceReceipt ? s.settings.vatPct : 0.0;
   final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.number.compareTo(b.number));
   final sales = docs.where((x) => !x.isCredit).toList();
@@ -332,7 +456,8 @@ ReportData accountantReport(GymStore s, Period p) {
   final creditGross = _sum(credits.map((x) => -x.total));
   final (net, vat) = splitVat(gross, vatPct);
   final (cNet, cVat) = splitVat(creditGross, vatPct);
-  final numbers = docs.map((x) => x.number).toList();
+  // Server documents (reference set) are numbered by the server, per document type.
+  final numbers = docs.where((x) => x.reference == null).map((x) => x.number).toList();
   final gaps = <int>[];
   for (var i = 1; i < numbers.length; i++) {
     for (var n = numbers[i - 1] + 1; n < numbers[i]; n++) {
@@ -341,7 +466,7 @@ ReportData accountantReport(GymStore s, Period p) {
   }
   final big =
       sales.where((x) => splitVat(x.total, vatPct).$1 > allocationThreshold && x.allocationNumber == null).toList();
-  final pending = sales.where((x) => x.lines.any((l) => l.method.isDeferred)).toList();
+  final pending = sales.where((x) => x.lines.any((l) => !x.isCollected(l))).toList();
 
   final byMethod = <PayMethod, double>{};
   for (final x in docs) {
@@ -402,7 +527,7 @@ ReportData accountantReport(GymStore s, Period p) {
               value: '${big.length}',
               tone: big.isEmpty ? Tone.ok : Tone.warn),
           for (final x in big)
-            ReportRow('${label(x)} ${x.number}',
+            ReportRow('${label(x)} ${x.docNo}',
                 subtitle: '${fmtDate(x.date)} · ${x.customerName}', value: money(x.total), tone: Tone.warn),
           ReportRow(t('תקבולים בהעברה או בלינק שעוד לא אושרו'),
               value: '${pending.length}', tone: pending.isEmpty ? Tone.ok : Tone.warn),
@@ -412,7 +537,7 @@ ReportData accountantReport(GymStore s, Period p) {
         ]),
         ReportSection(t('יומן מסמכים'), [
           for (final x in docs)
-            ReportRow('${label(x)} ${x.number}',
+            ReportRow('${label(x)} ${x.docNo}',
                 subtitle: '${fmtDate(x.date)} · ${x.customerName} · ${x.lines.map((l) => l.method.label).join(' + ')}'
                     '${x.isCredit && x.creditOf != null ? ' · ${t('זיכוי למסמך {0}', [x.creditOf])}' : ''}',
                 value: money(x.total),
@@ -458,7 +583,7 @@ ReportData dailyReport(GymStore s, Period p) {
         ReportRow(x.customerName,
             subtitle:
                 '${fmtDate(x.date)} ${x.date.hour.toString().padLeft(2, '0')}:${x.date.minute.toString().padLeft(2, '0')}'
-                ' · ${x.number} · ${x.lines.map((l) => l.method.label).join(' + ')}',
+                ' · ${x.docNo} · ${x.lines.map((l) => l.method.label).join(' + ')}',
             value: money(x.total),
             tone: x.isCredit ? Tone.bad : Tone.plain),
     ]),
@@ -474,7 +599,7 @@ ReportData revenueReport(GymStore s, Period p) {
   final byKind = <ReceiptKind, double>{};
   for (final x in list) {
     for (final l in x.lines) {
-      if (l.method.isDeferred) continue;
+      if (!x.isCollected(l)) continue;
       byMethod[l.method] = round2((byMethod[l.method] ?? 0) + l.amount);
     }
     byKind[x.kind] = round2((byKind[x.kind] ?? 0) + x.collectedNow);
@@ -501,7 +626,7 @@ ReportData revenueReport(GymStore s, Period p) {
             subtitle: '${fmtDate(x.date)} · ${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}'
                 '${x.lines.where((l) => l.detailsText.isNotEmpty).map((l) => '\n${l.detailsText}').join()}',
             value: money(x.total),
-            tag: '${x.number}'),
+            tag: x.docNo),
     ]),
   ]);
 }
@@ -638,7 +763,9 @@ ReportData manualMonthlyReport(GymStore s, Period p) {
   ], note: t('מנויים חודשיים שמשלמים בעצמם (מזומן, שיק או העברה) ולא בחיוב אוטומטי.'));
 }
 
-ReportData debtsReport(GymStore s, Period _) {
+ReportData debtsReport(GymStore s, Period p) {
+  final dash = s.dashboard;
+  if (dash != null) return _serverDebtsReport(s, dash);
   final open = s.charges.where((c) => c.isOpen() && c.daysOverdue(s.today) > 0).toList()
     ..sort((a, b) => b.daysOverdue(s.today).compareTo(a.daysOverdue(s.today)));
   double bucket(int from, int to) =>
@@ -660,6 +787,42 @@ ReportData debtsReport(GymStore s, Period _) {
                 tag: s.entryBlocked(c.customerId) ? t('כניסה חסומה') : t('{0} ימים', [c.daysOverdue(s.today)]),
                 tone: s.entryBlocked(c.customerId) ? Tone.bad : Tone.warn,
                 chargeId: c.id),
+        ],
+        empty: t('אין חובות')),
+  ]);
+}
+
+/// Debts from the server: failed membership charges and unpaid membership
+/// invoices, the same list as the home screen's "Open debt".
+ReportData _serverDebtsReport(GymStore s, ServerDashboard dash) {
+  int days(DebtItem d) {
+    if (d.date == null) return 0;
+    final n = s.today.difference(DateTime(d.date!.year, d.date!.month, d.date!.day)).inDays;
+    return n < 0 ? 0 : n;
+  }
+
+  final open = [...dash.debts]..sort((a, b) => days(b).compareTo(days(a)));
+  double bucket(int from, int to) => _sum(open.where((d) => days(d) >= from && days(d) <= to).map((d) => d.amount));
+  return ReportData(kpis: [
+    Kpi(t('חוב פתוח'), money(dash.openDebt), tone: open.isEmpty ? Tone.ok : Tone.bad),
+    Kpi(t('עד 7 ימים'), money(bucket(0, 7))),
+    Kpi(t('8–30 ימים'), money(bucket(8, 30)), tone: Tone.warn),
+    Kpi(t('מעל 30'), money(bucket(31, 100000)), tone: Tone.bad),
+  ], sections: [
+    ReportSection(
+        t('חייבים'),
+        [
+          for (final d in open)
+            ReportRow(d.customerName.isEmpty ? '—' : d.customerName,
+                subtitle: t('{0} · מועד {1}', [
+                  d.kind == DebtKind.failedCharge ? t('אשראי נכשל') : t('חשבונית {0}', [d.reference ?? '']),
+                  d.date == null ? '—' : fmtDate(d.date!),
+                ]),
+                value: money(d.amount),
+                tag: d.customerId != null && s.entryBlocked(d.customerId!) ? t('כניסה חסומה') : t('{0} ימים', [days(d)]),
+                tone: d.customerId != null && s.entryBlocked(d.customerId!) ? Tone.bad : Tone.warn,
+                // A failed charge is in the app's "to collect" list under the same id.
+                chargeId: s.charges.any((c) => c.id == d.id) ? d.id : null),
         ],
         empty: t('אין חובות')),
   ]);
@@ -694,7 +857,9 @@ ReportData failedReport(GymStore s, Period _) {
 
 // ------------------------------------------------------------------ members
 ReportData activeByPlanReport(GymStore s, Period _) {
-  final live = s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).toList();
+  final live = _live(s);
+  // From the server, members are counted once (as the home screen); in the app, memberships.
+  final members = _fromServer(s) ? live.map((x) => x.customerId).toSet().length : live.length;
   final rows = <ReportRow>[];
   var mrr = 0.0;
   for (final p in s.plans) {
@@ -707,9 +872,9 @@ ReportData activeByPlanReport(GymStore s, Period _) {
   }
   rows.sort((a, b) => int.parse(b.value!).compareTo(int.parse(a.value!)));
   return ReportData(kpis: [
-    Kpi(t('מנויים פעילים'), '${live.length}', tone: Tone.ok),
+    Kpi(t('מנויים פעילים'), '$members', tone: Tone.ok),
     Kpi(t('הכנסה חודשית חוזרת'), money(mrr), tone: Tone.info),
-    Kpi(t('ממוצע למנוי'), money(live.isEmpty ? 0 : mrr / live.length)),
+    Kpi(t('ממוצע למנוי'), money(members == 0 ? 0 : mrr / members)),
   ], sections: [
     ReportSection(t('לפי מסלול'), rows)
   ], note: t('במסלולי תקופה ההכנסה מחולקת לפי מספר החודשים.'));
@@ -746,7 +911,7 @@ ReportData joinsReport(GymStore s, Period p) {
   final r = p.range(s.today);
   final joins = s.subscriptions.where((x) => _inRange(x.joinedAt, r)).toList();
   final cancels = s.subscriptions.where((x) => x.cancelledAt != null && _inRange(x.cancelledAt!, r)).toList();
-  final active = s.subscriptions.where((x) => x.status == SubStatus.active || x.status == SubStatus.frozen).length;
+  final active = _live(s).length;
   final churn = active == 0 ? 0 : (cancels.length / active * 100);
   return ReportData(kpis: [
     Kpi(t('הצטרפו'), '${joins.length}', tone: Tone.ok),

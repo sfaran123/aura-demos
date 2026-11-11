@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/checkout.dart';
+import '../domain/doc_types.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
@@ -121,8 +122,12 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
 }
 
 /// The document's name as printed: invoice-receipt, receipt, or a credit note.
-String docLabel(Receipt r, DocType type) =>
-    r.isCredit ? (type == DocType.taxInvoiceReceipt ? t('חשבונית מס זיכוי') : t('קבלת החזר')) : type.label;
+String docLabel(Receipt r, DocType type) => r.docType != null
+    // A server document: its own type on the web.
+    ? serverDocTypeLabel(r.docType!)
+    : r.isCredit
+        ? (type == DocType.taxInvoiceReceipt ? t('חשבונית מס זיכוי') : t('קבלת החזר'))
+        : type.label;
 
 /// The receipt as the customer gets it, with the send panel under it.
 Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBottomSheet(
@@ -160,8 +165,12 @@ class ReceiptCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = StoreScope.of(context).settings;
+    final store = StoreScope.of(context);
+    final s = store.settings;
     final r = receipt;
+    // Signed in: the company name from the AURA server, as on the home screen.
+    final serverName = store.dashboard?.businessName ?? '';
+    final businessName = serverName.isNotEmpty ? serverName : s.businessName;
     final vat = s.docType == DocType.taxInvoiceReceipt ? round2(r.total * s.vatPct / (100 + s.vatPct)) : 0.0;
     Widget line(String a, String b, {bool bold = false}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
@@ -173,11 +182,15 @@ class ReceiptCard extends StatelessWidget {
     return Panel(
       key: const Key('receiptCard'),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
-            child: Text(s.businessName, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            child: Text(isolate(businessName), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           ),
-          Pill('${docLabel(r, s.docType)} ${r.number}', tone: r.isCredit ? PillTone.bad : PillTone.info),
+          const SizedBox(width: 8),
+          // Flexible: server document numbers (e.g. "TIR-80011") are longer than the app's own.
+          Flexible(
+            child: Pill('${docLabel(r, s.docType)} ${r.docNo}', tone: r.isCredit ? PillTone.bad : PillTone.info),
+          ),
         ]),
         if (s.businessId.isNotEmpty)
           Text(t('ח.פ / ע.מ {0}', [s.businessId]), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
@@ -246,7 +259,7 @@ Future<void> showCreditSheet(BuildContext context, Receipt r) async {
         padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
         child: SingleChildScrollView(
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
-            Text(t('זיכוי למסמך {0}', [r.number]), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(t('זיכוי למסמך {0}', [r.docNo]), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             Text('${r.customerName} · ${r.description} · ${money(r.total)}', style: const TextStyle(color: Aura.muted)),
             const SizedBox(height: 12),
             Row(children: [
@@ -380,7 +393,7 @@ class CustomerHistory extends StatelessWidget {
                 dense: true,
                 onTap: () => showReceiptSheet(context, r),
                 title: Text(r.description, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text('${docLabel(r, type)} ${r.number} · ${fmtDate(r.date)}'
+                subtitle: Text('${docLabel(r, type)} ${r.docNo} · ${fmtDate(r.date)}'
                     '${r.credited > 0 ? ' · ${t('זוכה')}' : ''}'),
                 trailing: Text(money(r.total),
                     style: TextStyle(fontWeight: FontWeight.w700, color: r.isCredit ? Aura.warn : Aura.ink)),

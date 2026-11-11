@@ -41,3 +41,7 @@ String retranslate(String any) {
   }
   return any;
 }
+
+/// Shows [s] in its own direction inside text of the other direction: an English
+/// "Salams Ltd." in Hebrew text keeps its period at the end (Unicode FSI ... PDI).
+String isolate(String s) => s.isEmpty ? s : '\u2068$s\u2069';

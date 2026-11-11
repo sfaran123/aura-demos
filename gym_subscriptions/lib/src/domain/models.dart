@@ -624,6 +624,11 @@ class Receipt {
     this.reason,
     this.credited = 0,
     this.allocationNumber,
+    this.reference,
+    this.docType,
+    this.docTotal,
+    this.vat,
+    this.cancelled = false,
   });
 
   final ReceiptKind kind;
@@ -643,6 +648,24 @@ class Receipt {
   /// Tax Authority allocation number (Israel Invoice model), set by the backend.
   String? allocationNumber;
 
+  /// The document number on the AURA server (e.g. "TIN-80011"); null for
+  /// documents made in the app. Shown instead of [number] when set.
+  final String? reference;
+
+  String get docNo => reference ?? '$number';
+
+  /// Server documents only (null in the app): the web's document type (7 tax
+  /// invoice, 27 tax invoice-receipt, 10 credit, 3 receipt, ...), the document's
+  /// own total (an unpaid tax invoice has no payment lines), its VAT, and whether
+  /// it was cancelled on the web (its credit note is a document of its own).
+  final int? docType;
+  final double? docTotal;
+  final double? vat;
+  final bool cancelled;
+
+  /// A VAT document, as the web's accounting export: tax invoice, credit, invoice-receipt.
+  bool get isTaxDocument => docType == 7 || docType == 10 || docType == 27;
+
   /// Where the receipt was sent: (channel, address, when).
   final List<(String, String, DateTime)> sent = [];
 
@@ -654,7 +677,11 @@ class Receipt {
 
   bool get isCredit => kind == ReceiptKind.credit;
   double get total => lines.fold(0, (a, l) => a + l.amount);
-  double get collectedNow => lines.where((l) => !l.method.isDeferred).fold(0, (a, l) => a + l.amount);
+  double get collectedNow => lines.where(isCollected).fold(0, (a, l) => a + l.amount);
+
+  /// The money of [l] is in: on a server document every payment line is a
+  /// recorded payment; in the app, a transfer or link part waits for confirmation.
+  bool isCollected(PaymentLine l) => reference != null || !l.method.isDeferred;
 
   /// What can still be credited on this document.
   double get creditable => isCredit ? 0 : ((total - credited) * 100).round() / 100;
@@ -673,6 +700,11 @@ class Receipt {
         'reason': reason,
         'credited': credited,
         'allocationNumber': allocationNumber,
+        if (reference != null) 'reference': reference,
+        if (docType != null) 'docType': docType,
+        if (docTotal != null) 'docTotal': docTotal,
+        if (vat != null) 'vat': vat,
+        if (cancelled) 'cancelled': true,
         'sent': [
           for (final s in sent) {'channel': s.$1, 'to': s.$2, 'at': _d(s.$3)}
         ],
@@ -693,6 +725,11 @@ class Receipt {
       reason: j['reason'],
       credited: (j['credited'] as num? ?? 0).toDouble(),
       allocationNumber: j['allocationNumber'],
+      reference: j['reference'],
+      docType: j['docType'],
+      docTotal: (j['docTotal'] as num?)?.toDouble(),
+      vat: (j['vat'] as num?)?.toDouble(),
+      cancelled: j['cancelled'] == true,
     );
     for (final s in (j['sent'] as List? ?? const [])) {
       r.sent.add((s['channel'], s['to'], _pd(s['at'])!));

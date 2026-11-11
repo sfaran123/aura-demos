@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AURA Gym",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      // AURA_VERIFY_KEY comes from dart_defines.json (git-ignored, not in the repo).
+      "toolArgs": ["--dart-define-from-file=dart_defines.json"]
+    }
+  ]
+}

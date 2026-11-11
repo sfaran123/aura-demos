@@ -8,7 +8,9 @@ import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/notifier.dart';
 import '../domain/settings.dart';
+import '../domain/dashboard.dart';
 import '../integration/repository.dart';
+import '../integration/server_mapping.dart' show mapDashboard;
 import 'demo_data.dart';
 
 class GymStore extends SimpleNotifier {
@@ -61,6 +63,7 @@ class GymStore extends SimpleNotifier {
         'receipts': [for (final x in receipts) x.toJson()],
         'links': [for (final x in links) x.toJson()],
         'items': [for (final x in items) x.toJson()],
+        if (_dashboardJson != null) 'dashboard': _dashboardJson,
       };
 
   bool _fromJson(Map<String, dynamic> j) {
@@ -95,6 +98,8 @@ class GymStore extends SimpleNotifier {
         ..clear()
         ..addAll(li);
       items = it;
+      _dashboardJson = j['dashboard'] is Map ? (j['dashboard'] as Map).cast<String, dynamic>() : null;
+      dashboard = mapDashboard(_dashboardJson);
       _receiptNo = j['receiptNo'] ?? (r.isEmpty ? 30000 : r.map((x) => x.number).reduce((a, b) => a > b ? a : b));
       _id = j['idCounter'] ?? 1000;
       L10n.lang = AppLang.values.asNameMap()[j['language']] ?? L10n.lang;
@@ -106,6 +111,8 @@ class GymStore extends SimpleNotifier {
 
   /// Back to the demo data (the saved data is replaced).
   void resetDemo() {
+    dashboard = null;
+    _dashboardJson = null;
     for (final l in [plans, customers, subscriptions, charges, receipts, links]) {
       l.clear();
     }
@@ -115,6 +122,43 @@ class GymStore extends SimpleNotifier {
     _seed();
     notifyListeners();
   }
+
+  /// Replaces members, plans, memberships, charges, the price list and the
+  /// sales with the data from the AURA server, in one change. Business settings,
+  /// language and sign-up links stay as they are on the device.
+  void applyServerData({
+    required List<Customer> customers,
+    required List<SubscriptionPlan> plans,
+    required List<Subscription> subscriptions,
+    required List<Charge> charges,
+    required List<ShopItem> items,
+    required List<Receipt> receipts,
+    Map<String, dynamic>? dashboardJson,
+  }) {
+    this.plans
+      ..clear()
+      ..addAll(plans);
+    this.customers
+      ..clear()
+      ..addAll(customers);
+    this.subscriptions
+      ..clear()
+      ..addAll(subscriptions);
+    this.charges
+      ..clear()
+      ..addAll(charges);
+    this.receipts
+      ..clear()
+      ..addAll(receipts..sort((a, b) => a.date.compareTo(b.date)));
+    this.items = items;
+    _dashboardJson = dashboardJson;
+    dashboard = mapDashboard(dashboardJson);
+    notifyListeners();
+  }
+
+  /// Home screen numbers from the AURA server; null when not signed in (or not synced yet).
+  ServerDashboard? dashboard;
+  Map<String, dynamic>? _dashboardJson;
 
   final DateTime Function() _clock;
   DateTime get now => _clock();
@@ -245,6 +289,22 @@ class GymStore extends SimpleNotifier {
     return c;
   }
 
+  /// Adds a member saved on the AURA server, or updates the one with the same id.
+  Customer upsertCustomer(Customer c) {
+    final i = customers.indexWhere((x) => x.id == c.id);
+    if (i >= 0) {
+      final old = customers[i];
+      // The server's answer has no card or health details: keep what the app already knows.
+      c.savedCardLast4 ??= old.savedCardLast4;
+      c.healthDeclared = c.healthDeclared || old.healthDeclared;
+      customers[i] = c;
+    } else {
+      customers.add(c);
+    }
+    notifyListeners();
+    return c;
+  }
+
   /// Saves a plan and returns the stored copy (new plans get an id).
   SubscriptionPlan savePlan(SubscriptionPlan p) {
     if (!p.isRecurring) p.prepayLastMonth = false;
@@ -353,6 +413,65 @@ class GymStore extends SimpleNotifier {
     }
     notifyListeners();
     return (sub: sub, receipt: r);
+  }
+
+  /// A membership the AURA server has just created ([sub], with its [charges]).
+  /// The payment is still recorded in the app, as [openSubscription] does (the
+  /// payment part is not connected to the server yet).
+  ({Subscription sub, Receipt receipt}) openServerSubscription({
+    required Customer customer,
+    required SubscriptionPlan plan,
+    required Subscription sub,
+    required List<Charge> charges,
+    required List<PaymentLine> lines,
+    RecurringMethod? recurring,
+    String? newCardLast4,
+  }) {
+    if (newCardLast4 != null &&
+        (lines.any((l) => l.method == PayMethod.card && l.cardSource == CardSource.newCard) ||
+            recurring == RecurringMethod.newCard)) {
+      customer.savedCardLast4 = newCardLast4;
+    }
+    if (isPending(lines)) sub.status = SubStatus.pendingPayment;
+    subscriptions
+      ..removeWhere((s) => s.id == sub.id)
+      ..add(sub);
+    this.charges
+      ..removeWhere((c) => c.subscriptionId == sub.id)
+      ..addAll(charges);
+    final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription,
+        customerId: customer.id, subscriptionId: sub.id);
+    if (lines.any((l) => l.method == PayMethod.link)) {
+      final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
+      links.insert(
+          0,
+          SignupLink(
+              id: _next('l'),
+              sentTo: customer.name,
+              createdAt: now,
+              planId: plan.id,
+              customerId: customer.id,
+              amount: round2(linkPart)));
+    }
+    notifyListeners();
+    return (sub: sub, receipt: r);
+  }
+
+  /// Replaces a membership (and its open charges) with the server's version
+  /// after an action on the server (freeze, end freeze, cancel). Charges already
+  /// paid or covered in the app are kept.
+  Subscription replaceServerMembership(Subscription sub, List<Charge> charges) {
+    final i = subscriptions.indexWhere((s) => s.id == sub.id);
+    if (i >= 0) {
+      subscriptions[i] = sub;
+    } else {
+      subscriptions.add(sub);
+    }
+    this.charges
+      ..removeWhere((c) => c.subscriptionId == sub.id && c.isOpen())
+      ..addAll(charges);
+    notifyListeners();
+    return sub;
   }
 
   Receipt quickPay({Customer? customer, required String description, required List<PaymentLine> lines}) {

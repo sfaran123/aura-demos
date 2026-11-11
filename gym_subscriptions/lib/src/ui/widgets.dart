@@ -301,16 +301,25 @@ class SummaryBox extends StatelessWidget {
     Widget row(String a, String b, {bool strong = false}) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           color: strong ? Aura.paper : null,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a,
-                style: TextStyle(color: strong ? Aura.ink : Aura.muted, fontWeight: strong ? FontWeight.w700 : null)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(b,
-                  textAlign: TextAlign.end,
-                  style: TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w500, fontSize: strong ? 16 : 14)),
-            ),
-          ]),
+          // The label keeps its natural width as before, but at most 60% of the row:
+          // a long one ("Last month paid in advance", large fonts) wraps instead of overflowing.
+          child: LayoutBuilder(
+            builder: (context, box) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: box.maxWidth * .6),
+                child: Text(a,
+                    style:
+                        TextStyle(color: strong ? Aura.ink : Aura.muted, fontWeight: strong ? FontWeight.w700 : null)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(b,
+                    textAlign: TextAlign.end,
+                    style:
+                        TextStyle(fontWeight: strong ? FontWeight.w700 : FontWeight.w500, fontSize: strong ? 16 : 14)),
+              ),
+            ]),
+          ),
         );
     return Container(
       clipBehavior: Clip.antiAlias,

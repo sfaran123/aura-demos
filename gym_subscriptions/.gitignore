@@ -9,3 +9,5 @@ build/
 pubspec.lock
 *.iml
 .idea/
+# Local build settings with secrets (AURA_VERIFY_KEY), never committed
+dart_defines.json

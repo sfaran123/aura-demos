@@ -5,6 +5,7 @@ import 'receipt_view.dart';
 
 import '../domain/checkout.dart';
 import '../domain/models.dart';
+import 'auth_screens.dart' show SyncScope, authErrorText;
 import 'checkout/checkout_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -208,8 +209,14 @@ class _MemberSheet extends StatelessWidget {
               ),
             if (sub.status == SubStatus.frozen)
               OutlinedButton.icon(
-                onPressed: () {
-                  store.unfreeze(sub);
+                key: const Key('unfreeze'),
+                onPressed: () async {
+                  final sync = SyncScope.maybeOf(context);
+                  if (sync != null) {
+                    if (!await _onServer(context, () => sync.unfreezeMembership(sub)) || !context.mounted) return;
+                  } else {
+                    store.unfreeze(sub);
+                  }
                   Navigator.pop(context);
                   showDone(context, t('ההקפאה הסתיימה, המנוי פעיל'));
                 },
@@ -278,6 +285,13 @@ class _MemberSheet extends StatelessWidget {
       ),
     );
     if (days == null || !context.mounted) return;
+    final sync = SyncScope.maybeOf(context);
+    if (sync != null) {
+      if (!await _onServer(context, () => sync.freezeMembership(sub, days)) || !context.mounted) return;
+      Navigator.pop(context);
+      showDone(context, t('המנוי הוקפא ל-{0} ימים', [days]));
+      return;
+    }
     final err = store.freeze(sub, days);
     Navigator.pop(context);
     showDone(context, err ?? t('המנוי הוקפא ל-{0} ימים', [days]));
@@ -310,8 +324,37 @@ class _MemberSheet extends StatelessWidget {
       ),
     );
     if (ok != true || !context.mounted) return;
+    final sync = SyncScope.maybeOf(context);
+    if (sync != null) {
+      // The server works out the date with the same rules; show the date it set.
+      Subscription? saved;
+      if (!await _onServer(context, () async => saved = await sync.cancelMembership(sub)) || !context.mounted) return;
+      Navigator.pop(context);
+      showDone(context, t('המנוי יבוטל ב-{0}', [fmtDate(saved?.cancelEffective ?? when)]));
+      return;
+    }
     store.cancel(sub);
     Navigator.pop(context);
     showDone(context, t('המנוי יבוטל ב-{0}', [fmtDate(when)]));
   }
+}
+
+/// Signed in: runs [action] on the AURA server behind a progress dialog.
+/// Returns false, after showing the error, when it failed.
+Future<bool> _onServer(BuildContext context, Future<void> Function() action) async {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
+  );
+  var ok = false;
+  try {
+    await action();
+    ok = true;
+  } catch (e) {
+    if (context.mounted) showDone(context, authErrorText(e));
+  } finally {
+    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+  }
+  return ok;
 }

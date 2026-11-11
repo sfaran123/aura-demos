@@ -46,7 +46,7 @@ class _SalesScreenState extends State<SalesScreen> {
       if (kind != null && x.kind != kind) return false;
       if (method != null && !x.lines.any((l) => l.method == method)) return false;
       if (q.trim().isEmpty) return true;
-      return x.customerName.contains(q.trim()) || (digits.isNotEmpty && '${x.number}'.contains(digits));
+      return x.customerName.contains(q.trim()) || (digits.isNotEmpty && x.docNo.replaceAll(RegExp(r'\D'), '').contains(digits));
     }).toList();
     final total = round2(list.fold(0.0, (a, x) => a + x.total));
     final vat = s.docType == DocType.taxInvoiceReceipt ? round2(total * s.vatPct / (100 + s.vatPct)) : 0.0;
@@ -79,7 +79,7 @@ class _SalesScreenState extends State<SalesScreen> {
                 [t('מספר'), t('תאריך'), t('לקוח'), t('תיאור'), t('אמצעי תשלום'), t('סכום')].map(c).join(','));
             for (final x in list) {
               b.write('\n${[
-                '${x.number}',
+                x.docNo,
                 fmtDate(x.date),
                 x.customerName,
                 x.description,
@@ -145,7 +145,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   onTap: () => showReceiptSheet(context, x),
                   title: Text(x.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(
-                    '${docLabel(x, s.docType)} ${x.number} · ${fmtDate(x.date)}\n${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
+                    '${docLabel(x, s.docType)} ${x.docNo} · ${fmtDate(x.date)}\n${x.description} · ${x.lines.map((l) => l.method.label).join(' + ')}',
                     style: const TextStyle(fontSize: 12.5),
                   ),
                   isThreeLine: true,

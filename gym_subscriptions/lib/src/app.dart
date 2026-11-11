@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'domain/l10n.dart';
+import 'state/auth.dart';
 import 'state/gym_store.dart';
+import 'state/server_sync.dart';
+import 'ui/auth_screens.dart';
 import 'ui/collect_screen.dart';
 import 'ui/home_screen.dart';
 import 'ui/members_screen.dart';
@@ -14,8 +17,12 @@ import 'ui/widgets.dart';
 /// Standalone app. Inside the existing AURA app, wrap [GymModule] with your
 /// own MaterialApp/route instead.
 class AuraGymApp extends StatefulWidget {
-  const AuraGymApp({super.key, required this.store});
+  const AuraGymApp({super.key, required this.store, this.auth});
   final GymStore store;
+
+  /// Sign-in to the AURA backend (domain + login screens). Without it (tests,
+  /// demos) the app opens straight to the gym module.
+  final AuthController? auth;
 
   @override
   State<AuraGymApp> createState() => _AuraGymAppState();
@@ -24,19 +31,37 @@ class AuraGymApp extends StatefulWidget {
 class _AuraGymAppState extends State<AuraGymApp> {
   AppLang _lang = L10n.lang;
 
+  /// Loads the server data after sign-in and at start (signed in only).
+  GymSync? _sync;
+  AuthStage? _stage;
+
   void _onStore() {
     if (L10n.lang != _lang) setState(() => _lang = L10n.lang);
+  }
+
+  void _onAuth() {
+    final stage = widget.auth!.stage;
+    if (stage == AuthStage.signedIn && _stage != AuthStage.signedIn) _sync!.pull();
+    _stage = stage;
   }
 
   @override
   void initState() {
     super.initState();
     widget.store.addListener(_onStore);
+    final auth = widget.auth;
+    if (auth != null) {
+      _sync = GymSync(auth: auth, store: widget.store);
+      auth.addListener(_onAuth);
+      _onAuth();
+    }
   }
 
   @override
   void dispose() {
     widget.store.removeListener(_onStore);
+    widget.auth?.removeListener(_onAuth);
+    _sync?.dispose();
     super.dispose();
   }
 
@@ -54,7 +79,9 @@ class _AuraGymAppState extends State<AuraGymApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: GymModule(store: store),
+      home: widget.auth == null
+          ? GymModule(store: store)
+          : AuthGate(auth: widget.auth!, store: store, child: SyncScope(sync: _sync!, child: GymModule(store: store))),
     );
   }
 }

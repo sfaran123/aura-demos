@@ -7,6 +7,7 @@ import 'sales_screen.dart';
 import 'receipt_view.dart';
 
 import '../domain/checkout.dart';
+import '../domain/dashboard.dart';
 import '../domain/models.dart';
 import 'checkout/checkout_screens.dart';
 import 'links.dart';
@@ -29,6 +30,24 @@ class HomeScreen extends StatelessWidget {
     final waiting = store.links.where((l) => l.stage != LinkStage.paid).toList();
     final expiring = store.expiringSoon;
 
+    // Signed in and synced: every number and list comes from the AURA server.
+    // Otherwise (demo, tests) they are worked out from the data in the app.
+    final dash = store.dashboard;
+    final businessName =
+        (dash != null && dash.businessName.isNotEmpty) ? dash.businessName : store.settings.businessName;
+    final activeMembers = dash?.activeMembers ?? store.activeCount;
+    final revenueToday = dash?.revenueToday ?? store.todayRevenue;
+    final openDebt = dash?.openDebt ?? store.openDebt;
+    final collectSub = dash == null
+        ? (collect.isEmpty
+            ? t('אין תשלומים פתוחים')
+            : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]))
+        : (dash.debts.isEmpty
+            ? t('אין תשלומים פתוחים')
+            : t('{0} תשלומים · {1}', [dash.debts.length, money(dash.openDebt)]));
+    final documentsMonth = dash?.documentsMonth ??
+        store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length;
+
     return Scaffold(
       appBar: AppBar(
         centerTitle: false,
@@ -41,7 +60,8 @@ class HomeScreen extends StatelessWidget {
             child: const Text('A', style: TextStyle(color: Aura.goldLight, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Text(store.settings.businessName, overflow: TextOverflow.ellipsis)),
+          Expanded(
+              child: Text(isolate(businessName), key: const Key('homeBusinessName'), overflow: TextOverflow.ellipsis)),
         ]),
         actions: [
           IconButton(
@@ -55,11 +75,16 @@ class HomeScreen extends StatelessWidget {
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         Row(children: [
-          _Kpi(label: t('מנויים פעילים'), value: '${store.activeCount}'),
+          _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: '$activeMembers'),
           const SizedBox(width: 8),
-          _Kpi(label: t('הכנסות היום'), value: money(store.todayRevenue)),
+          _Kpi(key: const Key('kpiRevenue'), label: t('הכנסות היום'), value: money(revenueToday)),
           const SizedBox(width: 8),
-          _Kpi(label: t('חוב פתוח'), value: money(store.openDebt), alert: store.openDebt > 0, onTap: () => goTo(2)),
+          _Kpi(
+              key: const Key('kpiDebt'),
+              label: t('חוב פתוח'),
+              value: money(openDebt),
+              alert: openDebt > 0,
+              onTap: () => goTo(2)),
         ]),
         const SizedBox(height: 14),
         _TileRow(
@@ -91,9 +116,7 @@ class HomeScreen extends StatelessWidget {
               key: const Key('tileCollect'),
               icon: Icons.receipt_long,
               title: t('לגבייה'),
-              sub: collect.isEmpty
-                  ? t('אין תשלומים פתוחים')
-                  : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]),
+              sub: collectSub,
               onTap: () => goTo(2),
             )),
         const SizedBox(height: 10),
@@ -104,9 +127,7 @@ class HomeScreen extends StatelessWidget {
               key: const Key('homeSales'),
               icon: Icons.receipt_outlined,
               title: t('מכירות וחשבוניות'),
-              sub: t('{0} מסמכים החודש', [
-                store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length
-              ]),
+              sub: t('{0} מסמכים החודש', [documentsMonth]),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen())),
             ),
             const Divider(height: 1),
@@ -127,7 +148,8 @@ class HomeScreen extends StatelessWidget {
             ),
           ]),
         ),
-        if (overdue.isNotEmpty || expiring.isNotEmpty) ...[
+        if (dash != null) ..._serverAlerts(context, dash),
+        if (dash == null && (overdue.isNotEmpty || expiring.isNotEmpty)) ...[
           const SizedBox(height: 8),
           SectionLabel(t('דורש טיפול')),
           for (final c in overdue.take(4))
@@ -158,7 +180,8 @@ class HomeScreen extends StatelessWidget {
               onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
             ),
         ],
-        if (waiting.isNotEmpty) ...[
+        // Sign-up links are not on the server yet: hidden while signed in.
+        if (dash == null && waiting.isNotEmpty) ...[
           const SizedBox(height: 8),
           SectionLabel(t('לינקים פתוחים ({0})', [waiting.length]),
               trailing: TextButton(
@@ -170,32 +193,140 @@ class HomeScreen extends StatelessWidget {
         ],
         const SizedBox(height: 8),
         SectionLabel(t('תשלומים אחרונים')),
-        for (final r in store.receipts.reversed.take(5))
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Panel(
-              key: Key('receipt-${r.number}'),
-              onTap: () => showReceiptSheet(context, r),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(r.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
-                    Text('${r.description} · ${r.lines.map((l) => l.method.label).join(' + ')}',
-                        style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
-                  ]),
-                ),
-                Text(money(r.total), style: const TextStyle(fontWeight: FontWeight.w600)),
-              ]),
+        if (dash != null)
+          for (final p in dash.recentPayments) _ServerPaymentTile(payment: p),
+        if (dash == null)
+          for (final r in store.receipts.reversed.take(5))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Panel(
+                key: Key('receipt-${r.number}'),
+                onTap: () => showReceiptSheet(context, r),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(r.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      Text('${r.description} · ${r.lines.map((l) => l.method.label).join(' + ')}',
+                          style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                    ]),
+                  ),
+                  Text(money(r.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                ]),
+              ),
             ),
-          ),
       ]),
     );
   }
 }
 
+/// The server document a payment or debt belongs to, when it is in the synced sales list.
+Receipt? _receiptForSale(BuildContext context, String? saleId) {
+  final id = int.tryParse(saleId ?? '');
+  if (id == null) return null;
+  return StoreScope.read(context).receipts.where((r) => r.reference != null && r.number == id).firstOrNull;
+}
+
+/// "Needs attention" from the server: open debts (failed charges, unpaid
+/// membership invoices) and memberships ending soon.
+List<Widget> _serverAlerts(BuildContext context, ServerDashboard dash) {
+  if (dash.debts.isEmpty && dash.expiring.isEmpty) return const [];
+  final store = StoreScope.of(context);
+  final goTo = ShellTabs.of(context);
+  return [
+    const SizedBox(height: 8),
+    SectionLabel(t('דורש טיפול')),
+    for (final d in dash.debts.take(4))
+      _Alert(
+        key: Key('debt-${d.id}'),
+        icon: Icons.warning_amber_rounded,
+        tone: PillTone.bad,
+        title: d.customerName.isEmpty ? t('לקוח') : d.customerName,
+        text: switch (d.kind) {
+          DebtKind.failedCharge =>
+            t('חיוב נכשל · {0} · {1}', [money(d.amount), d.date == null ? (d.description ?? '') : fmtDate(d.date!)]),
+          DebtKind.unpaidInvoice => t('חשבונית {0} לא שולמה · נותרו {1}', [d.reference ?? '', money(d.amount)]),
+        },
+        onTap: () {
+          final r = _receiptForSale(context, d.saleId);
+          if (r != null) {
+            showReceiptSheet(context, r);
+          } else {
+            goTo.value = 2;
+          }
+        },
+      ),
+    if (dash.debts.length > 4)
+      Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: TextButton(
+          key: const Key('homeAllOverdue'),
+          onPressed: () => goTo.value = 2,
+          child: Text(t('עוד {0} באיחור · לרשימת הגבייה', [dash.debts.length - 4])),
+        ),
+      ),
+    for (final e in dash.expiring.take(3))
+      _Alert(
+        key: Key('expiring-${e.subscriptionId}'),
+        icon: Icons.event_busy,
+        tone: PillTone.info,
+        title: e.customerName,
+        text: t('{0} מסתיים ב-{1} · להציע חידוש', [e.planName, fmtDate(e.endDate)]),
+        onTap: () => startCheckout(context, CheckoutFlow.subscription,
+            customer: e.customerId == null ? null : store.customer(e.customerId!)),
+      ),
+  ];
+}
+
+/// One of the last payments taken (any staff member, as the web dashboard).
+class _ServerPaymentTile extends StatelessWidget {
+  const _ServerPaymentTile({required this.payment});
+  final RecentPayment payment;
+
+  static const _known = {
+    'cash',
+    'credit card',
+    'card',
+    'cheque',
+    'check',
+    'bank transfer',
+    'bank_transfer',
+    'transfer'
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final p = payment;
+    final method = _known.contains(p.methodName.toLowerCase()) ? p.method.label : p.methodName;
+    final receipt = _receiptForSale(context, p.saleId);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Panel(
+        key: Key('payment-${p.id}'),
+        onTap: receipt == null ? null : () => showReceiptSheet(context, receipt),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(p.customerName ?? t('לקוח מזדמן'), style: const TextStyle(fontWeight: FontWeight.w500)),
+              Text(
+                  [
+                    if (p.reference != null) p.reference!,
+                    method,
+                    if (p.date != null) fmtDate(p.date!),
+                  ].join(' · '),
+                  style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+            ]),
+          ),
+          Text(money(p.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
+  }
+}
+
 class _Kpi extends StatelessWidget {
-  const _Kpi({required this.label, required this.value, this.alert = false, this.onTap});
+  const _Kpi({super.key, required this.label, required this.value, this.alert = false, this.onTap});
   final String label;
   final String value;
   final bool alert;
@@ -278,7 +409,8 @@ class _Tile extends StatelessWidget {
 }
 
 class _Alert extends StatelessWidget {
-  const _Alert({required this.icon, required this.tone, required this.title, required this.text, this.onTap});
+  const _Alert(
+      {super.key, required this.icon, required this.tone, required this.title, required this.text, this.onTap});
   final IconData icon;
   final PillTone tone;
   final String title;

@@ -1,0 +1,241 @@
+// Loads the gym data from the AURA server into the store (read only for now:
+// changes made in the app are not sent to the server yet, and the next sync
+// replaces them with the server's data).
+
+import 'package:flutter/foundation.dart';
+
+import '../domain/models.dart';
+import '../integration/aura_api.dart';
+import '../integration/server_mapping.dart';
+import 'auth.dart';
+import 'gym_store.dart';
+
+class GymSync extends ChangeNotifier {
+  GymSync({required this.auth, required this.store, this.maxSalePages = 10, this.maxGymSalePages = 40});
+
+  final AuthController auth;
+  final GymStore store;
+
+  /// GET /api/sales returns 10 sales a page; the last [maxSalePages] pages are loaded.
+  final int maxSalePages;
+
+  /// GET /api/gym/sales returns 300 documents a page; at most this many pages (12,000 documents).
+  final int maxGymSalePages;
+
+  bool _syncing = false;
+  DateTime? _lastSynced;
+  Object? _error;
+  Future<void>? _running;
+
+  bool get syncing => _syncing;
+  DateTime? get lastSynced => _lastSynced;
+
+  /// The last failure (an [AuraApiException] or anything else); null after a successful sync.
+  Object? get error => _error;
+
+  /// Creates a member (a web customer) with the POS app's endpoint, POST /api/customer/store.
+  /// When a customer with the same phone already exists on the server, that one
+  /// is returned with [existing] true and nothing is created.
+  Future<({Customer customer, bool existing})> addMember({
+    required String name,
+    required String phone,
+    String? idNumber,
+  }) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final body = await auth.api.postJson(ws, session, '/customer/store', {
+        'name': name,
+        'phone_number': phone,
+        if (idNumber != null && idNumber.isNotEmpty) 'tax_no': idNumber,
+        // Same as the POS app's "add customer".
+        'customer_group_id': 1,
+      });
+      final data = body is Map && body['data'] is Map ? (body['data'] as Map) : null;
+      final id = data?['id'];
+      if (data == null || id == null) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      final existing = body is Map && body['if_existing'] == true;
+      final tax = '${data['tax_no'] ?? ''}';
+      final customer = store.upsertCustomer(Customer(
+        id: '$id',
+        name: '${data['name'] ?? name}',
+        phone: '${data['phone_number'] ?? phone}',
+        idNumber: tax.isEmpty ? null : tax,
+      ));
+      return (customer: customer, existing: existing);
+    } on AuraApiException catch (e) {
+      // This endpoint answers 403 "Access denied" only when the token is not accepted.
+      final expired = e.kind == AuraErrorKind.sessionExpired || e.kind == AuraErrorKind.forbidden;
+      if (expired) {
+        await auth.signOut(expired: true);
+        throw AuraApiException(AuraErrorKind.sessionExpired);
+      }
+      rethrow;
+    }
+  }
+
+  /// Opens a membership on the server (POST /api/gym/memberships): the web
+  /// subscription only, no sale, invoice or payment (the payment part stays in
+  /// the app for now). Returns it in the app's format with its open charges.
+  Future<({Subscription sub, List<Charge> charges, bool duplicate})> createMembership({
+    required Customer customer,
+    required SubscriptionPlan plan,
+    required DateTime start,
+    required int discountPct,
+    required bool waiveRegistration,
+    RecurringMethod? recurring,
+  }) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    String two(int n) => n.toString().padLeft(2, '0');
+    try {
+      final body = await auth.api.postJson(ws, session, '/gym/memberships', {
+        'customer_id': int.tryParse(customer.id) ?? customer.id,
+        'plan_id': int.tryParse(plan.id) ?? plan.id,
+        'start_date': '${start.year}-${two(start.month)}-${two(start.day)}',
+        'discount_percent': discountPct,
+        'registration_waived': waiveRegistration,
+        if (plan.isRecurring)
+          'recurring_method': switch (recurring) {
+            RecurringMethod.standingOrder => 'bank_transfer',
+            RecurringMethod.manual => 'manual',
+            _ => 'credit_card',
+          },
+      });
+      final row = body is Map ? body['data'] : null;
+      final mapped = mapMemberships({
+        'data': [row]
+      }, customers: [...store.customers], plans: [...store.plans], today: store.today);
+      if (row is! Map || mapped.subscriptions.isEmpty) {
+        throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      }
+      return (
+        sub: mapped.subscriptions.single,
+        charges: mapped.charges,
+        duplicate: body is Map && body['duplicate'] == true,
+      );
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Freezes a membership on the server for [days] days from today.
+  Future<Subscription> freezeMembership(Subscription sub, int days) =>
+      _membershipAction(sub, 'freeze', {'days': days});
+
+  /// Ends the current freeze today; the unused days are given back.
+  Future<Subscription> unfreezeMembership(Subscription sub) => _membershipAction(sub, 'unfreeze', {});
+
+  /// Schedules the cancellation on the server (notice, commitment, prepaid month).
+  Future<Subscription> cancelMembership(Subscription sub, {String? reason}) =>
+      _membershipAction(sub, 'cancel', {if (reason != null && reason.isNotEmpty) 'reason': reason});
+
+  /// POST gym/memberships/{id}/{action}; the answer replaces the membership and its charges in the app.
+  Future<Subscription> _membershipAction(Subscription sub, String action, Map<String, Object?> body) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/$action', body);
+      final row = res is Map ? res['data'] : null;
+      final mapped = mapMemberships({
+        'data': [row]
+      }, customers: [...store.customers], plans: [...store.plans], today: store.today);
+      if (row is! Map || mapped.subscriptions.isEmpty) {
+        throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      }
+      return store.replaceServerMembership(mapped.subscriptions.single, mapped.charges);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Loads everything. A second call while one is running waits for that one.
+  Future<void> pull() => _running ??= _pull().whenComplete(() => _running = null);
+
+  Future<void> _pull() async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) return;
+    _syncing = true;
+    _error = null;
+    notifyListeners();
+    try {
+      Future<Object?> get(String path, [Map<String, String>? q]) => auth.api.getJson(ws, session, path, query: q);
+
+      final results = await Future.wait([get('/gym/members'), get('/gym/plans'), get('/gym/memberships')]);
+      final customers = mapMembers(results[0]);
+      final plans = mapPlans(results[1]);
+      final memberships = mapMemberships(results[2], customers: customers, plans: plans, today: store.today);
+
+      // Same product list as the POS app: the user's warehouse, else the POS default.
+      var warehouseId = session.warehouseId;
+      if (warehouseId == null) {
+        final pos = await get('/sales/get-data-for-pos');
+        final setting = pos is Map && pos['data'] is Map ? (pos['data'] as Map)['pos_setting'] : null;
+        final w = setting is Map ? setting['warehouse_id'] : null;
+        warehouseId = w is num ? w.toInt() : int.tryParse('${w ?? ''}');
+      }
+      final items = warehouseId == null
+          ? <ShopItem>[]
+          : mapProducts(await get('/sales/getproduct-v2', {'warehouse_id': '$warehouseId'}),
+              planIds: {for (final p in plans) p.id});
+
+      final names = {for (final p in plans) p.id: p.name, for (final i in items) i.id: i.name};
+      // Sales for the reports and the sales list: all staff, from the 1st of the
+      // month 5 months ago (the summary's 6-month trend), every page.
+      final receipts = <Receipt>[];
+      final today = store.today;
+      final from = DateTime(today.year, today.month - 5, 1);
+      String two(int n) => n.toString().padLeft(2, '0');
+      try {
+        for (var page = 1; page <= maxGymSalePages; page++) {
+          final body = await get('/gym/sales', {'from': '${from.year}-${two(from.month)}-01', 'page': '$page'});
+          receipts.addAll(mapGymSales(body, names: names));
+          final last = body is Map && body['last_page'] is num ? (body['last_page'] as num).toInt() : 1;
+          if (page >= last) break;
+        }
+      } on AuraApiException catch (e) {
+        // A server without gym/sales yet: the POS app's list (this user's, latest pages).
+        if (e.kind != AuraErrorKind.server) rethrow;
+        receipts.clear();
+        for (var page = 1; page <= maxSalePages; page++) {
+          final body = await get('/sales', {'page': '$page'});
+          receipts.addAll(mapSales(body, names: names));
+          final data = body is Map ? body['data'] : null;
+          final last = data is Map && data['last_page'] is num ? (data['last_page'] as num).toInt() : 1;
+          if (page >= last) break;
+        }
+      }
+
+      // Home screen numbers. A server without this endpoint yet (404) keeps the
+      // home screen on the numbers worked out in the app.
+      Map<String, dynamic>? dashboard;
+      try {
+        final body = await get('/gym/dashboard', {'expiring_days': '${store.settings.renewalReminderDaysBefore}'});
+        if (body is Map) dashboard = body.cast<String, dynamic>();
+      } on AuraApiException catch (e) {
+        if (e.kind != AuraErrorKind.server) rethrow;
+      }
+
+      store.applyServerData(
+        dashboardJson: dashboard,
+        customers: customers,
+        plans: plans,
+        subscriptions: memberships.subscriptions,
+        charges: memberships.charges,
+        items: items,
+        receipts: receipts,
+      );
+      _lastSynced = DateTime.now();
+    } on AuraApiException catch (e) {
+      _error = e;
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+    } catch (e) {
+      _error = e;
+    } finally {
+      _syncing = false;
+      notifyListeners();
+    }
+  }
+}

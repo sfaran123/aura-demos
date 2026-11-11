@@ -43,7 +43,9 @@ class ReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final on = store.settings.enabledReports;
-    final reports = allReports.where((r) => on.contains(r.id)).toList();
+    // Sign-up links are not on the server yet: their report is left out while signed in.
+    final reports =
+        allReports.where((r) => on.contains(r.id) && !(store.dashboard != null && r.id == 'links')).toList();
     final summary = reports.where((r) => r.id == 'summary').firstOrNull;
     final debt = store.openDebt;
     final debtors = store.toCollect.where((c) => !c.dueDate.isAfter(store.today)).map((c) => c.customerId).toSet();

@@ -12,6 +12,7 @@ import 'plans_screen.dart';
 import 'sales_screen.dart';
 import 'report_picker.dart';
 import '../state/reports.dart' show allReports;
+import 'auth_screens.dart' show AuthScope, SyncScope, authErrorText;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -91,6 +92,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(t('הגדרות העסק')), actions: [HelpButton.topic(HelpTopic.settings)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        const _AccountCard(),
         Panel(
           key: const Key('settingsGuide'),
           color: Aura.ink,
@@ -367,6 +369,114 @@ class SettingsScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx, c.text), child: Text(t('שמירה'))),
         ],
       ),
+    );
+  }
+}
+
+/// The signed-in AURA user, with sign-out. Hidden when the app runs without
+/// sign-in.
+class _AccountCard extends StatelessWidget {
+  const _AccountCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = AuthScope.maybeOf(context);
+    final session = auth?.session, ws = auth?.workspace;
+    if (auth == null || session == null || ws == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Panel(
+        key: const Key('accountCard'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Avatar(session.userName, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(session.userName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5)),
+                Text('${ws.company} · ${ws.domain}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textDirection: TextDirection.ltr,
+                    style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+              ]),
+            ),
+            TextButton.icon(
+              key: const Key('signOut'),
+              style: TextButton.styleFrom(foregroundColor: Aura.warn),
+              icon: const Icon(Icons.logout_rounded, size: 18),
+              label: Text(t('התנתקות')),
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: Text(t('להתנתק?')),
+                    content: Text(t('תחזרו למסך ההתחברות של {0}.', [ws.company])),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(c, false), child: Text(t('ביטול'))),
+                      TextButton(
+                          key: const Key('signOutConfirm'),
+                          onPressed: () => Navigator.pop(c, true),
+                          style: TextButton.styleFrom(foregroundColor: Aura.warn),
+                          child: Text(t('התנתקות'))),
+                    ],
+                  ),
+                );
+                if (ok == true) await auth.signOut();
+              },
+            ),
+          ]),
+          const _SyncRow(),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Last sync with the AURA server, its error if any, and "Sync now".
+class _SyncRow extends StatelessWidget {
+  const _SyncRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = SyncScope.maybeOf(context);
+    if (sync == null) return const SizedBox.shrink();
+    final error = sync.error;
+    final last = sync.lastSynced;
+    String two(int n) => n.toString().padLeft(2, '0');
+    final text = sync.syncing
+        ? t('מסנכרן עם השרת…')
+        : error != null
+            ? authErrorText(error)
+            : last == null
+                ? t('עוד לא סונכרן')
+                : t('סונכרן ב-{0}', ['${two(last.hour)}:${two(last.minute)}']);
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(children: [
+        Icon(error != null ? Icons.cloud_off_outlined : Icons.cloud_done_outlined,
+            size: 18, color: error != null ? Aura.warn : Aura.muted),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              key: const Key('syncStatus'),
+              style: TextStyle(fontSize: 12.5, color: error != null ? Aura.warn : Aura.muted)),
+        ),
+        sync.syncing
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            : TextButton.icon(
+                key: const Key('syncNow'),
+                onPressed: sync.pull,
+                icon: const Icon(Icons.sync, size: 18),
+                label: Text(t('סנכרון')),
+              ),
+      ]),
     );
   }
 }
