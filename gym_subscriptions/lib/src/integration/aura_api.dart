@@ -195,7 +195,9 @@ class AuraApi {
 
   /// Checks that [company] exists on [domain] (e.g. "aurademo1" on "auratech2.tech").
   Future<void> verifyCompany({required String domain, required String company}) async {
-    if (AuraConfig.verifyKey.isEmpty) throw AuraApiException(AuraErrorKind.noVerifyKey);
+    // No key in this build: skip the check. The login call still reports an
+    // unknown business (404 / unreachable) or a wrong password.
+    if (AuraConfig.verifyKey.isEmpty) return;
     final uri = Uri.https(domain, '/verify', {'tenant': company});
     final r = await _send('GET', uri, headers: {'X-API-KEY': AuraConfig.verifyKey});
     if (r.status == 200) return;

@@ -74,13 +74,10 @@ jobs:
 
       - name: Build APK
         env:
-          # Repository secret: Settings > Secrets and variables > Actions > AURA_VERIFY_KEY.
-          # Without it the APK builds, but sign-in stops at the domain screen.
+          # Optional repository secret. Without it the app skips the company
+          # check on the domain screen and goes straight to login.
           AURA_VERIFY_KEY: ${{ secrets.AURA_VERIFY_KEY }}
         run: |
-          if [ -z "$AURA_VERIFY_KEY" ]; then
-            echo "::warning::The AURA_VERIFY_KEY secret is not set: sign-in will not work in this APK."
-          fi
           flutter build apk --release --build-number=${{ github.run_number }} \
             --dart-define=AURA_VERIFY_KEY="$AURA_VERIFY_KEY"
           cp build/app/outputs/flutter-apk/app-release.apk ../AURA-Gym.apk
