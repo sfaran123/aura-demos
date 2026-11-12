@@ -195,14 +195,31 @@ class AuraApi {
 
   /// Checks that [company] exists on [domain] (e.g. "aurademo1" on "auratech2.tech").
   Future<void> verifyCompany({required String domain, required String company}) async {
-    // No key in this build: skip the check. The login call still reports an
-    // unknown business (404 / unreachable) or a wrong password.
-    if (AuraConfig.verifyKey.isEmpty) return;
+    if (AuraConfig.verifyKey.isEmpty) return _probeCompany(domain: domain, company: company);
     final uri = Uri.https(domain, '/verify', {'tenant': company});
     final r = await _send('GET', uri, headers: {'X-API-KEY': AuraConfig.verifyKey});
     if (r.status == 200) return;
     if (r.status == 422) throw AuraApiException(AuraErrorKind.companyNotFound);
     throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}');
+  }
+
+  /// Company check without the verify key: an empty POST to the business's own
+  /// /api/login. An existing business answers (422, missing fields); an unknown
+  /// one has no subdomain (connection fails) or answers 404.
+  Future<void> _probeCompany({required String domain, required String company}) async {
+    final workspace = AuraWorkspace(domain: domain, company: company);
+    try {
+      final r = await _send('POST', workspace.api('/login'), body: const <String, Object?>{});
+      if (r.status == 404) throw AuraApiException(AuraErrorKind.companyNotFound);
+      if (r.status >= 500) throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}');
+      return;
+    } on AuraApiException catch (e) {
+      if (e.kind != AuraErrorKind.unreachable) rethrow;
+      // The business's address does not answer. If the domain itself answers,
+      // the business does not exist; otherwise it is the internet or the domain.
+      await _send('GET', Uri.https(domain, '/'));
+      throw AuraApiException(AuraErrorKind.companyNotFound);
+    }
   }
 
   /// Signs in with the AURA username (not the email) and password.

@@ -74,8 +74,8 @@ jobs:
 
       - name: Build APK
         env:
-          # Optional repository secret. Without it the app skips the company
-          # check on the domain screen and goes straight to login.
+          # Optional repository secret. Without it the app still checks the
+          # business name, through the business's own address.
           AURA_VERIFY_KEY: ${{ secrets.AURA_VERIFY_KEY }}
         run: |
           flutter build apk --release --build-number=${{ github.run_number }} \
