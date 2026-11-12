@@ -233,8 +233,19 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.edit_outlined),
             onTap: () => pickBusinessType(context),
           ),
-          chips<DocType>(
-              t('מסמך שמופק בכל תשלום'), DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
+          // Signed in, the AURA server's business type decides (as in the POS app).
+          if (store.posSettings != null)
+            ListTile(
+              key: const Key('docTypeFromServer'),
+              leading: const Icon(Icons.receipt_long_outlined, color: Aura.gold),
+              title: Text(t('מסמך שמופק בכל תשלום')),
+              subtitle: Text('${s.docType.label}\n${t('לפי סוג העסק בהגדרות המערכת של AURA')}'),
+              isThreeLine: true,
+              trailing: const Icon(Icons.lock_outline, size: 18, color: Aura.muted),
+            )
+          else
+            chips<DocType>(
+                t('מסמך שמופק בכל תשלום'), DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
           stepper(t('מע״מ'), s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),
         ]),
         group(t('אמצעי תשלום'), t('מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.'), [

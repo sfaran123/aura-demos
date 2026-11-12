@@ -71,6 +71,32 @@ PlanKind _kind(Object? type) => switch (_s(type)) {
       _ => PlanKind.recurring,
     };
 
+/// A plan as POST gym/plans and gym/plans/{id} take it (GymController::planInput).
+Map<String, Object?> planBody(SubscriptionPlan p) => {
+      'name': p.name.trim(),
+      'price': p.price,
+      'plan_type': switch (p.kind) {
+        PlanKind.recurring => 'recurring',
+        PlanKind.term => 'fixed_term',
+        PlanKind.punch => 'punch_card',
+      },
+      if (p.kind == PlanKind.term) 'months': p.months,
+      if (p.kind == PlanKind.punch) ...{'entries_count': p.entries, 'valid_months': p.validMonths},
+      'registration_fee': p.registrationFee,
+      'commitment_months': p.commitMonths,
+      'cancellation_notice_days': p.cancelNoticeDays,
+      'weekly_entry_limit': p.weeklyLimit,
+      'freeze_days_per_year': p.freezeDaysPerYear,
+      'max_installments': p.maxInstallments,
+      'max_cheques': p.maxCheques,
+      'allow_cash': p.allowCash,
+      'allow_cheques': p.allowCheques,
+      'auto_renew': p.autoRenew,
+      'online_signup': p.onlineSignup,
+      'prepay_last_month': p.isRecurring && p.prepayLastMonth,
+      'active': p.active,
+    };
+
 /// GET gym/plans -> plans. products.subscription_duration is the term length,
 /// and the validity of a punch card.
 List<SubscriptionPlan> mapPlans(Object? body) {
@@ -99,7 +125,8 @@ List<SubscriptionPlan> mapPlans(Object? body) {
           allowCash: s.containsKey('allow_cash') ? _b(s['allow_cash']) : true,
           allowCheques: _b(s['allow_cheques']),
           onlineSignup: _b(s['online_signup']),
-          active: true,
+          // Switched off in the app: kept, not offered for new memberships.
+          active: s.containsKey('active') ? _b(s['active']) : true,
           badge: _s(s['badge']).isEmpty ? null : _s(s['badge']),
           prepayLastMonth: _b(s['prepay_last_month']),
           taxRate: _d(p['tax_rate']),
@@ -202,6 +229,7 @@ RecurringMethod _recurring(Object? type) => switch (_s(type)) {
       prepaidAmount: _d(m['prepaid_amount']),
       joinedAt: _date(m['created_at']) ?? start,
       cancelledAt: _date(m['cancelled_at']) ?? cancelRequested,
+      hasCardToken: _b(m['has_card_token']),
     );
     subs.add(sub);
 
@@ -275,6 +303,7 @@ List<Receipt> mapSales(Object? body, {required Map<String, String> names}) {
           final subscriptionId = _s(sale['subscription_id']);
           return Receipt(
             number: _i(sale['id']),
+            saleId: _i(sale['id']),
             reference: _s(sale['reference_no']).isEmpty ? null : _s(sale['reference_no']),
             kind: total < 0
                 ? ReceiptKind.credit
@@ -382,6 +411,7 @@ List<Receipt> mapGymSales(Object? body, {Map<String, String> names = const {}}) 
         final subscriptionId = _s(d['subscription_id']);
         return Receipt(
           number: _i(d['id']),
+          saleId: _i(d['id']),
           reference: _s(d['reference_no']).isEmpty ? '#${_s(d['id'])}' : _s(d['reference_no']),
           kind: _b(d['is_credit'])
               ? ReceiptKind.credit

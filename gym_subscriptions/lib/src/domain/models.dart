@@ -559,6 +559,7 @@ class Subscription {
     this.prepaidAmount = 0,
     DateTime? joinedAt,
     this.cancelledAt,
+    this.hasCardToken = false,
   }) : joinedAt = joinedAt ?? start;
 
   final String id;
@@ -582,6 +583,11 @@ class Subscription {
   final DateTime joinedAt;
   DateTime? cancelledAt;
 
+  /// Server memberships: a card is saved on the membership itself
+  /// (subscriptions.zcredit_token), which the server charges each month.
+  /// The web shows only "Saved" / "Unsaved"; there are no card digits.
+  bool hasCardToken;
+
   Map<String, Object?> toJson() => {
         'id': id,
         'customerId': customerId,
@@ -601,6 +607,7 @@ class Subscription {
         'prepaidAmount': prepaidAmount,
         'joinedAt': _d(joinedAt),
         'cancelledAt': _d(cancelledAt),
+        'hasCardToken': hasCardToken,
       };
 
   factory Subscription.fromJson(Map<String, dynamic> j) => Subscription(
@@ -622,6 +629,7 @@ class Subscription {
         prepaidAmount: (j['prepaidAmount'] as num? ?? 0).toDouble(),
         joinedAt: _pd(j['joinedAt']),
         cancelledAt: _pd(j['cancelledAt']),
+        hasCardToken: j['hasCardToken'] ?? false,
       );
 }
 
@@ -645,6 +653,7 @@ class Receipt {
     this.credited = 0,
     this.allocationNumber,
     this.reference,
+    this.saleId,
     this.docType,
     this.docTotal,
     this.vat,
@@ -671,6 +680,10 @@ class Receipt {
   /// The document number on the AURA server (e.g. "TIN-80011"); null for
   /// documents made in the app. Shown instead of [number] when set.
   final String? reference;
+
+  /// The sale's id on the AURA server (its PDF is the web's document); null
+  /// for documents made in the app only (the demo).
+  final int? saleId;
 
   String get docNo => reference ?? '$number';
 

@@ -6,6 +6,9 @@ import '../domain/doc_types.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/settings.dart';
+import 'auth_screens.dart' show SyncScope;
+import 'pdf_documents.dart' show pdfFileName, receiptPdf;
+import 'pdf_view.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -126,8 +129,28 @@ String docLabel(Receipt r, DocType type) => r.docType != null
     // A server document: its own type on the web.
     ? serverDocTypeLabel(r.docType!)
     : r.isCredit
-        ? (type == DocType.taxInvoiceReceipt ? t('חשבונית מס זיכוי') : t('קבלת החזר'))
-        : type.label;
+        ? type.creditName
+        : type.docName;
+
+/// Whether the document carries VAT: a server document by its own type, an
+/// app document by the type the business issues (none for an exempt dealer).
+bool carriesVat(Receipt r, DocType type) =>
+    r.docType != null ? r.isTaxDocument : type == DocType.taxInvoiceReceipt;
+
+/// The document as a PDF. A sale on the AURA server: the web's own document
+/// (as the POS app shows it). A receipt made in the app only (the demo): drawn here.
+Future<void> openReceiptPdf(BuildContext context, Receipt r) {
+  final store = StoreScope.read(context);
+  final sync = SyncScope.maybeOf(context);
+  final label = '${docLabel(r, store.settings.docType)} ${r.docNo}';
+  final saleId = r.saleId;
+  return openPdf(
+    context,
+    title: label,
+    fileName: pdfFileName(label),
+    load: saleId != null && sync != null ? () => sync.salePdf(saleId) : () => receiptPdf(r, store),
+  );
+}
 
 /// The receipt as the customer gets it, with the send panel under it.
 Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBottomSheet(
@@ -140,6 +163,14 @@ Future<void> showReceiptSheet(BuildContext context, Receipt r) => showModalBotto
         child: SingleChildScrollView(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           ReceiptCard(receipt: r),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const Key('receiptPdf'),
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+            onPressed: () => openReceiptPdf(ctx, r),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            label: Text(t('PDF · הורדה / שיתוף')),
+          ),
           const SizedBox(height: 10),
           ReceiptSendPanel(receipt: r),
           if (!r.isCredit && r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund) ...[
@@ -171,7 +202,7 @@ class ReceiptCard extends StatelessWidget {
     // Signed in: the company name from the AURA server, as on the home screen.
     final serverName = store.dashboard?.businessName ?? '';
     final businessName = serverName.isNotEmpty ? serverName : s.businessName;
-    final vat = s.docType == DocType.taxInvoiceReceipt ? round2(r.total * s.vatPct / (100 + s.vatPct)) : 0.0;
+    final vat = carriesVat(r, s.docType) ? round2(r.total * s.vatPct / (100 + s.vatPct)) : 0.0;
     Widget line(String a, String b, {bool bold = false}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

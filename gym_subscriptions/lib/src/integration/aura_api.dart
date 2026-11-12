@@ -14,6 +14,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data' show BytesBuilder;
 
 class AuraConfig {
   /// Prefilled on the domain screen.
@@ -233,6 +234,47 @@ class AuraApi {
   /// Authenticated POST of a JSON body; returns the decoded JSON answer.
   Future<Object?> postJson(AuraWorkspace workspace, AuraSession session, String path, Map<String, Object?> body) async {
     return _answer(await _send('POST', workspace.api(path), headers: {'token': session.token}, body: body), path);
+  }
+
+  /// Authenticated GET of a file (e.g. a PDF); returns its bytes. An error
+  /// answer (JSON) throws as [getJson] does.
+  Future<List<int>> getBytes(AuraWorkspace workspace, AuraSession session, String path,
+      {Map<String, String>? query, Duration timeout = const Duration(seconds: 60)}) async {
+    var uri = workspace.api(path);
+    if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: query);
+    final client = _newClient()..connectionTimeout = AuraConfig.timeout;
+    try {
+      final (status, bytes) = await () async {
+        final req = await client.getUrl(uri);
+        req.headers.set('token', session.token);
+        final res = await req.close();
+        final b = BytesBuilder(copy: false);
+        await for (final chunk in res) {
+          b.add(chunk);
+        }
+        return (res.statusCode, b.takeBytes());
+      }()
+          .timeout(timeout);
+      if (status == 200 && bytes.isNotEmpty) return bytes;
+      Object? json;
+      try {
+        json = jsonDecode(utf8.decode(bytes, allowMalformed: true));
+      } on FormatException {
+        json = null;
+      }
+      _answer(_Response(status == 200 ? 500 : status, json), path);
+      throw AuraApiException(AuraErrorKind.server, 'Empty file');
+    } on TimeoutException {
+      throw AuraApiException(AuraErrorKind.timeout);
+    } on SocketException catch (e) {
+      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } on HandshakeException catch (e) {
+      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } on HttpException catch (e) {
+      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } finally {
+      client.close(force: true);
+    }
   }
 
   Object? _answer(_Response r, String path) {

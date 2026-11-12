@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../domain/checkout.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
-import '../domain/settings.dart';
 import '../state/reports.dart' show Period, PeriodLabel;
 import '../domain/help.dart';
 import 'help.dart';
@@ -49,7 +48,9 @@ class _SalesScreenState extends State<SalesScreen> {
       return x.customerName.contains(q.trim()) || (digits.isNotEmpty && x.docNo.replaceAll(RegExp(r'\D'), '').contains(digits));
     }).toList();
     final total = round2(list.fold(0.0, (a, x) => a + x.total));
-    final vat = s.docType == DocType.taxInvoiceReceipt ? round2(total * s.vatPct / (100 + s.vatPct)) : 0.0;
+    // VAT only from documents that carry it (none for an exempt dealer).
+    final taxed = list.where((x) => carriesVat(x, s.docType)).fold(0.0, (a, x) => a + x.total);
+    final vat = round2(taxed * s.vatPct / (100 + s.vatPct));
 
     Widget filter<T>(
             String key, String label, T? value, List<T> values, String Function(T) name, ValueChanged<T?> set) =>

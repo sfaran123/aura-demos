@@ -163,7 +163,14 @@ class GymStore extends SimpleNotifier {
 
   /// Signed in: how the AURA server saves a sale (GET gym/pos-settings), loaded by the sync.
   /// Null in the demo: payments are then recorded in the app only.
-  PosSettings? posSettings;
+  /// Its business type sets the document the app issues, as the POS app: an
+  /// exempt dealer (1) gets receipts, every other business tax invoice-receipts.
+  PosSettings? get posSettings => _posSettings;
+  PosSettings? _posSettings;
+  set posSettings(PosSettings? v) {
+    _posSettings = v;
+    if (v != null) settings.docType = DocTypeLabel.forBusinessType(v.businessType);
+  }
 
   final DateTime Function() _clock;
   DateTime get now => _clock();
@@ -313,6 +320,25 @@ class GymStore extends SimpleNotifier {
     return c;
   }
 
+  /// Demo (not signed in): the member's card is saved in the app only.
+  void setCustomerCard(Customer c, String number) {
+    final d = number.replaceAll(RegExp(r'\D'), '');
+    c.savedCardLast4 = d.length >= 4 ? d.substring(d.length - 4) : d;
+    notifyListeners();
+  }
+
+  /// A plan as the AURA server saved it: replaces the app's copy, or is added.
+  SubscriptionPlan putServerPlan(SubscriptionPlan p) {
+    final i = plans.indexWhere((x) => x.id == p.id);
+    if (i >= 0) {
+      plans[i] = p;
+    } else {
+      plans.add(p);
+    }
+    notifyListeners();
+    return p;
+  }
+
   /// Saves a plan and returns the stored copy (new plans get an id).
   SubscriptionPlan savePlan(SubscriptionPlan p) {
     if (!p.isRecurring) p.prepayLastMonth = false;
@@ -328,11 +354,12 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt _receipt(String name, String desc, List<PaymentLine> lines, ReceiptKind kind,
-      {DateTime? at, String? customerId, String? subscriptionId, String? chargeId, String? reference}) {
+      {DateTime? at, String? customerId, String? subscriptionId, String? chargeId, String? reference, int? saleId}) {
     final no = ++_receiptNo;
     final r = Receipt(
         number: no,
         reference: reference,
+        saleId: saleId,
         customerId: customerId,
         subscriptionId: subscriptionId,
         chargeId: chargeId,
@@ -436,6 +463,7 @@ class GymStore extends SimpleNotifier {
     RecurringMethod? recurring,
     String? newCardLast4,
     String? reference,
+    int? saleId,
   }) {
     if (newCardLast4 != null &&
         (lines.any((l) => l.method == PayMethod.card && l.cardSource == CardSource.newCard) ||
@@ -450,7 +478,7 @@ class GymStore extends SimpleNotifier {
       ..removeWhere((c) => c.subscriptionId == sub.id)
       ..addAll(charges);
     final r = _receipt(customer.name, plan.name, lines, ReceiptKind.subscription,
-        customerId: customer.id, subscriptionId: sub.id, reference: reference);
+        customerId: customer.id, subscriptionId: sub.id, reference: reference, saleId: saleId);
     if (lines.any((l) => l.method == PayMethod.link)) {
       final linkPart = lines.where((l) => l.method == PayMethod.link).fold(0.0, (a, l) => a + l.amount);
       links.insert(
@@ -485,9 +513,9 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt quickPay(
-      {Customer? customer, required String description, required List<PaymentLine> lines, String? reference}) {
+      {Customer? customer, required String description, required List<PaymentLine> lines, String? reference, int? saleId}) {
     final r = _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay,
-        customerId: customer?.id, reference: reference);
+        customerId: customer?.id, reference: reference, saleId: saleId);
     notifyListeners();
     return r;
   }

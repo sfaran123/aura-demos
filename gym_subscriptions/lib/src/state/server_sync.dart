@@ -4,12 +4,23 @@
 
 import 'package:flutter/foundation.dart';
 
+import '../domain/card_entry.dart';
+import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/sale_builder.dart';
 import '../integration/aura_api.dart';
 import '../integration/server_mapping.dart';
 import 'auth.dart';
 import 'gym_store.dart';
+
+/// The server did not save a plan; [message] says why.
+class PlanSaveException implements Exception {
+  const PlanSaveException(this.message);
+  final String message;
+
+  @override
+  String toString() => 'PlanSaveException($message)';
+}
 
 class GymSync extends ChangeNotifier {
   GymSync({required this.auth, required this.store, this.maxSalePages = 10, this.maxGymSalePages = 40});
@@ -75,6 +86,151 @@ class GymSync extends ChangeNotifier {
     }
   }
 
+  /// Saves [customer]'s card on the server, or replaces the saved one, as the
+  /// web's customer page does (POST /api/gym/members/{id}/card, which calls the
+  /// web's HomeController::checkCard: a Z Credit J2 check, nothing is charged).
+  /// The token stays on the server; the app keeps the last four digits.
+  /// Throws [CardSaveException] when the card is not saved.
+  Future<Customer> saveMemberCard(Customer customer,
+      {required String number, required String cvv, required String expiry}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final body = await auth.api.postJson(ws, session, '/gym/members/${customer.id}/card', {
+        'card_number': cardDigits(number),
+        'cvv': cvv.trim(),
+        'card_expiry_date': expiry.trim(),
+      });
+      final data = body is Map && body['data'] is Map ? body['data'] as Map : null;
+      if (data == null || data['has_saved_card'] != true) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      final last4 = '${data['card_last4'] ?? ''}';
+      customer.savedCardLast4 = last4.isEmpty ? '••••' : last4;
+      store.touch();
+      return customer;
+    } on AuraApiException catch (e) {
+      await _cardError(e);
+      rethrow;
+    }
+  }
+
+  /// The card endpoints' own answers (422/409/502 with a code as the message)
+  /// as a [CardSaveException]; signs out when the session expired.
+  Future<void> _cardError(AuraApiException e) async {
+    if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+    if (e.kind != AuraErrorKind.server) return;
+    if (e.detail.endsWith(': card_not_valid')) throw const CardSaveException(CardSaveError.declined);
+    if (e.detail.endsWith(': card_terminal_missing')) throw const CardSaveException(CardSaveError.terminalMissing);
+    if (e.detail.endsWith(': card_service_unreachable')) throw const CardSaveException(CardSaveError.unreachable);
+    if (e.detail.endsWith(': not_card_billed')) throw const CardSaveException(CardSaveError.notCardBilled);
+  }
+
+  /// Creates a plan on the server (POST gym/plans: a subscription product and
+  /// its settings), or saves an edit of one (POST gym/plans/{id}). A new price
+  /// is for new memberships; existing ones keep theirs. Returns the plan as the
+  /// server saved it. Throws [PlanSaveException] for the server's own refusals.
+  Future<SubscriptionPlan> savePlan(SubscriptionPlan p) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, p.id.isEmpty ? '/gym/plans' : '/gym/plans/${p.id}', planBody(p));
+      final row = res is Map ? res['data'] : null;
+      final mapped = mapPlans({
+        'data': [row]
+      });
+      if (row is! Map || mapped.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      return store.putServerPlan(mapped.single);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (e.kind == AuraErrorKind.server && e.detail.endsWith(': plan_type_in_use')) {
+        throw PlanSaveException(t('יש מנויים על המסלול, ולכן אי אפשר לשנות את סוג המסלול. אפשר ליצור מסלול חדש.'));
+      }
+      if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 422: ')) {
+        throw PlanSaveException(e.detail.substring('HTTP 422: '.length));
+      }
+      rethrow;
+    }
+  }
+
+  /// Saves a new card on a membership charged monthly by card, as the web's
+  /// subscription "Update Credit Card Info" (POST gym/memberships/{id}/card:
+  /// a Z Credit check, nothing is charged; the token is kept on the membership
+  /// and the server charges it from the next payment date). The member's own
+  /// saved card is not changed. Returns the membership and its failed months,
+  /// which can then be charged to the new card with [payFailedMonths].
+  Future<({Subscription sub, List<FailedMonth> failedMonths})> updateMembershipCard(Subscription sub,
+      {required String number, required String cvv, required String expiry}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/card', {
+        'card_number': cardDigits(number),
+        'cvv': cvv.trim(),
+        'card_expiry_date': expiry.trim(),
+      });
+      final saved = _applyMembership(res);
+      final months = res is Map && res['failed_months'] is List ? res['failed_months'] as List : const [];
+      return (sub: saved, failedMonths: months.map(FailedMonth.fromJson).whereType<FailedMonth>().toList());
+    } on AuraApiException catch (e) {
+      await _cardError(e);
+      rethrow;
+    }
+  }
+
+  /// Charges the chosen failed months to the membership's card in one charge,
+  /// as the web's "Create Payment" after a card update (POST
+  /// gym/memberships/{id}/pay-failed-months): one tax invoice-receipt, the months
+  /// cleared. Throws [CardChargeException] when the card company declines.
+  Future<({String reference, double amount, List<FailedMonth> remaining})> payFailedMonths(
+      Subscription sub, List<String> monthKeys) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/pay-failed-months', {'months': monthKeys});
+      _applyMembership(res);
+      final doc = res is Map && res['document'] is Map ? res['document'] as Map : const {};
+      final left = res is Map && res['remaining_months'] is List ? res['remaining_months'] as List : const [];
+      final amount = doc['grand_total'];
+      // The new document and the next month come with the sync.
+      await pull();
+      return (
+        reference: '${doc['reference_no'] ?? ''}',
+        amount: amount is num ? amount.toDouble() : 0.0,
+        remaining: left.map(FailedMonth.fromJson).whereType<FailedMonth>().toList(),
+      );
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      // A 422 is the web's answer (the card company's message, or nothing to charge).
+      if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 422: ')) {
+        throw CardChargeException(e.detail.substring('HTTP 422: '.length));
+      }
+      rethrow;
+    }
+  }
+
+  /// The sale's document as a PDF, exactly as the web and the POS app make it
+  /// (GET gym/sales/{id}/pdf), in the app's language.
+  Future<Uint8List> salePdf(int saleId) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      return Uint8List.fromList(
+          await auth.api.getBytes(ws, session, '/gym/sales/$saleId/pdf', query: {'lang': L10n.lang.code}));
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// A membership in the server's answer ({data: row}) replaces the app's copy and its charges.
+  Subscription _applyMembership(Object? res) {
+    final row = res is Map ? res['data'] : null;
+    final mapped = mapMemberships({
+      'data': [row]
+    }, customers: [...store.customers], plans: [...store.plans], today: store.today);
+    if (row is! Map || mapped.subscriptions.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+    return store.replaceServerMembership(mapped.subscriptions.single, mapped.charges);
+  }
+
   /// Opens a membership on the server (POST /api/gym/memberships): the web
   /// subscription only, no sale, invoice or payment (the payment part stays in
   /// the app for now). Returns it in the app's format with its open charges.
@@ -117,6 +273,10 @@ class GymSync extends ChangeNotifier {
       );
     } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      // Monthly by card copies the member's saved card; the server has none.
+      if (e.kind == AuraErrorKind.server && e.detail.endsWith(': member_has_no_card')) {
+        throw const CardSaveException(CardSaveError.memberHasNoCard);
+      }
       rethrow;
     }
   }
@@ -137,15 +297,7 @@ class GymSync extends ChangeNotifier {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
     try {
-      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/$action', body);
-      final row = res is Map ? res['data'] : null;
-      final mapped = mapMemberships({
-        'data': [row]
-      }, customers: [...store.customers], plans: [...store.plans], today: store.today);
-      if (row is! Map || mapped.subscriptions.isEmpty) {
-        throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
-      }
-      return store.replaceServerMembership(mapped.subscriptions.single, mapped.charges);
+      return _applyMembership(await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/$action', body));
     } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
       rethrow;

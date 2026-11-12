@@ -7,6 +7,7 @@ import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkout/checkout_screens.dart';
+import 'member_card.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -156,6 +157,8 @@ Future<void> showMemberSheet(BuildContext context, Subscription sub) {
   );
 }
 
+/// Shows the membership as the store has it now: a server answer (card
+/// update, failed months charged) replaces the membership object.
 class _MemberSheet extends StatelessWidget {
   const _MemberSheet({required this.sub});
   final Subscription sub;
@@ -163,6 +166,20 @@ class _MemberSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    final current = store.subscriptions.where((x) => x.id == sub.id).firstOrNull ?? sub;
+    return _MemberSheetBody(sub: current);
+  }
+}
+
+class _MemberSheetBody extends StatelessWidget {
+  const _MemberSheetBody({required this.sub});
+  final Subscription sub;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final cardBilled = sub.recurringMethod == RecurringMethod.savedCard;
+    final running = sub.status != SubStatus.cancelled && sub.status != SubStatus.expired;
     final c = store.customer(sub.customerId)!;
     final p = store.plan(sub.planId)!;
     final rows = <(String, String)>[
@@ -180,6 +197,9 @@ class _MemberSheet extends StatelessWidget {
       (t('ימי הקפאה שנותרו'), t('{0} מתוך {1}', [freezeDaysLeft(p, sub), p.freezeDaysPerYear])),
       if (sub.cancelEffective != null) (t('ביטול נכנס לתוקף'), fmtDate(sub.cancelEffective!)),
       (t('הצהרת בריאות'), c.healthDeclared ? t('נחתמה') : t('חסרה')),
+      (t('כרטיס אשראי'), c.hasSavedCard ? '•••• ${c.savedCardLast4}' : t('לא שמור')),
+      // The membership's own card (the web shows only "Saved" / "Unsaved").
+      if (cardBilled) (t('כרטיס המנוי'), sub.hasCardToken ? t('שמור') : t('לא שמור')),
     ];
     final canFreeze = sub.status == SubStatus.active && freezeDaysLeft(p, sub) >= store.settings.freezeMinDays;
     return Padding(
@@ -197,6 +217,11 @@ class _MemberSheet extends StatelessWidget {
             Padding(
                 padding: EdgeInsets.only(bottom: 12),
                 child: Note(t('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.'), warn: true)),
+          if (cardBilled && running && !sub.hasCardToken && SyncScope.maybeOf(context) != null)
+            Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Note(t('המנוי מחויב בכרטיס אשראי, אבל אין בו כרטיס שמור: החיוב החודשי לא יתבצע עד שיעודכן כרטיס.'),
+                    warn: true)),
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
@@ -239,6 +264,20 @@ class _MemberSheet extends StatelessWidget {
               icon: const Icon(Icons.point_of_sale, size: 18),
               label: Text(t('תשלום')),
             ),
+            if (canSaveMemberCard(context, store))
+              OutlinedButton.icon(
+                key: const Key('memberCard'),
+                onPressed: () => showMemberCardSheet(context, c),
+                icon: const Icon(Icons.credit_card, size: 18),
+                label: Text(c.hasSavedCard ? t('החלפת כרטיס') : t('הוספת כרטיס')),
+              ),
+            if (canUpdateMembershipCard(context, store, sub))
+              OutlinedButton.icon(
+                key: const Key('membershipCard'),
+                onPressed: () => showMembershipCardSheet(context, sub),
+                icon: const Icon(Icons.autorenew, size: 18),
+                label: Text(t('עדכון כרטיס המנוי')),
+              ),
             if (sub.cancelEffective == null && sub.status != SubStatus.cancelled)
               OutlinedButton.icon(
                 key: const Key('cancelSub'),

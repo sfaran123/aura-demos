@@ -21,6 +21,23 @@ extension DocTypeLabel on DocType {
         DocType.taxInvoiceReceipt => t('חשבונית מס קבלה'),
         DocType.receipt => t('קבלה (עוסק פטור)'),
       };
+
+  /// The name printed on the document, as the POS app prints it.
+  String get docName => switch (this) {
+        DocType.taxInvoiceReceipt => t('חשבונית מס קבלה'),
+        DocType.receipt => t('קבלה'),
+      };
+
+  /// The credit (refund) document, as the POS app: a tax credit note, or for an
+  /// exempt dealer a receipt (type 3, as its sales).
+  String get creditName => switch (this) {
+        DocType.taxInvoiceReceipt => t('חשבונית מס זיכוי'),
+        DocType.receipt => t('קבלה'),
+      };
+
+  /// As the POS app: business_type 1 (exempt dealer) issues receipts, without VAT.
+  static DocType forBusinessType(int businessType) =>
+      businessType == 1 ? DocType.receipt : DocType.taxInvoiceReceipt;
 }
 
 enum Channel { whatsapp, sms, email }

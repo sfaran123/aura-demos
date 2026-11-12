@@ -488,7 +488,7 @@ ReportData accountantReport(GymStore s, Period p) {
           )
   ];
   String label(Receipt x) =>
-      x.isCredit ? (vatPct > 0 ? t('חשבונית מס זיכוי') : t('קבלת החזר')) : s.settings.docType.label;
+      x.isCredit ? s.settings.docType.creditName : s.settings.docType.docName;
 
   return ReportData(
       kpis: [

@@ -20,6 +20,7 @@ class PosSettings {
     this.billerId,
     this.productNumber,
     this.userId,
+    this.cardTokens = false,
   });
 
   /// 1 = exempt dealer: receipts (type 3), no VAT.
@@ -32,6 +33,10 @@ class PosSettings {
   final int? billerId;
   final Object? productNumber;
   final int? userId;
+
+  /// A member's card can be saved on the server (POST gym/members/{id}/card):
+  /// the Z Credit terminal is set in the web's general settings.
+  final bool cardTokens;
 
   bool get noVat => businessType == 1;
 
@@ -48,6 +53,7 @@ class PosSettings {
         billerId: _int(j['biller_id']),
         productNumber: j['product_number'],
         userId: _int(j['user_id']),
+        cardTokens: j['card_tokens'] == true,
       );
 }
 

@@ -4,6 +4,8 @@ import 'help.dart';
 import 'package:flutter/services.dart';
 
 import '../domain/models.dart';
+import '../state/server_sync.dart' show PlanSaveException;
+import 'auth_screens.dart' show SyncScope, authErrorText;
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -59,6 +61,47 @@ class PlanEditor extends StatefulWidget {
 class _PlanEditorState extends State<PlanEditor> {
   late final SubscriptionPlan p = widget.plan;
   String? error;
+  bool saving = false;
+
+  Future<void> _save() async {
+    if (saving) return;
+    if (p.isRecurring) {
+      p.maxInstallments = 1;
+      p.autoRenew = true;
+    }
+    final e = p.validate();
+    if (e != null) return setState(() => error = e);
+    final store = StoreScope.read(context);
+    final sync = SyncScope.maybeOf(context);
+    SubscriptionPlan saved;
+    if (sync == null) {
+      saved = store.savePlan(p);
+    } else {
+      // Signed in: a subscription product on the AURA server, as the web keeps plans.
+      setState(() {
+        saving = true;
+        error = null;
+      });
+      try {
+        saved = await sync.savePlan(p);
+      } on PlanSaveException catch (x) {
+        return _fail(x.message);
+      } catch (x) {
+        return _fail(authErrorText(x));
+      }
+      if (!mounted) return;
+    }
+    Navigator.pop(context, saved);
+    showDone(context, t('המסלול "{0}" נשמר', [saved.name]));
+  }
+
+  void _fail(String message) {
+    if (!mounted) return;
+    setState(() {
+      saving = false;
+      error = message;
+    });
+  }
 
   Widget _num(String key, String label, num value, ValueChanged<num> onChanged,
       {String? suffix, String? hint, bool decimal = false}) {
@@ -83,6 +126,9 @@ class _PlanEditorState extends State<PlanEditor> {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final isNew = p.id.isEmpty;
+    final kindLocked = !isNew && store.subscriptions.any((s) => s.planId == p.id);
+    // A web product priced before VAT (tax_method 1): the price field is that price.
+    final beforeVat = p.taxMethod == 1;
     return FlowScaffold(
       title: isNew ? t('מסלול חדש') : t('עריכת מסלול'),
       help: HelpTopic.planEditor,
@@ -92,18 +138,11 @@ class _PlanEditorState extends State<PlanEditor> {
               padding: const EdgeInsets.only(bottom: 6), child: Text(error!, style: const TextStyle(color: Aura.warn))),
         FilledButton(
           key: const Key('savePlan'),
-          onPressed: () {
-            if (p.isRecurring) {
-              p.maxInstallments = 1;
-              p.autoRenew = true;
-            }
-            final e = p.validate();
-            if (e != null) return setState(() => error = e);
-            final saved = store.savePlan(p);
-            Navigator.pop(context, saved);
-            showDone(context, t('המסלול "{0}" נשמר', [p.name]));
-          },
-          child: Text(t('שמירת המסלול')),
+          onPressed: saving ? null : _save,
+          child: saving
+              ? const SizedBox(
+                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight))
+              : Text(t('שמירת המסלול')),
         ),
       ]),
       children: [
@@ -114,11 +153,15 @@ class _PlanEditorState extends State<PlanEditor> {
           onChanged: (v) => p.name = v,
         ),
         SegmentedButton<PlanKind>(
+          key: const Key('pe-kind'),
           segments: [for (final k in PlanKind.values) ButtonSegment(value: k, label: Text(k.short))],
           selected: {p.kind},
           showSelectedIcon: false,
-          onSelectionChanged: (s) => setState(() => p.kind = s.first),
+          // Memberships were opened by the plan's type: it stays (the server refuses a change).
+          onSelectionChanged: kindLocked ? null : (s) => setState(() => p.kind = s.first),
         ),
+        if (kindLocked)
+          Text(t('יש מנויים על המסלול, ולכן סוג המסלול קבוע.'), style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
         Text(
           switch (p.kind) {
             PlanKind.recurring => t('חיוב אוטומטי כל חודש עד ביטול. מתאים למנוי "חודשי ללא הגבלה".'),
@@ -130,7 +173,7 @@ class _PlanEditorState extends State<PlanEditor> {
         SectionLabel(t('מחיר ומשך')),
         _grid([
           _num('price', p.isRecurring ? t('מחיר לחודש') : t('מחיר כולל'), p.price, (v) => p.price = v.toDouble(),
-              suffix: '₪', decimal: true),
+              suffix: beforeVat ? t('₪ לפני מע״מ') : '₪', decimal: true),
           if (p.kind == PlanKind.term) _num('months', t('משך בחודשים'), p.months, (v) => p.months = v.toInt()),
           if (p.kind == PlanKind.punch) _num('entries', t('מספר כניסות'), p.entries, (v) => p.entries = v.toInt()),
           if (p.kind == PlanKind.punch)

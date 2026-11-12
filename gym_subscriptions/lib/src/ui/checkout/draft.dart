@@ -65,7 +65,10 @@ class CheckoutDraft extends ChangeNotifier {
   double get remaining => round2(due - assigned);
   double get monthly => plan == null ? 0 : planPriceAfterDiscount(plan!, discountPct);
 
-  String? get problem => paymentProblem(
+  String? get problem => onServer && recurring == RecurringMethod.newCard
+      // Signed in, a new card is saved for the member first (then it is the saved card).
+      ? t('שמרו את הכרטיס החדש של הלקוח')
+      : paymentProblem(
         due: due,
         lines: lines,
         // Signed in, a card is charged on the payment terminal: nothing to type here.
@@ -82,10 +85,14 @@ class CheckoutDraft extends ChangeNotifier {
   int get maxInstallments => maxInstallmentsFor(isSubscription ? plan : null, store.settings);
   int get maxCheques => maxChequesFor(isSubscription ? plan : null, store.settings);
 
-  /// Signed in, the monthly card charge (a card kept on the server) is not offered yet.
+  /// Signed in, monthly by card needs the server's Z Credit terminal: the
+  /// member's saved card is copied to the membership and the server's daily
+  /// charge bills it. "New card" saves a card for the member first.
+  bool get cardBilling => !onServer || (store.posSettings?.cardTokens ?? false);
+
   List<RecurringMethod> get recurringChoices => [
         for (final m in recurringOptions(hasSavedCard: hasSavedCard, s: store.settings))
-          if (!onServer || m == RecurringMethod.standingOrder || m == RecurringMethod.manual) m
+          if (cardBilling || (m != RecurringMethod.savedCard && m != RecurringMethod.newCard)) m
       ];
 
   void _resetPayment() {
@@ -153,7 +160,14 @@ class CheckoutDraft extends ChangeNotifier {
   /// Called when the payment step opens: a customer with a saved card gets a
   /// ready card line for the full amount, so most sales are one tap.
   void prefillPayment() {
-    if (onServer) return;
+    if (onServer) {
+      // The first payment is taken at the desk; the next months by the saved card, when there is one.
+      if (isSubscription && plan!.isRecurring && recurring == null && hasSavedCard && cardBilling) {
+        recurring = RecurringMethod.savedCard;
+        notifyListeners();
+      }
+      return;
+    }
     if (lines.isEmpty && hasSavedCard && allowed(PayMethod.card)) {
       lines.add(newLine(PayMethod.card, due, hasSavedCard: true));
     }

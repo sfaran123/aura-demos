@@ -7,6 +7,8 @@ import '../domain/models.dart';
 import '../state/reports.dart';
 import 'collect_screen.dart';
 import 'help.dart';
+import 'pdf_documents.dart' show businessNameOf, pdfFileName, reportPdf;
+import 'pdf_view.dart';
 import 'report_picker.dart';
 import 'sales_screen.dart';
 import 'theme.dart';
@@ -385,6 +387,20 @@ class _ReportScreenState extends State<ReportScreen> {
       appBar: AppBar(
         title: Text(r.title),
         actions: [
+          IconButton(
+            key: const Key('reportPdf'),
+            tooltip: t('PDF · הורדה / שיתוף'),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: () {
+              final when = r.usesPeriod ? period.label : null;
+              openPdf(
+                context,
+                title: r.title,
+                fileName: pdfFileName([r.title, if (when != null) when].join(' ')),
+                load: () => reportPdf(data, title: r.title, subtitle: r.subtitle, period: when, business: businessNameOf(store)),
+              );
+            },
+          ),
           IconButton(
             tooltip: t('העתקה לאקסל'),
             icon: const Icon(Icons.copy_all_outlined),

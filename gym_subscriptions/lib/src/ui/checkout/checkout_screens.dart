@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/help.dart';
 import 'package:flutter/services.dart';
 
+import '../../domain/card_entry.dart' show CardSaveException;
 import '../../domain/checkout.dart';
 import '../../domain/models.dart';
 import '../../domain/sale_builder.dart';
@@ -14,6 +15,7 @@ import '../plans_screen.dart' show PlanEditor;
 import '../receipt_view.dart';
 import '../sales_screen.dart' show PriceListScreen;
 import 'card_sheet.dart';
+import '../member_card.dart';
 import 'draft.dart';
 import '../../domain/l10n.dart';
 
@@ -141,19 +143,72 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
   final name = TextEditingController();
   final phone = TextEditingController();
   final idn = TextEditingController();
+  final card = CardEntry();
   String? error;
   bool saving = false;
+
+  /// "Add a credit card" is open (optional, as on the web's create page).
+  bool withCard = false;
+
+  /// The member was saved but the card was not: the sheet stays open to retry
+  /// the card, or to go on without it.
+  Customer? created;
 
   @override
   void dispose() {
     name.dispose();
     phone.dispose();
     idn.dispose();
+    card.dispose();
     super.dispose();
+  }
+
+  bool get _wantsCard => withCard && !card.isEmpty;
+
+  void _snack(String text) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(text)));
+
+  /// Saves the card (when typed) for the member [c], then returns [c].
+  Future<void> _finish(Customer c, {bool existing = false}) async {
+    final exists = t('כבר קיים לקוח עם הטלפון הזה: {0}. הוא נבחר.', [c.name]);
+    if (!_wantsCard) {
+      if (existing) _snack(exists);
+      Navigator.pop(context, c);
+      return;
+    }
+    // An existing member's saved card is replaced only from the member's own card.
+    if (c.hasSavedCard && c != created) {
+      _snack('${existing ? '$exists ' : ''}${t('ללקוח כבר שמור כרטיס •••• {0}; אפשר להחליף אותו מכרטיס המנוי.', [c.savedCardLast4])}');
+      Navigator.pop(context, c);
+      return;
+    }
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    final failed = await saveMemberCard(context, widget.store, c, card);
+    if (!mounted) return;
+    if (failed == null) {
+      if (existing) _snack(exists);
+      Navigator.pop(context, c);
+      return;
+    }
+    setState(() {
+      saving = false;
+      created = c;
+      error = t('הלקוח נשמר, אבל הכרטיס לא נשמר: {0}', [failed]);
+    });
   }
 
   Future<void> _save() async {
     if (saving) return;
+    if (created != null) {
+      // Retry the card only.
+      final problem = card.validate(widget.store.today);
+      if (problem != null) return setState(() => error = problem);
+      return _finish(created!);
+    }
     final s = widget.store.settings;
     if (name.text.trim().length < 2) return setState(() => error = t('צריך שם מלא'));
     if (!isValidPhone(phone.text)) return setState(() => error = t('מספר הטלפון לא תקין'));
@@ -161,13 +216,14 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     if (idn.text.trim().isNotEmpty && !isValidIsraeliId(idn.text)) {
       return setState(() => error = t('תעודת הזהות לא עוברת בדיקת ספרת ביקורת'));
     }
+    if (_wantsCard) {
+      final problem = card.validate(widget.store.today);
+      if (problem != null) return setState(() => error = problem);
+    }
     final dup = widget.store.customers
         .where((c) => c.phone.replaceAll(RegExp(r'\D'), '') == phone.text.replaceAll(RegExp(r'\D'), ''))
         .firstOrNull;
-    if (dup != null) {
-      Navigator.pop(context, dup);
-      return;
-    }
+    if (dup != null) return _finish(dup);
     final idNumber = idn.text.trim().isEmpty ? null : idn.text.trim();
 
     // Signed in: the member is created on the AURA server (a web customer).
@@ -177,17 +233,10 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
         saving = true;
         error = null;
       });
-      final messenger = ScaffoldMessenger.of(context);
       try {
         final res = await sync.addMember(name: name.text.trim(), phone: formatPhone(phone.text), idNumber: idNumber);
         if (!mounted) return;
-        if (res.existing) {
-          messenger
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-                SnackBar(content: Text(t('כבר קיים לקוח עם הטלפון הזה: {0}. הוא נבחר.', [res.customer.name]))));
-        }
-        Navigator.pop(context, res.customer);
+        await _finish(res.customer, existing: res.existing);
       } catch (e) {
         if (!mounted) return;
         setState(() {
@@ -199,54 +248,103 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     }
 
     final c = widget.store.addCustomer(name.text, phone.text, idNumber: idNumber);
-    Navigator.pop(context, c);
+    await _finish(c);
   }
 
   @override
   Widget build(BuildContext context) {
     final reqId = widget.store.settings.requireIdNumber;
+    final saved = created != null;
+    final cardOption = canSaveMemberCard(context, widget.store);
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text(t('לקוח חדש'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 12),
-        TextField(
-            key: const Key('ncName'),
-            controller: name,
-            autofocus: true,
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(t('לקוח חדש'), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          TextField(
+              key: const Key('ncName'),
+              controller: name,
+              enabled: !saved,
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(labelText: t('שם מלא'))),
+          const SizedBox(height: 10),
+          TextField(
+            key: const Key('ncPhone'),
+            controller: phone,
+            enabled: !saved,
+            keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
-            decoration: InputDecoration(labelText: t('שם מלא'))),
-        const SizedBox(height: 10),
-        TextField(
-          key: const Key('ncPhone'),
-          controller: phone,
-          keyboardType: TextInputType.phone,
-          textInputAction: TextInputAction.next,
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\-]'))],
-          decoration: InputDecoration(labelText: t('טלפון נייד'), hintText: '05X-XXXXXXX'),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          key: const Key('ncId'),
-          controller: idn,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
-          decoration: InputDecoration(labelText: reqId ? t('תעודת זהות') : t('תעודת זהות (לא חובה)')),
-        ),
-        if (error != null) ...[const SizedBox(height: 10), Note(error!, warn: true)],
-        const SizedBox(height: 8),
-        Text(t('הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.'),
-            style: TextStyle(fontSize: 12.5, color: Aura.muted)),
-        const SizedBox(height: 12),
-        FilledButton(
-          key: const Key('ncSave'),
-          onPressed: saving ? null : _save,
-          child: saving
-              ? const SizedBox(
-                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight))
-              : Text(t('שמירה והמשך')),
-        ),
-      ]),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\-]'))],
+            decoration: InputDecoration(labelText: t('טלפון נייד'), hintText: '05X-XXXXXXX'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            key: const Key('ncId'),
+            controller: idn,
+            enabled: !saved,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(9)],
+            decoration: InputDecoration(labelText: reqId ? t('תעודת זהות') : t('תעודת זהות (לא חובה)')),
+          ),
+          if (cardOption) ...[
+            const SizedBox(height: 6),
+            if (!withCard)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  key: const Key('ncAddCard'),
+                  onPressed: saving ? null : () => setState(() => withCard = true),
+                  icon: const Icon(Icons.credit_card, size: 18),
+                  label: Text(t('הוספת כרטיס אשראי (לא חובה)')),
+                ),
+              )
+            else ...[
+              const SizedBox(height: 4),
+              Row(children: [
+                const Icon(Icons.credit_card, size: 18, color: Aura.gold),
+                const SizedBox(width: 6),
+                Expanded(child: Text(t('כרטיס אשראי'), style: const TextStyle(fontWeight: FontWeight.w600))),
+                if (!saved)
+                  TextButton(
+                    key: const Key('ncRemoveCard'),
+                    onPressed: saving
+                        ? null
+                        : () => setState(() {
+                              withCard = false;
+                              card.clear();
+                            }),
+                    child: Text(t('בלי כרטיס')),
+                  ),
+              ]),
+              const SizedBox(height: 6),
+              CardFields(card: card, enabled: !saving),
+              const SizedBox(height: 8),
+              const CardSaveNote(),
+            ],
+          ],
+          if (error != null) ...[const SizedBox(height: 10), Note(error!, warn: true)],
+          const SizedBox(height: 8),
+          Text(t('הצהרת בריאות ופרטים נוספים אפשר להשלים אחר כך, או שהלקוח ימלא אותם בלינק.'),
+              style: TextStyle(fontSize: 12.5, color: Aura.muted)),
+          const SizedBox(height: 12),
+          FilledButton(
+            key: const Key('ncSave'),
+            onPressed: saving ? null : _save,
+            child: saving
+                ? const SizedBox(
+                    width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight))
+                : Text(saved ? t('ניסיון חוזר לשמירת הכרטיס') : t('שמירה והמשך')),
+          ),
+          if (saved)
+            TextButton(
+              key: const Key('ncSkipCard'),
+              onPressed: saving ? null : () => Navigator.pop(context, created),
+              child: Text(t('המשך בלי כרטיס')),
+            ),
+        ]),
+      ),
     );
   }
 }
@@ -599,11 +697,21 @@ class PaymentStep extends StatelessWidget {
                 selected: d.recurring,
                 label: (m) => switch (m) {
                   RecurringMethod.savedCard => t('כרטיס שמור •••• {0}', [d.customer!.savedCardLast4]),
-                  RecurringMethod.newCard =>
-                    d.newCardLast4 != null ? t('כרטיס •••• {0}', [d.newCardLast4]) : t('כרטיס חדש'),
+                  RecurringMethod.newCard => d.onServer
+                      ? (d.hasSavedCard ? t('כרטיס אחר') : t('כרטיס חדש'))
+                      : d.newCardLast4 != null
+                          ? t('כרטיס •••• {0}', [d.newCardLast4])
+                          : t('כרטיס חדש'),
                   _ => m.label,
                 },
                 onSelected: (m) async {
+                  if (d.onServer && m == RecurringMethod.newCard) {
+                    // Saved for the member on the server (Z Credit check, nothing charged);
+                    // the membership then takes the member's saved card.
+                    await showMemberCardSheet(context, d.customer!);
+                    if (d.customer!.hasSavedCard) d.setRecurring(RecurringMethod.savedCard);
+                    return;
+                  }
                   d.setRecurring(m);
                   if (m == RecurringMethod.newCard) await _needCard(context);
                 },
@@ -897,6 +1005,7 @@ class _SummaryStepState extends State<SummaryStep> {
           lines: d.lines,
           recurring: d.recurring,
           reference: _reference.isEmpty ? null : _reference,
+          saleId: _saleId,
         );
         done = (sub: res.sub, receipt: res.receipt);
       } else {
@@ -906,7 +1015,8 @@ class _SummaryStepState extends State<SummaryStep> {
               customer: d.walkIn ? null : d.customer,
               description: d.itemsDescription,
               lines: d.lines,
-              reference: _reference.isEmpty ? null : _reference),
+              reference: _reference.isEmpty ? null : _reference,
+              saleId: _saleId),
         );
       }
       // The server's documents, the membership and the reports.
@@ -918,7 +1028,9 @@ class _SummaryStepState extends State<SummaryStep> {
           busy = false;
           error = e is _CheckoutProblem
               ? e.message
-              : [
+              : e is CardSaveException
+                  ? e.message
+                  : [
                   authErrorText(e),
                   if (_created != null && !_saleSaved) t('המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.'),
                   if (_saleSaved) t('התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.'),
@@ -1029,7 +1141,7 @@ class _SummaryStepState extends State<SummaryStep> {
         Note([
           if (pending) t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
           t('{0} אחת עם כל אמצעי התשלום{1}.', [
-            store.settings.docType.label,
+            store.settings.docType.docName,
             d.walkIn ? t(' תודפס או תישלח ב-SMS') : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
           ]),
         ].join(' ')),
@@ -1070,7 +1182,7 @@ class DoneScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
-          Text('${draft.store.settings.docType.label} ${receipt.docNo} · ${money(receipt.total)}',
+          Text('${docLabel(receipt, draft.store.settings.docType)} ${receipt.docNo} · ${money(receipt.total)}',
               textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
           Center(
             child: TextButton.icon(

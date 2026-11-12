@@ -43,6 +43,21 @@ class FakeApi extends AuraApi {
     return h(body);
   }
 
+  /// Files by path (e.g. '/gym/sales/500/pdf'); a missing one answers 404.
+  final Map<String, List<int>> files = {};
+
+  @override
+  Future<List<int>> getBytes(AuraWorkspace workspace, AuraSession session, String path,
+      {Map<String, String>? query, Duration timeout = const Duration(seconds: 60)}) async {
+    final q = query == null || query.isEmpty ? '' : '?${Uri(queryParameters: query).query}';
+    calls.add('GET $path$q');
+    final err = errors[path];
+    if (err != null) throw err;
+    final f = files[path];
+    if (f == null) throw AuraApiException(AuraErrorKind.server, 'HTTP 404: Sale not found');
+    return f;
+  }
+
   @override
   Future<Object?> getJson(AuraWorkspace workspace, AuraSession session, String path,
       {Map<String, String>? query}) async {
