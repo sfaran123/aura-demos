@@ -61,6 +61,7 @@ List<Customer> mapMembers(Object? body) {
           // The app shows "saved card ••1234"; the card token itself never leaves the server.
           savedCardLast4: _b(m['has_saved_card']) ? (_s(m['card_last4']).isEmpty ? '••••' : _s(m['card_last4'])) : null,
           healthDeclared: m['health_declaration_signed_at'] != null,
+          email: _s(m['email']).isEmpty ? null : _s(m['email']),
         ),
   ];
 }

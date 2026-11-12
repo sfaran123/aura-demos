@@ -12,6 +12,7 @@ import '../domain/models.dart';
 import 'checkout/checkout_screens.dart';
 import 'links.dart';
 import 'links_screen.dart';
+import 'loading_bar.dart';
 import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -26,29 +27,11 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final collect = store.toCollect;
-    final overdue = collect.where((c) => !c.dueDate.isAfter(store.today)).toList();
-    final waiting = store.links.where((l) => l.stage != LinkStage.paid).toList();
-    final expiring = store.expiringSoon;
-
     // Signed in and synced: every number and list comes from the AURA server.
     // Otherwise (demo, tests) they are worked out from the data in the app.
     final dash = store.dashboard;
-    final signedIn = SyncScope.maybeOf(context) != null;
     final businessName =
         (dash != null && dash.businessName.isNotEmpty) ? dash.businessName : store.settings.businessName;
-    final activeMembers = dash?.activeMembers ?? store.activeCount;
-    final revenueToday = dash?.revenueToday ?? store.todayRevenue;
-    final openDebt = dash?.openDebt ?? store.openDebt;
-    final collectSub = dash == null
-        ? (collect.isEmpty
-            ? t('אין תשלומים פתוחים')
-            : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]))
-        : (dash.debts.isEmpty
-            ? t('אין תשלומים פתוחים')
-            : t('{0} תשלומים · {1}', [dash.debts.length, money(dash.openDebt)]));
-    final documentsMonth = dash?.documentsMonth ??
-        store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,7 +58,90 @@ class HomeScreen extends StatelessWidget {
           HelpButton.topic(HelpTopic.home),
         ],
       ),
-      body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+      // While the data loads from the AURA server: a line along the top, over
+      // the content (the screen itself never moves).
+      body: Stack(children: [
+        Positioned.fill(child: _homeList(context)),
+        const Positioned(top: 0, left: 0, right: 0, child: SyncLoadingBar()),
+      ]),
+    );
+  }
+
+  /// The first load after sign-in: the dashboard's shape with quiet placeholders
+  /// (the line on top shows it is loading). Never zeros that look like real
+  /// numbers, and nothing to start before plans and prices are here.
+  Widget _firstLoadList(BuildContext context) => ListView(
+        key: const Key('homeFirstLoad'),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        children: [
+          Row(children: [
+            _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: null),
+            const SizedBox(width: 8),
+            _Kpi(key: const Key('kpiRevenue'), label: t('הכנסות היום'), value: null),
+            const SizedBox(width: 8),
+            _Kpi(key: const Key('kpiDebt'), label: t('חוב פתוח'), value: null),
+          ]),
+          const SizedBox(height: 14),
+          _TileRow(
+              left: _Tile(
+                  key: const Key('tileNewSub'), primary: true, icon: Icons.add, title: t('מנוי חדש'), sub: t('לקוח בקבלה')),
+              right: _Tile(
+                  key: const Key('tileQuickPay'),
+                  icon: Icons.point_of_sale,
+                  title: t('תשלום מהיר'),
+                  sub: t('מוצרים, אימון אישי או סכום חופשי'))),
+          const SizedBox(height: 10),
+          _TileRow(
+              left: _Tile(
+                  key: const Key('tileMembers'),
+                  icon: Icons.people_outline,
+                  title: t('מנויים'),
+                  sub: t('חיפוש לפי שם או טלפון')),
+              right: _Tile(key: const Key('tileCollect'), icon: Icons.receipt_long, title: t('לגבייה'), sub: '')),
+          const SizedBox(height: 10),
+          Panel(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final w in const [0.62, 0.48, 0.55]) ...[
+                Row(children: [
+                  const _Skeleton(width: 32, height: 32, radius: 10),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      FractionallySizedBox(widthFactor: w, child: const _Skeleton(height: 12)),
+                      const SizedBox(height: 7),
+                      FractionallySizedBox(widthFactor: w * .6, child: const _Skeleton(height: 10)),
+                    ]),
+                  ),
+                ]),
+                if (w != 0.55) const SizedBox(height: 16),
+              ],
+            ]),
+          ),
+        ],
+      );
+
+  Widget _homeList(BuildContext context) {
+    final store = StoreScope.of(context);
+    if (SyncScope.maybeOf(context) != null && !store.serverLoaded) return _firstLoadList(context);
+    final collect = store.toCollect;
+    final overdue = collect.where((c) => !c.dueDate.isAfter(store.today)).toList();
+    final waiting = store.links.where((l) => l.stage != LinkStage.paid).toList();
+    final expiring = store.expiringSoon;
+    final dash = store.dashboard;
+    final signedIn = SyncScope.maybeOf(context) != null;
+    final activeMembers = dash?.activeMembers ?? store.activeCount;
+    final revenueToday = dash?.revenueToday ?? store.todayRevenue;
+    final openDebt = dash?.openDebt ?? store.openDebt;
+    final collectSub = dash == null
+        ? (collect.isEmpty
+            ? t('אין תשלומים פתוחים')
+            : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]))
+        : (dash.debts.isEmpty
+            ? t('אין תשלומים פתוחים')
+            : t('{0} תשלומים · {1}', [dash.debts.length, money(dash.openDebt)]));
+    final documentsMonth = dash?.documentsMonth ??
+        store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length;
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
         const SyncBanner(),
         Row(children: [
           _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: '$activeMembers'),
@@ -228,8 +294,7 @@ class HomeScreen extends StatelessWidget {
                 ]),
               ),
             ),
-      ]),
-    );
+      ]);
   }
 }
 
@@ -344,10 +409,27 @@ class _ServerPaymentTile extends StatelessWidget {
   }
 }
 
+/// A quiet placeholder block for a value that is still loading.
+class _Skeleton extends StatelessWidget {
+  const _Skeleton({this.width, required this.height, this.radius = 6});
+  final double? width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(color: const Color(0xFFEFECE5), borderRadius: BorderRadius.circular(radius)),
+      );
+}
+
 class _Kpi extends StatelessWidget {
   const _Kpi({super.key, required this.label, required this.value, this.alert = false, this.onTap});
   final String label;
-  final String value;
+
+  /// null while the first load runs: a placeholder in its place.
+  final String? value;
   final bool alert;
   final VoidCallback? onTap;
 
@@ -361,12 +443,19 @@ class _Kpi extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: TextStyle(fontSize: 11.5, color: alert ? Aura.warn : Aura.muted)),
             const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(value,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: alert ? Aura.warn : Aura.ink)),
-            ),
+            if (value == null)
+              // Same height as the number, so nothing moves when it arrives.
+              const SizedBox(
+                height: 24,
+                child: Align(alignment: AlignmentDirectional.centerStart, child: _Skeleton(width: 56, height: 14)),
+              )
+            else
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(value!,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: alert ? Aura.warn : Aura.ink)),
+              ),
           ]),
         ),
       );

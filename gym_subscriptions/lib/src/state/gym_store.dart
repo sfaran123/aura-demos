@@ -353,6 +353,7 @@ class GymStore extends SimpleNotifier {
       // The server's answer has no card or health details: keep what the app already knows.
       c.savedCardLast4 ??= old.savedCardLast4;
       c.healthDeclared = c.healthDeclared || old.healthDeclared;
+      c.email ??= old.email;
       customers[i] = c;
     } else {
       customers.add(c);

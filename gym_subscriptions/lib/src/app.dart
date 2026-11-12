@@ -11,6 +11,7 @@ import 'state/server_sync.dart';
 import 'ui/auth_screens.dart';
 import 'ui/collect_screen.dart';
 import 'ui/home_screen.dart';
+import 'ui/loading_bar.dart';
 import 'ui/members_screen.dart';
 import 'ui/reports_screen.dart';
 import 'ui/settings_screen.dart';
@@ -184,11 +185,14 @@ class _ShellState extends State<_Shell> {
     final store = StoreScope.of(context);
     final sync = SyncScope.maybeOf(context);
     final toCollect = store.toCollect.length;
+    // Signed in, before the first load arrives: lists would look empty, so
+    // those tabs say they are loading (Settings stays usable).
+    final firstLoad = sync != null && !store.serverLoaded;
     final pages = [
       HomeScreen(goTo: (i) => tabs.value = i),
-      const MembersScreen(),
-      const CollectScreen(),
-      const ReportsScreen(),
+      firstLoad ? const _FirstLoadTab() : const MembersScreen(),
+      firstLoad ? const _FirstLoadTab() : const CollectScreen(),
+      firstLoad ? const _FirstLoadTab() : const ReportsScreen(),
       const SettingsScreen(),
     ];
     return Scaffold(
@@ -230,4 +234,20 @@ class _ShellState extends State<_Shell> {
       ),
     );
   }
+}
+
+/// A tab whose data is still on its way (first load after sign-in).
+class _FirstLoadTab extends StatelessWidget {
+  const _FirstLoadTab();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        key: const Key('firstLoadTab'),
+        body: SafeArea(
+          child: Stack(children: [
+            Center(child: Text(t('טוען את נתוני העסק…'), style: const TextStyle(color: Aura.muted))),
+            const Positioned(top: 0, left: 0, right: 0, child: SyncLoadingBar()),
+          ]),
+        ),
+      );
 }

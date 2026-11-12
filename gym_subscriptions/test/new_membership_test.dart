@@ -306,8 +306,19 @@ void main() {
         [for (final l in sale['product_sale_data'] as List) ((l as Map)['product_id'], l['qty'])], [(21, 2), (20, 1)]);
     expect(sale['grand_total'], 53);
     expect(find.textContaining('TIN-9001'), findsOneWidget);
-    // Not connected to the server yet, so not offered: sending the receipt and a credit note.
-    expect(find.byKey(const Key('sendSms'), skipOffstage: false), findsNothing);
+    // The done screen offers sending the new document by SMS or email (the server sends it).
+    api.postHandlers['/sales/send-invoice-by-sms'] = (_) => {'success': true, 'message': 'SMS sent successfully'};
+    api.postHandlers['/sales/send-invoice-via-mail'] = (_) => true;
+    expect(find.byKey(const Key('sendWhatsapp'), skipOffstage: false), findsNothing);
+    await t.enterText(find.byKey(const Key('sendPhone')), '054-1112222');
+    await tapKey(t, 'sendSms');
+    expect(body(api, '/sales/send-invoice-by-sms'), {'id': 501, 'mobile': '0541112222', 'type': 'short'});
+    await t.enterText(find.byKey(const Key('sendEmail')), 'guest@example.com');
+    await tapKey(t, 'sendEmailGo');
+    expect(body(api, '/sales/send-invoice-via-mail')['sale_id'], 501);
+    expect(find.text('Sent by SMS · 054-1112222'), findsOneWidget);
+    expect(find.text('Sent by Email · guest@example.com'), findsOneWidget);
+    // Not connected to the server yet, so not offered: a credit note.
     await tapKey(t, 'viewReceipt');
     expect(find.byKey(const Key('receiptCard')), findsOneWidget);
     expect(find.byKey(const Key('creditReceipt'), skipOffstage: false), findsNothing);

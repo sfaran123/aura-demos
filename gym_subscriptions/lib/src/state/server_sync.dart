@@ -2,9 +2,12 @@
 // changes made in the app are not sent to the server yet, and the next sync
 // replaces them with the server's data).
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import '../domain/card_entry.dart';
+import '../domain/receipt_sending.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/sale_builder.dart';
@@ -222,6 +225,44 @@ class GymSync extends ChangeNotifier {
     try {
       return Uint8List.fromList(
           await auth.api.getBytes(ws, session, '/gym/sales/$saleId/pdf', query: {'lang': L10n.lang.code}));
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Sends the sale's document to [phone] by SMS, as the POS app does
+  /// (POST sales/send-invoice-by-sms, short text): the web sends, through the
+  /// branch's SMS4Free account, a link to the A4 document. Throws
+  /// [ReceiptSendException] with the server's / provider's message on failure.
+  Future<void> sendSaleSms(int saleId, String phone) async {
+    final body = await _post('/sales/send-invoice-by-sms', {
+      'id': saleId,
+      'mobile': localPhoneNumber(phone),
+      'type': 'short',
+    });
+    final answer = smsAnswer(body);
+    if (!answer.ok) throw ReceiptSendException(answer.message);
+  }
+
+  /// Emails the sale's document (PDF attached) to [email], as the POS app does
+  /// (POST sales/send-invoice-via-mail). The web answers 200 even when its mail
+  /// settings are missing, so only an HTTP error is a failure here (as in the POS app).
+  Future<void> sendSaleEmail(int saleId, String email) async {
+    await _post('/sales/send-invoice-via-mail', {
+      'sale_id': saleId,
+      // The web's own format: a JSON list of {value: address}.
+      'emails': jsonEncode([
+        {'value': email}
+      ]),
+    });
+  }
+
+  Future<Object?> _post(String path, Map<String, Object?> body) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      return await auth.api.postJson(ws, session, path, body);
     } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
       rethrow;

@@ -211,11 +211,15 @@ class Customer {
     this.idNumber,
     this.savedCardLast4,
     this.healthDeclared = false,
+    this.email,
   });
 
   final String id;
   String name;
   String phone;
+
+  /// From the AURA server (the app has no email field of its own); offered when sending a receipt.
+  String? email;
   String? idNumber;
   String? savedCardLast4;
   bool healthDeclared;
@@ -230,6 +234,7 @@ class Customer {
         'idNumber': idNumber,
         'savedCardLast4': savedCardLast4,
         'healthDeclared': healthDeclared,
+        if (email != null) 'email': email,
       };
 
   factory Customer.fromJson(Map<String, dynamic> j) => Customer(
@@ -239,6 +244,7 @@ class Customer {
         idNumber: j['idNumber'],
         savedCardLast4: j['savedCardLast4'],
         healthDeclared: j['healthDeclared'] ?? false,
+        email: j['email'],
       );
 }
 

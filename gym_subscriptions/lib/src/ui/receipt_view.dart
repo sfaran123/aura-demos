@@ -5,15 +5,18 @@ import '../domain/checkout.dart';
 import '../domain/doc_types.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
+import '../domain/receipt_sending.dart';
 import '../domain/settings.dart';
 import '../state/gym_store.dart';
+import '../state/server_sync.dart';
 import 'auth_screens.dart';
 import 'pdf_documents.dart' show pdfFileName, receiptPdf;
 import 'pdf_view.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-/// Sends a receipt to the customer by SMS, WhatsApp or email.
+/// Sends a receipt to the customer. Signed in: by SMS or email through the AURA
+/// server (as the POS app). The demo: SMS, WhatsApp or email, recorded only.
 class ReceiptSendPanel extends StatefulWidget {
   const ReceiptSendPanel({super.key, required this.receipt});
   final Receipt receipt;
@@ -23,8 +26,11 @@ class ReceiptSendPanel extends StatefulWidget {
 
 class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
   late final TextEditingController phone;
-  final email = TextEditingController();
+  late final TextEditingController email;
   bool showEmail = false;
+
+  /// Signed in: the channel being sent right now.
+  Channel? sending;
 
   @override
   void initState() {
@@ -32,6 +38,105 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
     final id = widget.receipt.customerId;
     final c = id == null ? null : StoreScope.read(context).customer(id);
     phone = TextEditingController(text: c?.phone ?? '');
+    email = TextEditingController(text: c?.email ?? '');
+  }
+
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  /// Signed in: the AURA server sends the sale's document (SMS: a link to it; email: the PDF).
+  Future<void> _sendOnServer(GymSync sync, Channel ch) async {
+    final saleId = widget.receipt.saleId;
+    if (saleId == null || sending != null) return;
+    final to = ch == Channel.email ? email.text.trim() : phone.text.trim();
+    final ok = ch == Channel.email ? _emailPattern.hasMatch(to) : isValidPhone(to);
+    if (!ok) {
+      showDone(context, ch == Channel.email ? t('כתובת המייל לא תקינה') : t('מספר הטלפון לא תקין'));
+      return;
+    }
+    final store = StoreScope.read(context);
+    final shown = ch == Channel.email ? to : formatPhone(to);
+    setState(() => sending = ch);
+    try {
+      if (ch == Channel.email) {
+        await sync.sendSaleEmail(saleId, to);
+      } else {
+        await sync.sendSaleSms(saleId, to);
+      }
+      store.sendReceipt(widget.receipt, ch, shown);
+      if (mounted) showDone(context, t('הקבלה נשלחה ב-{0} ל-{1}', [ch.label, shown]));
+    } on ReceiptSendException catch (e) {
+      if (mounted) showDone(context, e.message);
+    } catch (e) {
+      if (mounted) showDone(context, authErrorText(e));
+    } finally {
+      if (mounted) setState(() => sending = null);
+    }
+  }
+
+  Widget _serverPanel(GymSync sync) {
+    final r = widget.receipt;
+    Widget busy(Channel ch, Widget icon) => sending == ch
+        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+        : icon;
+    // The theme's buttons are full width; next to a field they take their own size.
+    final buttonStyle = FilledButton.styleFrom(minimumSize: const Size(104, 48));
+    return Panel(
+      key: const Key('serverSendPanel'),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Text(t('שליחת הקבלה ללקוח'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              key: const Key('sendPhone'),
+              controller: phone,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\- +]'))],
+              decoration:
+                  InputDecoration(isDense: true, labelText: t('טלפון'), prefixIcon: const Icon(Icons.phone_iphone)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            key: const Key('sendSms'),
+            style: buttonStyle,
+            onPressed: sending == null ? () => _sendOnServer(sync, Channel.sms) : null,
+            icon: busy(Channel.sms, const Icon(Icons.sms_outlined, size: 18)),
+            label: const Text('SMS'),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              key: const Key('sendEmail'),
+              controller: email,
+              keyboardType: TextInputType.emailAddress,
+              textDirection: TextDirection.ltr,
+              decoration:
+                  InputDecoration(isDense: true, labelText: t('מייל'), prefixIcon: const Icon(Icons.alternate_email)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.icon(
+            key: const Key('sendEmailGo'),
+            style: buttonStyle,
+            onPressed: sending == null ? () => _sendOnServer(sync, Channel.email) : null,
+            icon: busy(Channel.email, const Icon(Icons.send_outlined, size: 18)),
+            label: Text(t('מייל')),
+          ),
+        ]),
+        if (r.sent.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final s in r.sent) Pill(t('נשלח ב-{0} · {1}', [s.$1, s.$2]), tone: PillTone.ok),
+          ]),
+        ],
+        const SizedBox(height: 6),
+        Text(t('ב-SMS נשלח לינק למסמך; במייל המסמך מצורף כ-PDF.'),
+            style: const TextStyle(fontSize: 11.5, color: Aura.muted)),
+      ]),
+    );
   }
 
   @override
@@ -56,9 +161,12 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
 
   @override
   Widget build(BuildContext context) {
-    // Signed in, nothing is really sent yet (no SMS / WhatsApp / email provider is
-    // connected), so the panel is not offered.
-    if (SyncScope.maybeOf(context) != null) return const SizedBox.shrink();
+    final sync = SyncScope.maybeOf(context);
+    if (sync != null) {
+      // Signed in, only a document saved on the server can be sent (a stand-in
+      // shown before the server's copy arrives has no sale id yet).
+      return widget.receipt.saleId == null ? const SizedBox.shrink() : _serverPanel(sync);
+    }
     final r = widget.receipt;
     return Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

@@ -312,7 +312,8 @@ class AuraApi {
       try {
         json = res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
       } on FormatException {
-        json = null;
+        // Not JSON: the text itself (e.g. the SMS endpoint's "SMS sent successfully").
+        json = utf8.decode(res.bodyBytes, allowMalformed: true);
       }
       return _Response(res.statusCode, json);
     } on TimeoutException {

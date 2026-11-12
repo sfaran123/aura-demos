@@ -96,20 +96,17 @@ class _FirstSyncGateState extends State<FirstSyncGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.store.serverLoaded) return widget.child;
+    // While the first load runs the app is already open: the home screen shows
+    // its shape with placeholders and the loading line. Only a failed first
+    // load (nothing to show) takes the whole screen.
     final error = widget.sync.syncing ? null : widget.sync.error;
+    if (widget.store.serverLoaded || error == null) return widget.child;
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: Padding(
             padding: const EdgeInsets.all(28),
-            child: error == null
-                ? Column(mainAxisSize: MainAxisSize.min, children: [
-                    const CircularProgressIndicator(key: Key('firstSyncSpin')),
-                    const SizedBox(height: 18),
-                    Text(t('טוען את נתוני העסק…'), style: const TextStyle(color: Aura.muted)),
-                  ])
-                : Column(mainAxisSize: MainAxisSize.min, children: [
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.cloud_off_outlined, size: 44, color: Aura.warn),
                     const SizedBox(height: 14),
                     Text(t('לא הצלחנו לטעון את נתוני העסק'),

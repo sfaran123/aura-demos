@@ -698,6 +698,15 @@ const Map<String, (String, String)> strings = {
   'הקבלה נשלחה ב-{0} ל-{1}': ('أُرسل الإيصال عبر {0} إلى {1}', 'Receipt sent by {0} to {1}'),
   'שליחת הקבלה ללקוח': ('إرسال الإيصال للزبون', 'Send the receipt to the customer'),
   'נשלח ב-{0} · {1}': ('أُرسل عبر {0} · {1}', 'Sent by {0} · {1}'),
+  'ב-SMS נשלח לינק למסמך; במייל המסמך מצורף כ-PDF.': (
+    'في الـ SMS يُرسل رابط للمستند؛ وفي البريد يُرفق المستند كملف PDF.',
+    'By SMS a link to the document is sent; by email the document is attached as a PDF.'
+  ),
+  'ה-SMS לא נשלח. נסו שוב.': ('لم تُرسل الرسالة. حاولوا مرة أخرى.', 'The SMS was not sent. Try again.'),
+  'שליחת SMS לא מוגדרת לסניף במערכת AURA (הגדרות הסניף).': (
+    'إرسال SMS غير مُعدّ لهذا الفرع في نظام AURA (إعدادات الفرع).',
+    'SMS sending is not set up for this branch in AURA (branch settings).'
+  ),
   'בגרסת ההדגמה ההודעה לא יוצאת בפועל. בחיבור לספק ה-SMS נשלחת הודעה עם לינק לקבלה.': (
     'في نسخة العرض لا تُرسل الرسالة فعليًا. عند الربط بمزوّد SMS تُرسل رسالة مع رابط للإيصال.',
     "In the demo the message isn't actually sent. Once an SMS provider is connected, a message with a link to the receipt goes out."
@@ -1803,6 +1812,7 @@ const Map<String, (String, String)> strings = {
   'נקבע במערכת AURA לפי סוג העוסק. עוסק פטור: קבלה בלי מע״מ.': ('يُحدَّد في نظام AURA حسب نوع المشتغل. المشتغل المعفى: إيصال بدون ضريبة.', 'Set in the AURA system by the kind of dealer. Exempt dealer: a receipt without VAT.'),
   // First load after sign-in
   'טוען את נתוני העסק…': ('جارٍ تحميل بيانات العمل…', 'Loading your business data…'),
+  'טוען נתונים': ('جارٍ تحميل البيانات', 'Loading data'),
   'לא הצלחנו לטעון את נתוני העסק': ('تعذّر تحميل بيانات العمل', "Couldn't load your business data"),
   'ניסיון נוסף': ('محاولة أخرى', 'Try again'),
   'מוצר דמי רישום': ('منتج رسوم التسجيل', 'Sign-up fee product'),
