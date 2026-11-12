@@ -162,6 +162,13 @@ bool isValidIsraeliId(String raw) {
 /// Israeli mobile or landline.
 bool isValidPhone(String raw) => RegExp(r'^0(5\d|[2-489]|7\d)\d{7}$').hasMatch(raw.replaceAll(RegExp(r'\D'), ''));
 
+/// "050-1234567" -> "972501234567": WhatsApp wants the country code, no leading 0.
+String whatsappNumber(String raw) {
+  final d = raw.replaceAll(RegExp(r'\D'), '');
+  if (d.startsWith('972')) return d;
+  return d.startsWith('0') ? '972${d.substring(1)}' : d;
+}
+
 String formatPhone(String raw) {
   final d = raw.replaceAll(RegExp(r'\D'), '');
   return d.length == 10 ? '${d.substring(0, 3)}-${d.substring(3)}' : raw.trim();

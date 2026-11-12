@@ -13,8 +13,8 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data' show BytesBuilder;
+
+import 'package:http/http.dart' as http;
 
 class AuraConfig {
   /// Prefilled on the domain screen.
@@ -190,17 +190,36 @@ class _Response {
 }
 
 class AuraApi {
-  AuraApi({HttpClient Function()? client}) : _newClient = client ?? HttpClient.new;
-  final HttpClient Function() _newClient;
+  AuraApi({http.Client Function()? client}) : _newClient = client ?? http.Client.new;
+  final http.Client Function() _newClient;
 
   /// Checks that [company] exists on [domain] (e.g. "aurademo1" on "auratech2.tech").
   Future<void> verifyCompany({required String domain, required String company}) async {
-    if (AuraConfig.verifyKey.isEmpty) throw AuraApiException(AuraErrorKind.noVerifyKey);
+    if (AuraConfig.verifyKey.isEmpty) return _probeCompany(domain: domain, company: company);
     final uri = Uri.https(domain, '/verify', {'tenant': company});
     final r = await _send('GET', uri, headers: {'X-API-KEY': AuraConfig.verifyKey});
     if (r.status == 200) return;
     if (r.status == 422) throw AuraApiException(AuraErrorKind.companyNotFound);
     throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}');
+  }
+
+  /// Company check without the verify key: an empty POST to the business's own
+  /// /api/login. An existing business answers (422, missing fields); an unknown
+  /// one has no subdomain (connection fails) or answers 404.
+  Future<void> _probeCompany({required String domain, required String company}) async {
+    final workspace = AuraWorkspace(domain: domain, company: company);
+    try {
+      final r = await _send('POST', workspace.api('/login'), body: const <String, Object?>{});
+      if (r.status == 404) throw AuraApiException(AuraErrorKind.companyNotFound);
+      if (r.status >= 500) throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}');
+      return;
+    } on AuraApiException catch (e) {
+      if (e.kind != AuraErrorKind.unreachable) rethrow;
+      // The business's address does not answer. If the domain itself answers,
+      // the business does not exist; otherwise it is the internet or the domain.
+      await _send('GET', Uri.https(domain, '/'));
+      throw AuraApiException(AuraErrorKind.companyNotFound);
+    }
   }
 
   /// Signs in with the AURA username (not the email) and password.
@@ -242,19 +261,12 @@ class AuraApi {
       {Map<String, String>? query, Duration timeout = const Duration(seconds: 60)}) async {
     var uri = workspace.api(path);
     if (query != null && query.isNotEmpty) uri = uri.replace(queryParameters: query);
-    final client = _newClient()..connectionTimeout = AuraConfig.timeout;
+    final client = _newClient();
     try {
-      final (status, bytes) = await () async {
-        final req = await client.getUrl(uri);
-        req.headers.set('token', session.token);
-        final res = await req.close();
-        final b = BytesBuilder(copy: false);
-        await for (final chunk in res) {
-          b.add(chunk);
-        }
-        return (res.statusCode, b.takeBytes());
-      }()
-          .timeout(timeout);
+      final req = http.Request('GET', uri)..headers['token'] = session.token;
+      final res = await client.send(req).then(http.Response.fromStream).timeout(timeout);
+      final status = res.statusCode;
+      final bytes = res.bodyBytes;
       if (status == 200 && bytes.isNotEmpty) return bytes;
       Object? json;
       try {
@@ -266,14 +278,12 @@ class AuraApi {
       throw AuraApiException(AuraErrorKind.server, 'Empty file');
     } on TimeoutException {
       throw AuraApiException(AuraErrorKind.timeout);
-    } on SocketException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HandshakeException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HttpException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } on AuraApiException {
+      rethrow;
+    } on Exception catch (e) {
+      throw AuraApiException(AuraErrorKind.unreachable, e is http.ClientException ? e.message : '$e');
     } finally {
-      client.close(force: true);
+      client.close();
     }
   }
 
@@ -286,40 +296,33 @@ class AuraApi {
     throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}${msg == null ? '' : ': $msg'}');
   }
 
+  /// package:http, so the same code runs on devices and in the browser.
   Future<_Response> _send(String method, Uri uri, {Map<String, String> headers = const {}, Object? body}) async {
-    final client = _newClient()..connectionTimeout = AuraConfig.timeout;
+    final client = _newClient();
     try {
-      return await () async {
-        final req = await client.openUrl(method, uri);
-        req.headers.set(HttpHeaders.acceptHeader, 'application/json');
-        headers.forEach(req.headers.set);
-        if (body != null) {
-          final bytes = utf8.encode(jsonEncode(body));
-          req.headers.contentType = ContentType.json;
-          req.contentLength = bytes.length;
-          req.add(bytes);
-        }
-        final res = await req.close();
-        final text = await res.transform(utf8.decoder).join();
-        Object? json;
-        try {
-          json = text.isEmpty ? null : jsonDecode(text);
-        } on FormatException {
-          json = null;
-        }
-        return _Response(res.statusCode, json);
-      }()
-          .timeout(AuraConfig.timeout);
+      final req = http.Request(method, uri)
+        ..headers['Accept'] = 'application/json'
+        ..headers.addAll(headers);
+      if (body != null) {
+        req.headers['Content-Type'] = 'application/json; charset=utf-8';
+        req.bodyBytes = utf8.encode(jsonEncode(body));
+      }
+      final res = await client.send(req).then(http.Response.fromStream).timeout(AuraConfig.timeout);
+      Object? json;
+      try {
+        json = res.bodyBytes.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
+      } on FormatException {
+        json = null;
+      }
+      return _Response(res.statusCode, json);
     } on TimeoutException {
       throw AuraApiException(AuraErrorKind.timeout);
-    } on SocketException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HandshakeException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
-    } on HttpException catch (e) {
-      throw AuraApiException(AuraErrorKind.unreachable, e.message);
+    } on Exception catch (e) {
+      // No internet, DNS, TLS, refused connection; in the browser also a
+      // server that does not allow the page's origin (CORS).
+      throw AuraApiException(AuraErrorKind.unreachable, e is http.ClientException ? e.message : '$e');
     } finally {
-      client.close(force: true);
+      client.close();
     }
   }
 }

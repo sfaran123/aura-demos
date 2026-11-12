@@ -12,6 +12,7 @@ import '../domain/models.dart';
 import 'checkout/checkout_screens.dart';
 import 'links.dart';
 import 'links_screen.dart';
+import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -33,6 +34,7 @@ class HomeScreen extends StatelessWidget {
     // Signed in and synced: every number and list comes from the AURA server.
     // Otherwise (demo, tests) they are worked out from the data in the app.
     final dash = store.dashboard;
+    final signedIn = SyncScope.maybeOf(context) != null;
     final businessName =
         (dash != null && dash.businessName.isNotEmpty) ? dash.businessName : store.settings.businessName;
     final activeMembers = dash?.activeMembers ?? store.activeCount;
@@ -74,6 +76,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
+        const SyncBanner(),
         Row(children: [
           _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: '$activeMembers'),
           const SizedBox(width: 8),
@@ -105,13 +108,23 @@ class HomeScreen extends StatelessWidget {
             )),
         const SizedBox(height: 10),
         _TileRow(
-            left: _Tile(
-              key: const Key('tileLink'),
-              icon: Icons.ios_share,
-              title: t('לינק הרשמה'),
-              sub: t('הלקוח בוחר מסלול ומשלם לבד'),
-              onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
-            ),
+            // Signed in, sign-up links are not connected to the server yet: the
+            // members list takes the tile's place.
+            left: signedIn
+                ? _Tile(
+                    key: const Key('tileMembers'),
+                    icon: Icons.people_outline,
+                    title: t('מנויים'),
+                    sub: t('חיפוש לפי שם או טלפון'),
+                    onTap: () => goTo(1),
+                  )
+                : _Tile(
+                    key: const Key('tileLink'),
+                    icon: Icons.ios_share,
+                    title: t('לינק הרשמה'),
+                    sub: t('הלקוח בוחר מסלול ומשלם לבד'),
+                    onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
+                  ),
             right: _Tile(
               key: const Key('tileCollect'),
               icon: Icons.receipt_long,
@@ -181,7 +194,7 @@ class HomeScreen extends StatelessWidget {
             ),
         ],
         // Sign-up links are not on the server yet: hidden while signed in.
-        if (dash == null && waiting.isNotEmpty) ...[
+        if (!signedIn && waiting.isNotEmpty) ...[
           const SizedBox(height: 8),
           SectionLabel(t('לינקים פתוחים ({0})', [waiting.length]),
               trailing: TextButton(

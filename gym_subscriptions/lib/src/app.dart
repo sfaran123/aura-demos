@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -29,8 +31,22 @@ class AuraGymApp extends StatefulWidget {
   State<AuraGymApp> createState() => _AuraGymAppState();
 }
 
-class _AuraGymAppState extends State<AuraGymApp> {
+class _AuraGymAppState extends State<AuraGymApp> with WidgetsBindingObserver {
   AppLang _lang = L10n.lang;
+
+  /// Signed in, the data is loaded again every few minutes and when the app comes
+  /// back to the front, so a second device sees what the first one did.
+  static const _refreshEvery = Duration(minutes: 5);
+  Timer? _refreshTimer;
+
+  void _refresh() {
+    if (widget.auth?.stage == AuthStage.signedIn) _sync?.pull();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
 
   /// Loads the server data after sign-in and at start (signed in only).
   GymSync? _sync;
@@ -47,9 +63,20 @@ class _AuraGymAppState extends State<AuraGymApp> {
       ..userTpn = session?.tapToPayTpn
       ..userMerchantCode = session?.tapToPayMerchantCode;
     final stage = widget.auth!.stage;
-    // Another user (or company) may sign in next: its own POS settings are loaded then.
-    if (stage != AuthStage.signedIn) widget.store.posSettings = null;
-    if (stage == AuthStage.signedIn && _stage != AuthStage.signedIn) _sync!.pull();
+    final store = widget.store;
+    if (stage == AuthStage.signedIn && _stage != AuthStage.signedIn) {
+      // Whatever the device holds that is not this business's (demo data, another
+      // business) goes before anything shows; another business's settings go too.
+      final owner = GymSync.ownerKey(widget.auth!.workspace!);
+      if (store.serverOwner != owner) store.clearServerData(settings: store.serverOwner != null, owner: owner);
+      _sync!.pull();
+    } else if (stage != AuthStage.signedIn && _stage == AuthStage.signedIn) {
+      // Signed out: the business's members and documents leave the device.
+      // Its settings stay for the next user of the same business.
+      store.clearServerData();
+    } else if (stage != AuthStage.signedIn) {
+      store.posSettings = null;
+    }
     _stage = stage;
   }
 
@@ -62,6 +89,8 @@ class _AuraGymAppState extends State<AuraGymApp> {
       _sync = GymSync(auth: auth, store: widget.store);
       auth.addListener(_onAuth);
       _onAuth();
+      WidgetsBinding.instance.addObserver(this);
+      _refreshTimer = Timer.periodic(_refreshEvery, (_) => _refresh());
     }
   }
 
@@ -69,6 +98,8 @@ class _AuraGymAppState extends State<AuraGymApp> {
   void dispose() {
     widget.store.removeListener(_onStore);
     widget.auth?.removeListener(_onAuth);
+    if (widget.auth != null) WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
     _sync?.dispose();
     super.dispose();
   }
@@ -89,7 +120,13 @@ class _AuraGymAppState extends State<AuraGymApp> {
       ],
       home: widget.auth == null
           ? GymModule(store: store)
-          : AuthGate(auth: widget.auth!, store: store, child: SyncScope(sync: _sync!, child: GymModule(store: store))),
+          : AuthGate(
+              auth: widget.auth!,
+              store: store,
+              child: SyncScope(
+                  sync: _sync!,
+                  child:
+                      FirstSyncGate(sync: _sync!, store: store, auth: widget.auth!, child: GymModule(store: store)))),
     );
   }
 }
@@ -145,6 +182,7 @@ class _ShellState extends State<_Shell> {
 
   Widget _build(BuildContext context, int tab, ValueNotifier<int> tabs) {
     final store = StoreScope.of(context);
+    final sync = SyncScope.maybeOf(context);
     final toCollect = store.toCollect.length;
     final pages = [
       HomeScreen(goTo: (i) => tabs.value = i),
@@ -154,7 +192,10 @@ class _ShellState extends State<_Shell> {
       const SettingsScreen(),
     ];
     return Scaffold(
-      body: IndexedStack(index: tab, children: pages),
+      // Signed in: pulling a screen down loads the data again.
+      body: sync == null
+          ? IndexedStack(index: tab, children: pages)
+          : RefreshIndicator(onRefresh: sync.pull, child: IndexedStack(index: tab, children: pages)),
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
         onDestinationSelected: (i) => tabs.value = i,

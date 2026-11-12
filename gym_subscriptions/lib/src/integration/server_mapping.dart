@@ -145,6 +145,13 @@ SubStatus _status(Object? s) => switch (_s(s)) {
       _ => SubStatus.active,
     };
 
+/// A status this app has no name for (null for the known ones).
+String? _unknownStatus(Object? s) {
+  final raw = _s(s);
+  const known = {'', 'active', 'cancelled', 'ended', 'frozen', 'payment_failed', 'awaiting_payment'};
+  return known.contains(raw) ? null : raw;
+}
+
 RecurringMethod _recurring(Object? type) => switch (_s(type)) {
       'bank_transfer' => RecurringMethod.standingOrder,
       'manual' => RecurringMethod.manual,
@@ -218,6 +225,7 @@ RecurringMethod _recurring(Object? type) => switch (_s(type)) {
       start: start,
       end: end,
       status: _status(m['status']),
+      serverStatus: _unknownStatus(m['status']),
       discountPct: _d(m['discount_percent']).round(),
       monthlyAmount: monthly ? _d(item['total']) : null,
       recurringMethod: monthly ? method : null,

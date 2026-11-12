@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../auth_screens.dart';
 import '../theme.dart';
 import '../../domain/l10n.dart';
 
@@ -62,11 +63,12 @@ class _CardSheetState extends State<_CardSheet> {
               Expanded(child: _field('CVV', '•••')),
             ]),
             const SizedBox(height: 10),
-            OutlinedButton(
-              key: const Key('fillTestCard'),
-              onPressed: () => setState(() => filled = true),
-              child: Text(t('גרסת בדיקה: מילוי כרטיס בדיקה')),
-            ),
+            if (SyncScope.maybeOf(context) == null)
+              OutlinedButton(
+                key: const Key('fillTestCard'),
+                onPressed: () => setState(() => filled = true),
+                child: Text(t('גרסת בדיקה: מילוי כרטיס בדיקה')),
+              ),
           ]),
         ),
         const SizedBox(height: 10),

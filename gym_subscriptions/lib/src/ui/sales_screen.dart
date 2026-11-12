@@ -48,9 +48,8 @@ class _SalesScreenState extends State<SalesScreen> {
       return x.customerName.contains(q.trim()) || (digits.isNotEmpty && x.docNo.replaceAll(RegExp(r'\D'), '').contains(digits));
     }).toList();
     final total = round2(list.fold(0.0, (a, x) => a + x.total));
-    // VAT only from documents that carry it (none for an exempt dealer).
-    final taxed = list.where((x) => carriesVat(x, s.docType)).fold(0.0, (a, x) => a + x.total);
-    final vat = round2(taxed * s.vatPct / (100 + s.vatPct));
+    // Each document's own VAT (a credit note takes its VAT back; none for an exempt dealer).
+    final vat = round2(list.fold(0.0, (a, x) => a + (x.total < 0 ? -1 : 1) * docVat(x, store).abs()));
 
     Widget filter<T>(
             String key, String label, T? value, List<T> values, String Function(T) name, ValueChanged<T?> set) =>

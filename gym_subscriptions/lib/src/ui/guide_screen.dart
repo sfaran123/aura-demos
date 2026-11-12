@@ -13,6 +13,7 @@ import '../state/reports.dart' show allReports;
 import 'report_picker.dart';
 import 'reports_screen.dart' show ReportScreen;
 import 'sales_screen.dart';
+import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -116,6 +117,7 @@ class _TopicTile extends StatelessWidget {
       case GuideAction.quickPay:
         startCheckout(context, CheckoutFlow.quickPay);
       case GuideAction.link:
+        if (SyncScope.maybeOf(context) != null) return showDone(context, t('תשלום בלינק עדיין לא זמין כאן.'));
         showSignupLinkSheet(context);
       case GuideAction.members:
         tab(1);
@@ -130,6 +132,7 @@ class _TopicTile extends StatelessWidget {
       case GuideAction.reportPicker:
         Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportPickerScreen()));
       case GuideAction.links:
+        if (SyncScope.maybeOf(context) != null) return showDone(context, t('תשלום בלינק עדיין לא זמין כאן.'));
         Navigator.push(context, MaterialPageRoute(builder: (_) => const LinksScreen()));
     }
   }

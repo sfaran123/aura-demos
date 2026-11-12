@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../domain/help.dart';
 import 'help.dart';
 import 'receipt_view.dart';
@@ -133,7 +134,7 @@ class _MemberRow extends StatelessWidget {
             Text('${p.name} · $detail', style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
             const SizedBox(height: 4),
             Wrap(spacing: 6, runSpacing: 4, children: [
-              Pill(sub.status.label, tone: toneFor(sub.status)),
+              Pill(sub.statusText, tone: toneFor(sub.status)),
               if (blocked)
                 Pill(t('כניסה חסומה'), tone: PillTone.bad)
               else if (owes)
@@ -146,6 +147,15 @@ class _MemberRow extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Opens the phone's dialer or WhatsApp. Says so when the device cannot.
+Future<void> _openExternal(BuildContext context, Uri uri) async {
+  var ok = false;
+  try {
+    ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {}
+  if (!ok && context.mounted) showDone(context, t('לא ניתן לפתוח במכשיר הזה'));
 }
 
 Future<void> showMemberSheet(BuildContext context, Subscription sub) {
@@ -185,7 +195,7 @@ class _MemberSheetBody extends StatelessWidget {
     final rows = <(String, String)>[
       (t('טלפון'), c.phone),
       (t('מסלול'), p.name),
-      (t('סטטוס'), sub.status.label),
+      (t('סטטוס'), sub.statusText),
       (t('התחלה'), fmtDate(sub.start)),
       if (sub.end != null) (t('סיום'), fmtDate(sub.end!)),
       if (p.isRecurring)
@@ -210,7 +220,7 @@ class _MemberSheetBody extends StatelessWidget {
             Avatar(c.name, size: 44),
             const SizedBox(width: 12),
             Expanded(child: Text(c.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600))),
-            Pill(sub.status.label, tone: toneFor(sub.status)),
+            Pill(sub.statusText, tone: toneFor(sub.status)),
           ]),
           const SizedBox(height: 12),
           if (store.entryBlocked(c.id))
@@ -225,6 +235,21 @@ class _MemberSheetBody extends StatelessWidget {
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
+            if (whatsappNumber(c.phone).isNotEmpty) ...[
+              OutlinedButton.icon(
+                key: const Key('callMember'),
+                onPressed: () =>
+                    _openExternal(context, Uri(scheme: 'tel', path: c.phone.replaceAll(RegExp(r'\D'), ''))),
+                icon: const Icon(Icons.call_outlined, size: 18),
+                label: Text(t('חיוג')),
+              ),
+              OutlinedButton.icon(
+                key: const Key('whatsappMember'),
+                onPressed: () => _openExternal(context, Uri.parse('https://wa.me/${whatsappNumber(c.phone)}')),
+                icon: const Icon(Icons.chat_outlined, size: 18),
+                label: const Text('WhatsApp'),
+              ),
+            ],
             if (canFreeze)
               OutlinedButton.icon(
                 key: const Key('freeze'),

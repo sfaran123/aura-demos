@@ -75,3 +75,24 @@ flutter pub get
 flutter test
 flutter run
 ```
+
+In the browser (local testing only). The AURA server does not allow calls from
+web pages (no CORS headers), so Chrome has to be started with that check off;
+Flutter opens a separate Chrome window with its own temporary profile:
+
+```
+flutter run -d chrome --dart-define-from-file=dart_defines.json --web-browser-flag=--disable-web-security
+```
+
+Sign-in and data are kept in the browser's localStorage.
+
+## Test APK from GitHub
+
+Every push that touches `gym_subscriptions/` builds an APK and publishes it as the
+`gym-latest` release. No secret is needed. The domain screen checks the business name
+through the business's own address (`https://<company>.<domain>/api/login`); if the
+optional repository secret `AURA_VERIFY_KEY` is set, it uses `/verify` instead.
+
+The workflow file is not on the default branch, so GitHub shows no "Run workflow"
+button. To build again without a code change, open the last run under Actions and
+press "Re-run all jobs".

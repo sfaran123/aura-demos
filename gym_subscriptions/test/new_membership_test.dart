@@ -40,7 +40,9 @@ Object? Function(Map<String, Object?>) membershipStore({int id = 77, bool duplic
               'product_name': recurring ? 'Monthly' : '10 entries',
               'total': recurring ? 199 : 450,
               'start_date': d(start),
-              'end_date': recurring ? d(DateTime(start.year + 100, start.month, start.day)) : d(DateTime(start.year, start.month + 3, start.day)),
+              'end_date': recurring
+                  ? d(DateTime(start.year + 100, start.month, start.day))
+                  : d(DateTime(start.year, start.month + 3, start.day)),
               'periods': recurring ? 0 : 3,
               'period_unit': 'month',
               'next_payment_date': recurring ? d(DateTime(start.year, start.month + 1, start.day)) : null,
@@ -70,11 +72,10 @@ final posSettings = {
 };
 
 /// Answers like sales/store-v2 ({data: sale, latestSaleInfo}).
-Object? Function(Map<String, Object?>) saleStore({int id = 501, String ref = 'TIN-9001'}) =>
-    (body) => {
-          'data': {'id': id, 'reference_no': ref, 'grand_total': body['grand_total']},
-          'latestSaleInfo': null,
-        };
+Object? Function(Map<String, Object?>) saleStore({int id = 501, String ref = 'TIN-9001'}) => (body) => {
+      'data': {'id': id, 'reference_no': ref, 'grand_total': body['grand_total']},
+      'latestSaleInfo': null,
+    };
 
 /// Answers like GymController::linkSale.
 Object? Function(Map<String, Object?>) linkStore({String ref = 'TIN-9001'}) => (body) => {
@@ -253,12 +254,35 @@ void main() {
   testWidgets('session expired while saving: back to login, nothing created', (t) async {
     final api = payingApi()..postErrors['/gym/memberships'] = AuraApiException(AuraErrorKind.sessionExpired);
     final (store, _, auth) = await boot(t, api);
-    final receipts = store.receipts.length;
     await toSummary(t, '11');
     await tapKey(t, 'confirm');
     expect(auth.stage, AuthStage.login);
-    expect(store.receipts.length, receipts);
+    expect(store.receipts, isEmpty, reason: 'signed out: the business data leaves the device');
     expect(paths(api), ['/gym/memberships']);
+  });
+
+  testWidgets('exempt dealer: the sale is a receipt (type 3) without VAT, and the app says Receipt', (t) async {
+    final api = payingApi()
+      ..responses['/gym/pos-settings'] = {
+        'data': {...(posSettings['data'] as Map), 'business_type': 1}
+      };
+    await boot(t, api);
+    await tapKey(t, 'tileQuickPay');
+    await tapKey(t, 'walkIn');
+    await tapKey(t, 'item-21');
+    await tapKey(t, 'itemsToPayment');
+    await tapKey(t, 'add-cash');
+    await tapKey(t, 'toSummary');
+    expect(find.textContaining('Receipt'), findsWidgets);
+    expect(find.textContaining('Tax invoice'), findsNothing);
+    await tapKey(t, 'confirm');
+
+    final sale = body(api, '/sales/store-v2');
+    expect(sale['type'], 3, reason: 'a receipt, not a tax invoice-receipt (27)');
+    expect([for (final l in sale['product_sale_data'] as List) (l as Map)['tax_rate']], everyElement(0));
+    expect(find.textContaining('Tax invoice'), findsNothing);
+    await tapKey(t, 'viewReceipt');
+    expect(find.textContaining('VAT'), findsNothing);
   });
 
   testWidgets('quick payment, walk-in: one POS sale to the default customer, no free amount', (t) async {
@@ -278,8 +302,14 @@ void main() {
     expect(paths(api), ['/sales/store-v2']);
     final sale = body(api, '/sales/store-v2');
     expect(sale['customer_id'], 1, reason: 'the POS default customer');
-    expect([for (final l in sale['product_sale_data'] as List) ((l as Map)['product_id'], l['qty'])], [(21, 2), (20, 1)]);
+    expect(
+        [for (final l in sale['product_sale_data'] as List) ((l as Map)['product_id'], l['qty'])], [(21, 2), (20, 1)]);
     expect(sale['grand_total'], 53);
     expect(find.textContaining('TIN-9001'), findsOneWidget);
+    // Not connected to the server yet, so not offered: sending the receipt and a credit note.
+    expect(find.byKey(const Key('sendSms'), skipOffstage: false), findsNothing);
+    await tapKey(t, 'viewReceipt');
+    expect(find.byKey(const Key('receiptCard')), findsOneWidget);
+    expect(find.byKey(const Key('creditReceipt'), skipOffstage: false), findsNothing);
   });
 }

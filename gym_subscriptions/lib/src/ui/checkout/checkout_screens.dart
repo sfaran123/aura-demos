@@ -112,7 +112,7 @@ class _CustomerTile extends StatelessWidget {
                 style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
             const SizedBox(height: 4),
             if (sub != null)
-              Pill(plan == null ? sub.status.label : '${sub.status.label} · ${plan.name}', tone: toneFor(sub.status))
+              Pill(plan == null ? sub.statusText : '${sub.statusText} · ${plan.name}', tone: toneFor(sub.status))
             else
               Pill(t('ללא מנוי')),
           ]),
@@ -1019,9 +1019,24 @@ class _SummaryStepState extends State<SummaryStep> {
               saleId: _saleId),
         );
       }
-      // The server's documents, the membership and the reports.
-      sync.pull();
-      return done;
+      // The worker sees the server's own document and membership, not the app's
+      // stand-ins: everything is loaded again, then looked up by document number.
+      await sync.pull();
+      final store = d.store;
+      var doc = _reference.isEmpty ? null : store.receipts.where((r) => r.reference == _reference).lastOrNull;
+      // Saved by an earlier try whose answer was lost, so no number came back:
+      // today's document of the same amount.
+      if (_reference.isEmpty) {
+        doc = store.receipts
+            .where((r) =>
+                r.reference != null &&
+                !r.isCredit &&
+                dateOnly(r.date) == store.today &&
+                ((r.docTotal ?? r.total) - d.due).abs() < 0.005)
+            .lastOrNull;
+      }
+      final serverSub = done.sub == null ? null : store.subscriptions.where((s) => s.id == done.sub!.id).firstOrNull;
+      return (sub: serverSub ?? done.sub, receipt: doc ?? done.receipt);
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -1139,10 +1154,18 @@ class _SummaryStepState extends State<SummaryStep> {
               ? t('מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.', [money(d.monthly)])
               : t('מהחודש הבא: {0} ב{1}.', [money(d.monthly), d.recurring!.label])),
         Note([
-          if (pending) t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
+          if (pending && !d.onServer)
+            t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
           t('{0} אחת עם כל אמצעי התשלום{1}.', [
-            store.settings.docType.docName,
-            d.walkIn ? t(' תודפס או תישלח ב-SMS') : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
+            (d.onServer
+                    ? ((store.posSettings?.noVat ?? false) ? DocType.receipt : DocType.taxInvoiceReceipt)
+                    : store.settings.docType)
+                .docName,
+            d.onServer
+                ? ''
+                : d.walkIn
+                    ? t(' תודפס או תישלח ב-SMS')
+                    : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
           ]),
         ].join(' ')),
       ],
@@ -1182,8 +1205,17 @@ class DoneScreen extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
-          Text('${docLabel(receipt, draft.store.settings.docType)} ${receipt.docNo} · ${money(receipt.total)}',
-              textAlign: TextAlign.center, style: const TextStyle(color: Aura.muted)),
+          Text(
+              draft.onServer
+                  // Signed in: the server's document type and number; a stand-in
+                  // without a server number shows the amount only.
+                  ? [
+                      if (receipt.reference != null) '${serverDocLabel(receipt, draft.store)} ${receipt.docNo}',
+                      money(receipt.docTotal ?? receipt.total),
+                    ].join(' · ')
+                  : '${docLabel(receipt, draft.store.settings.docType)} ${receipt.docNo} · ${money(receipt.total)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Aura.muted)),
           Center(
             child: TextButton.icon(
               key: const Key('viewReceipt'),

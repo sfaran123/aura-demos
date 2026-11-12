@@ -552,6 +552,7 @@ class Subscription {
     this.monthlyAmount,
     this.recurringMethod,
     this.entriesLeft,
+    this.serverStatus,
     this.frozenUntil,
     this.freezeDaysUsed = 0,
     this.nextCharge,
@@ -573,6 +574,13 @@ class Subscription {
   double? monthlyAmount;
   RecurringMethod? recurringMethod;
   int? entriesLeft;
+
+  /// A status from the server that the app does not know, as the server wrote it.
+  /// It is shown as it is instead of being presented as "active".
+  String? serverStatus;
+
+  /// The status as shown to the worker.
+  String get statusText => serverStatus ?? status.label;
   DateTime? frozenUntil;
   int freezeDaysUsed;
   DateTime? nextCharge;
@@ -600,6 +608,7 @@ class Subscription {
         'monthlyAmount': monthlyAmount,
         'recurringMethod': recurringMethod?.name,
         'entriesLeft': entriesLeft,
+        if (serverStatus != null) 'serverStatus': serverStatus,
         'frozenUntil': _d(frozenUntil),
         'freezeDaysUsed': freezeDaysUsed,
         'nextCharge': _d(nextCharge),
@@ -622,6 +631,7 @@ class Subscription {
         monthlyAmount: (j['monthlyAmount'] as num?)?.toDouble(),
         recurringMethod: j['recurringMethod'] == null ? null : RecurringMethod.values.byName(j['recurringMethod']),
         entriesLeft: j['entriesLeft'],
+        serverStatus: j['serverStatus'],
         frozenUntil: _pd(j['frozenUntil']),
         freezeDaysUsed: j['freezeDaysUsed'] ?? 0,
         nextCharge: _pd(j['nextCharge']),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../domain/help.dart';
 import 'help.dart';
 import 'package:flutter/services.dart';
@@ -233,20 +234,26 @@ class SettingsScreen extends StatelessWidget {
             trailing: const Icon(Icons.edit_outlined),
             onTap: () => pickBusinessType(context),
           ),
-          // Signed in, the AURA server's business type decides (as in the POS app).
-          if (store.posSettings != null)
-            ListTile(
-              key: const Key('docTypeFromServer'),
-              leading: const Icon(Icons.receipt_long_outlined, color: Aura.gold),
-              title: Text(t('מסמך שמופק בכל תשלום')),
-              subtitle: Text('${s.docType.label}\n${t('לפי סוג העסק בהגדרות המערכת של AURA')}'),
-              isThreeLine: true,
-              trailing: const Icon(Icons.lock_outline, size: 18, color: Aura.muted),
-            )
-          else
+          if (SyncScope.maybeOf(context) == null) ...[
             chips<DocType>(
                 t('מסמך שמופק בכל תשלום'), DocType.values, (d) => s.docType == d, (d) => s.docType = d, (d) => d.label),
-          stepper(t('מע״מ'), s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),
+            stepper(t('מע״מ'), s.vatPct.round(), (v) => s.vatPct = v.toDouble(), max: 30, unit: '%'),
+          ] else
+            // Signed in: the AURA server decides by the kind of dealer (exempt:
+            // receipts without VAT; otherwise tax invoice-receipts), as in the POS app.
+            ListTile(
+              key: const Key('serverDocType'),
+              leading: const Icon(Icons.receipt_long_outlined, color: Aura.gold),
+              title: Text(t('מסמך שמופק בכל תשלום')),
+              subtitle: Text([
+                store.posSettings == null
+                    ? '—'
+                    : (store.posSettings!.noVat ? DocType.receipt : DocType.taxInvoiceReceipt).label,
+                t('נקבע במערכת AURA לפי סוג העוסק. עוסק פטור: קבלה בלי מע״מ.'),
+              ].join('\n')),
+              isThreeLine: true,
+              trailing: const Icon(Icons.lock_outline, size: 18, color: Aura.muted),
+            ),
         ]),
         group(t('אמצעי תשלום'), t('מה הקבלה יכולה לקבל. אפשר להגביל גם ברמת כל מסלול.'), [
           chips<PayMethod>(
@@ -366,43 +373,46 @@ class SettingsScreen extends StatelessWidget {
           sw(t('הצוות יכול להפיק זיכוי'), s.staffCanRefund, (v) => s.staffCanRefund = v,
               key: const Key('staffCanRefund'), sub: t('כבוי = רק בעל העסק (בחיבור למערכת, לפי הרשאות)')),
         ]),
-        group(t('נתונים'), '', [
-          ListTile(
-            leading: const Icon(Icons.save_outlined, color: Aura.ok),
-            title: Text(t('הנתונים נשמרים במכשיר')),
-            subtitle: Text(t('כל פעולה נשמרת מיד, גם כשסוגרים את האפליקציה. בחיבור למערכת AURA הנתונים יישמרו בשרת.'),
-                style: const TextStyle(fontSize: 12.5)),
-          ),
-          ListTile(
-            key: const Key('resetDemo'),
-            leading: const Icon(Icons.restart_alt, color: Aura.warn),
-            title: Text(t('איפוס לנתוני הדגמה'), style: const TextStyle(color: Aura.warn)),
-            subtitle: Text(t('מוחק את מה שנעשה במכשיר ומחזיר את נתוני ההדגמה'), style: const TextStyle(fontSize: 12.5)),
-            onTap: () async {
-              final ok = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text(t('לאפס את הנתונים?')),
-                  content:
-                      Text(t('כל המנויים, התשלומים וההגדרות שנעשו במכשיר יימחקו ויוחלפו בנתוני ההדגמה. אי אפשר לבטל.')),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('ביטול'))),
-                    FilledButton(
-                      key: const Key('resetConfirm'),
-                      style: FilledButton.styleFrom(backgroundColor: Aura.warn),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text(t('איפוס')),
-                    ),
-                  ],
-                ),
-              );
-              if (ok == true) {
-                store.resetDemo();
-                if (context.mounted) showDone(context, t('הנתונים אופסו לנתוני ההדגמה'));
-              }
-            },
-          ),
-        ]),
+        // Demo only: signed in, the data lives on the AURA server and is never reset to the demo.
+        if (SyncScope.maybeOf(context) == null)
+          group(t('נתונים'), '', [
+            ListTile(
+              leading: const Icon(Icons.save_outlined, color: Aura.ok),
+              title: Text(t('הנתונים נשמרים במכשיר')),
+              subtitle: Text(t('כל פעולה נשמרת מיד, גם כשסוגרים את האפליקציה. בחיבור למערכת AURA הנתונים יישמרו בשרת.'),
+                  style: const TextStyle(fontSize: 12.5)),
+            ),
+            ListTile(
+              key: const Key('resetDemo'),
+              leading: const Icon(Icons.restart_alt, color: Aura.warn),
+              title: Text(t('איפוס לנתוני הדגמה'), style: const TextStyle(color: Aura.warn)),
+              subtitle:
+                  Text(t('מוחק את מה שנעשה במכשיר ומחזיר את נתוני ההדגמה'), style: const TextStyle(fontSize: 12.5)),
+              onTap: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(t('לאפס את הנתונים?')),
+                    content: Text(
+                        t('כל המנויים, התשלומים וההגדרות שנעשו במכשיר יימחקו ויוחלפו בנתוני ההדגמה. אי אפשר לבטל.')),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(t('ביטול'))),
+                      FilledButton(
+                        key: const Key('resetConfirm'),
+                        style: FilledButton.styleFrom(backgroundColor: Aura.warn),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(t('איפוס')),
+                      ),
+                    ],
+                  ),
+                );
+                if (ok == true) {
+                  store.resetDemo();
+                  if (context.mounted) showDone(context, t('הנתונים אופסו לנתוני ההדגמה'));
+                }
+              },
+            ),
+          ]),
         const SizedBox(height: 8),
         Text(t('אמצעי תשלום פעילים: {0}', [s.enabledMethods.map((m) => m.label).join(' · ')]),
             style: const TextStyle(fontSize: 12, color: Aura.muted)),
@@ -411,6 +421,7 @@ class SettingsScreen extends StatelessWidget {
           for (final m in s.enabledMethods)
             Padding(padding: const EdgeInsets.only(left: 6), child: Icon(methodIcon(m), size: 18, color: Aura.muted))
         ]),
+        const _VersionLine(),
       ]),
     );
   }
@@ -496,6 +507,42 @@ class _AccountCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The installed app version, for support ("which version do you have?").
+class _VersionLine extends StatefulWidget {
+  const _VersionLine();
+
+  @override
+  State<_VersionLine> createState() => _VersionLineState();
+}
+
+class _VersionLineState extends State<_VersionLine> {
+  String? _version;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _version = '${info.version} (${info.buildNumber})');
+    } catch (_) {
+      // Not available here (tests): no line.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _version == null
+      ? const SizedBox.shrink()
+      : Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(t('גרסה {0}', [_version]),
+              key: const Key('appVersion'), style: const TextStyle(fontSize: 12, color: Aura.muted)),
+        );
 }
 
 /// Last sync with the AURA server, its error if any, and "Sync now".

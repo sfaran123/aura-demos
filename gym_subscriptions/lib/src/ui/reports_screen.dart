@@ -11,6 +11,7 @@ import 'pdf_documents.dart' show businessNameOf, pdfFileName, reportPdf;
 import 'pdf_view.dart';
 import 'report_picker.dart';
 import 'sales_screen.dart';
+import 'auth_screens.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -47,7 +48,7 @@ class ReportsScreen extends StatelessWidget {
     final on = store.settings.enabledReports;
     // Sign-up links are not on the server yet: their report is left out while signed in.
     final reports =
-        allReports.where((r) => on.contains(r.id) && !(store.dashboard != null && r.id == 'links')).toList();
+        allReports.where((r) => on.contains(r.id) && !(SyncScope.maybeOf(context) != null && r.id == 'links')).toList();
     final summary = reports.where((r) => r.id == 'summary').firstOrNull;
     final debt = store.openDebt;
     final debtors = store.toCollect.where((c) => !c.dueDate.isAfter(store.today)).map((c) => c.customerId).toSet();
