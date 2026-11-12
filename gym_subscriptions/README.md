@@ -85,3 +85,15 @@ flutter run -d chrome --dart-define-from-file=dart_defines.json --web-browser-fl
 ```
 
 Sign-in and data are kept in the browser's localStorage.
+
+## Test APK from GitHub
+
+Every push that touches `gym_subscriptions/` builds an APK and publishes it as the
+`gym-latest` release. The build reads the sign-in key from the repository secret
+`AURA_VERIFY_KEY` (Settings > Secrets and variables > Actions > Repository secrets).
+Without the secret the APK still builds, but sign-in stops at the domain screen with
+"this build has no verification key", and the build log shows a warning.
+
+The workflow file is not on the default branch, so GitHub shows no "Run workflow"
+button. To build again without a code change, open the last run under Actions and
+press "Re-run all jobs".
