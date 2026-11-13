@@ -7,6 +7,7 @@ import 'receipt_view.dart';
 import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'auth_screens.dart' show SyncScope, runOnServer;
+import 'checkin_screen.dart';
 import 'checkout/checkout_screens.dart';
 import 'member_card.dart';
 import 'theme.dart';
@@ -120,7 +121,7 @@ class _MemberRow extends StatelessWidget {
     final detail = switch (p.kind) {
       PlanKind.recurring => t('חיוב הבא {0}', [sub.nextCharge == null ? '—' : fmtDate(sub.nextCharge!)]),
       PlanKind.term => t('עד {0}', [fmtDate(sub.end!)]),
-      PlanKind.punch => t('נשארו {0} כניסות', [sub.entriesLeft ?? 0]),
+      PlanKind.punch => t('נשארו {0} כניסות', [store.entriesLeft(sub) ?? 0]),
     };
     return Panel(
       onTap: () => showMemberSheet(context, sub),
@@ -201,7 +202,8 @@ class _MemberSheetBody extends StatelessWidget {
       if (p.isRecurring)
         (t('חיוב חודשי'), '${money(sub.monthlyAmount ?? p.price)} · ${sub.recurringMethod?.label ?? '—'}'),
       if (sub.nextCharge != null && p.isRecurring) (t('חיוב הבא'), fmtDate(sub.nextCharge!)),
-      if (sub.entriesLeft != null) (t('כניסות שנותרו'), '${sub.entriesLeft}'),
+      if (sub.entriesLeft != null) (t('כניסות שנותרו'), '${store.entriesLeft(sub)}'),
+      if (p.weeklyLimit > 0) (t('כניסות השבוע'), t('{0} מתוך {1}', [store.visitsThisWeek(sub.id), p.weeklyLimit])),
       if (p.commitMonths > 0) (t('התחייבות עד'), fmtDate(addMonths(sub.start, p.commitMonths))),
       if (sub.frozenUntil != null) (t('מוקפא עד'), fmtDate(sub.frozenUntil!)),
       (t('ימי הקפאה שנותרו'), t('{0} מתוך {1}', [freezeDaysLeft(p, sub), p.freezeDaysPerYear])),
@@ -211,6 +213,7 @@ class _MemberSheetBody extends StatelessWidget {
       // The membership's own card (the web shows only "Saved" / "Unsaved").
       if (cardBilled) (t('כרטיס המנוי'), sub.hasCardToken ? t('שמור') : t('לא שמור')),
     ];
+    final visits = store.visitsOf(sub.id);
     final canFreeze = sub.status == SubStatus.active && freezeDaysLeft(p, sub) >= store.settings.freezeMinDays;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -230,11 +233,23 @@ class _MemberSheetBody extends StatelessWidget {
           if (cardBilled && running && !sub.hasCardToken && SyncScope.maybeOf(context) != null)
             Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Note(t('המנוי מחויב בכרטיס אשראי, אבל אין בו כרטיס שמור: החיוב החודשי לא יתבצע עד שיעודכן כרטיס.'),
+                child: Note(
+                    t('המנוי מחויב בכרטיס אשראי, אבל אין בו כרטיס שמור: החיוב החודשי לא יתבצע עד שיעודכן כרטיס.'),
                     warn: true)),
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
+            if (running)
+              FilledButton.icon(
+                key: const Key('memberCheckin'),
+                onPressed: () async {
+                  final r = await recordVisit(context, c);
+                  if (r == null || !context.mounted) return;
+                  showDone(context, [t('הגעה נרשמה'), if (r.message.isNotEmpty) r.message].join(' · '));
+                },
+                icon: const Icon(Icons.how_to_reg, size: 18),
+                label: Text(t('הגעה')),
+              ),
             if (whatsappNumber(c.phone).isNotEmpty) ...[
               OutlinedButton.icon(
                 key: const Key('callMember'),
@@ -312,6 +327,19 @@ class _MemberSheetBody extends StatelessWidget {
                 label: Text(t('ביטול מנוי')),
               ),
           ]),
+          if (visits.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SectionLabel(t('הגעות אחרונות ({0})', [visits.length])),
+            for (final v in visits.take(10))
+              VisitRow(
+                visit: v,
+                showName: false,
+                onUndo: () async {
+                  if (!await confirmUndoVisit(context, v) || !context.mounted) return;
+                  if (await undoVisit(context, v) && context.mounted) showDone(context, t('ההגעה בוטלה'));
+                },
+              ),
+          ],
           const SizedBox(height: 16),
           CustomerHistory(customerId: c.id),
         ]),

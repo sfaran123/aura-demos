@@ -9,6 +9,7 @@
 // Ids keep the server id as a string, so a record has the same id after every sync.
 
 import '../domain/dashboard.dart';
+import '../domain/visits.dart';
 import '../domain/models.dart';
 
 class ServerData {
@@ -242,17 +243,32 @@ RecurringMethod _recurring(Object? type) => switch (_s(type)) {
     );
     subs.add(sub);
 
+    // One row per failed month, however many times the server tried it: the
+    // tries of a month (same month key, else same calendar month) are one charge.
+    final months = <String, List<Map>>{};
     for (final f in _list(m['failed_payments'])) {
+      final when = _date(f['date']) ?? today;
+      final key =
+          _s(f['month_key']).isNotEmpty ? _s(f['month_key']) : '${when.year}-${when.month.toString().padLeft(2, '0')}';
+      months.putIfAbsent(key, () => []).add(f);
+    }
+    for (final rows in months.values) {
+      rows.sort((a, b) => (_date(a['date']) ?? today).compareTo(_date(b['date']) ?? today));
+      final first = rows.first, last = rows.last;
+      final monthKey = rows.map((f) => _s(f['month_key'])).firstWhere((k) => k.isNotEmpty, orElse: () => '');
       charges.add(Charge(
-        id: 'failed-${_s(f['id'])}',
+        id: 'failed-${_s(first['id'])}',
         subscriptionId: id,
         customerId: customerId,
-        dueDate: _dayOnly(_date(f['date']) ?? today),
-        amount: _d(f['amount']),
+        // The month's own date: its first try.
+        dueDate: _dayOnly(_date(first['date']) ?? today),
+        // The month's amount (the last try's), not the tries added up.
+        amount: _d(last['amount']),
         manual: method == RecurringMethod.manual,
         status: ChargeStatus.failed,
-        attempts: f['attempts'] == null ? 1 : _i(f['attempts'], 1),
-        serverRef: _s(f['month_key']).isEmpty ? null : _s(f['month_key']),
+        attempts: rows.fold(0, (a, f) => a + (f['attempts'] == null ? 1 : _i(f['attempts'], 1))),
+        serverRef: monthKey.isEmpty ? null : monthKey,
+        tries: [for (final f in rows) (_date(f['date']) ?? today, _s(f['message']))],
       ));
     }
     // The next monthly charge of a running membership.
@@ -277,7 +293,8 @@ List<ShopItem> mapProducts(Object? body, {required Set<String> planIds}) {
   final seen = <String>{};
   return [
     for (final p in _list(body))
-      if (!planIds.contains(_s(p['id'])) && seen.add(_s(p['id']))) ShopItem(_s(p['id']), _s(p['name']), _d(p['price']),
+      if (!planIds.contains(_s(p['id'])) && seen.add(_s(p['id'])))
+        ShopItem(_s(p['id']), _s(p['name']), _d(p['price']),
             taxRate: _d(p['tax_rate']), taxMethod: p['tax_method'] == null ? null : _i(p['tax_method'])),
   ];
 }
@@ -331,34 +348,57 @@ List<Receipt> mapSales(Object? body, {required Map<String, String> names}) {
   ];
 }
 
+/// GET gym/visits -> visits recorded on the server.
+List<Visit> mapVisits(Object? body) => [
+      for (final v in _list(body is Map ? body['data'] : null))
+        if (_date(v['created_at']) != null)
+          Visit(
+            id: _s(v['id']),
+            subscriptionId: _s(v['subscription_id']),
+            customerId: _s(v['customer_id']),
+            at: _date(v['created_at'])!,
+          ),
+    ];
+
 /// GET gym/dashboard -> home screen numbers; null when the answer has no data.
 ServerDashboard? mapDashboard(Object? body) {
   final d = body is Map && body['data'] is Map ? (body['data'] as Map).cast<String, dynamic>() : null;
   if (d == null) return null;
   String? opt(Object? v) => _s(v).isEmpty ? null : _s(v);
+  // "To collect" is only what the desk has to collect: a monthly card charge that
+  // failed and a monthly payment in manual collection. A membership document with
+  // an open balance (an "unpaid invoice", often a tax invoice-receipt) is not part
+  // of it: it is left out here, and its amount is taken off the open debt, so the
+  // home screen, the collection list and the reports all agree.
+  final unpaidInvoices = [
+    for (final x in _list(d['debts']))
+      if (_s(x['kind']) == 'unpaid_invoice') _d(x['amount'])
+  ].fold<double>(0, (a, b) => a + b);
+  final openDebt = _d(d['open_debt']) - unpaidInvoices;
   return ServerDashboard(
     businessName: _s(d['business_name']),
     activeMembers: _i(d['active_members']),
     revenueToday: _d(d['revenue_today']),
-    openDebt: _d(d['open_debt']),
+    openDebt: openDebt < 0 ? 0 : (openDebt * 100).round() / 100,
     debts: [
       for (final x in _list(d['debts']))
-        DebtItem(
-          kind: switch (_s(x['kind'])) {
-            'unpaid_invoice' => DebtKind.unpaidInvoice,
-            'manual_due' => DebtKind.manualDue,
-            _ => DebtKind.failedCharge,
-          },
-          id: _s(x['id']),
-          amount: _d(x['amount']),
-          customerName: _s(x['customer_name']),
-          customerId: opt(x['customer_id']),
-          subscriptionId: opt(x['subscription_id']),
-          saleId: opt(x['sale_id']),
-          reference: opt(x['reference_no']),
-          description: opt(x['description']),
-          date: _date(x['date']),
-        ),
+        if (_s(x['kind']) != 'unpaid_invoice')
+          DebtItem(
+            kind: switch (_s(x['kind'])) {
+              'unpaid_invoice' => DebtKind.unpaidInvoice,
+              'manual_due' => DebtKind.manualDue,
+              _ => DebtKind.failedCharge,
+            },
+            id: _s(x['id']),
+            amount: _d(x['amount']),
+            customerName: _s(x['customer_name']),
+            customerId: opt(x['customer_id']),
+            subscriptionId: opt(x['subscription_id']),
+            saleId: opt(x['sale_id']),
+            reference: opt(x['reference_no']),
+            description: opt(x['description']),
+            date: _date(x['date']),
+          ),
     ],
     expiring: [
       for (final x in _list(d['expiring']))

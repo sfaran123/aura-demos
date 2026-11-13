@@ -10,6 +10,7 @@ import '../domain/notifier.dart';
 import '../domain/sale_builder.dart' show PosSettings;
 import '../domain/settings.dart';
 import '../domain/dashboard.dart';
+import '../domain/visits.dart';
 import '../integration/repository.dart';
 import '../integration/server_mapping.dart' show mapDashboard;
 import 'demo_data.dart';
@@ -63,6 +64,7 @@ class GymStore extends SimpleNotifier {
         'charges': [for (final x in charges) x.toJson()],
         'receipts': [for (final x in receipts) x.toJson()],
         'links': [for (final x in links) x.toJson()],
+        'visits': [for (final x in visits) x.toJson()],
         'items': [for (final x in items) x.toJson()],
         if (_dashboardJson != null) 'dashboard': _dashboardJson,
         if (serverOwner != null) 'serverOwner': serverOwner,
@@ -90,6 +92,11 @@ class GymStore extends SimpleNotifier {
       l.clear();
     }
     items = [];
+    if (settings || owner != null) {
+      visits.clear();
+    } else {
+      visits.removeWhere((v) => !v.local);
+    }
     dashboard = null;
     _dashboardJson = null;
     posSettings = null;
@@ -112,6 +119,7 @@ class GymStore extends SimpleNotifier {
       final r = [for (final x in l('receipts')) Receipt.fromJson(x)];
       final li = [for (final x in l('links')) SignupLink.fromJson(x)];
       final it = [for (final x in l('items')) ShopItem.fromJson(x)];
+      final vi = [for (final x in l('visits')) Visit.fromJson(x)];
       settings = s;
       plans
         ..clear()
@@ -132,10 +140,13 @@ class GymStore extends SimpleNotifier {
         ..clear()
         ..addAll(li);
       items = it;
+      visits
+        ..clear()
+        ..addAll(vi);
       _dashboardJson = j['dashboard'] is Map ? (j['dashboard'] as Map).cast<String, dynamic>() : null;
-      dashboard = mapDashboard(_dashboardJson);
       serverOwner = j['serverOwner'] is String ? j['serverOwner'] as String : null;
       serverLoaded = j['serverLoaded'] == true;
+      dashboard = _withoutOldDebts(mapDashboard(_dashboardJson));
       lastSynced = j['lastSynced'] is String ? DateTime.tryParse(j['lastSynced'] as String) : null;
       _receiptNo = j['receiptNo'] ?? (r.isEmpty ? 30000 : r.map((x) => x.number).reduce((a, b) => a > b ? a : b));
       _id = j['idCounter'] ?? 1000;
@@ -156,6 +167,7 @@ class GymStore extends SimpleNotifier {
       l.clear();
     }
     settings = BusinessSettings();
+    visits.clear();
     items = [..._defaultItems];
     _id = 100;
     _seed();
@@ -174,6 +186,7 @@ class GymStore extends SimpleNotifier {
     required List<Receipt> receipts,
     Map<String, dynamic>? dashboardJson,
     String? owner,
+    List<Visit>? visits,
   }) {
     if (owner != null) serverOwner = owner;
     serverLoaded = true;
@@ -193,8 +206,15 @@ class GymStore extends SimpleNotifier {
       ..clear()
       ..addAll(receipts..sort((a, b) => a.date.compareTo(b.date)));
     this.items = items;
+    // The server's visits replace the ones it sent before; visits kept on this
+    // device only stay. Null: a server without visits yet, nothing changes.
+    if (visits != null) {
+      this.visits
+        ..removeWhere((v) => !v.local)
+        ..addAll(visits);
+    }
     _dashboardJson = dashboardJson;
-    dashboard = mapDashboard(dashboardJson);
+    dashboard = _withoutOldDebts(mapDashboard(dashboardJson));
     notifyListeners();
   }
 
@@ -298,19 +318,76 @@ class GymStore extends SimpleNotifier {
     if (t.isEmpty) return customers.reversed.toList();
     final digits = t.replaceAll(RegExp(r'\D'), '');
     return customers
-        .where(
-            (c) => c.name.contains(t) || (digits.isNotEmpty && c.phone.replaceAll(RegExp(r'\D'), '').contains(digits)))
+        .where((c) =>
+            c.name.toLowerCase().contains(t.toLowerCase()) ||
+            (digits.isNotEmpty && c.phone.replaceAll(RegExp(r'\D'), '').contains(digits)))
         .toList();
+  }
+
+  /// A failed charge counts as a debt to collect for this many months. A business
+  /// that worked for years on the web system brings every failed charge it ever
+  /// had; the older ones are kept apart ("old debts") and are not in the totals.
+  static const debtWindowMonths = 3;
+  DateTime get debtCutoff => DateTime(today.year, today.month - debtWindowMonths, today.day);
+
+  bool _inactive(String? subscriptionId) {
+    final s = subscriptions.where((s) => s.id == subscriptionId).firstOrNull;
+    return s != null && (s.status == SubStatus.cancelled || s.status == SubStatus.expired);
+  }
+
+  /// Signed in: a failed charge from before the window, or of a membership that is
+  /// no longer active.
+  bool isOldDebt(Charge c) =>
+      serverLoaded &&
+      c.status == ChargeStatus.failed &&
+      (c.dueDate.isBefore(debtCutoff) || _inactive(c.subscriptionId));
+
+  /// Old failed charges, newest first: shown apart on the collection screen.
+  List<Charge> get oldDebts =>
+      charges.where((c) => c.isOpen() && isOldDebt(c)).toList()..sort((a, b) => b.dueDate.compareTo(a.dueDate));
+
+  /// The server's home-screen numbers without the old debts, so the home screen,
+  /// the collection list and the reports show the same total.
+  ServerDashboard? _withoutOldDebts(ServerDashboard? d) {
+    if (d == null) return null;
+    bool old(DebtItem x) =>
+        x.kind == DebtKind.failedCharge &&
+        ((x.date != null && x.date!.isBefore(debtCutoff)) || (x.subscriptionId != null && _inactive(x.subscriptionId)));
+    final dropped = d.debts.where(old).fold(0.0, (a, x) => a + x.amount);
+    if (dropped == 0) return d;
+    final left = round2(d.openDebt - dropped);
+    return ServerDashboard(
+      businessName: d.businessName,
+      activeMembers: d.activeMembers,
+      revenueToday: d.revenueToday,
+      openDebt: left < 0 ? 0 : left,
+      debts: d.debts.where((x) => !old(x)).toList(),
+      expiring: d.expiring,
+      recentPayments: d.recentPayments,
+      documentsMonth: d.documentsMonth,
+    );
   }
 
   /// Open manual charges and failed automatic charges, oldest first.
   List<Charge> get toCollect {
     final l = charges
         .where((c) => c.isOpen() && (c.manual || c.status == ChargeStatus.failed))
+        .where((c) => !isOldDebt(c))
         .where((c) => !c.dueDate.isAfter(today.add(Duration(days: settings.manualReminderDaysBefore))))
         .toList()
       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
     return l;
+  }
+
+  /// Manual monthly payments whose date is still ahead of the reminder window,
+  /// soonest first: the rest of the members in manual collection, so the
+  /// collection screen lists every one of them with the date of the next payment.
+  List<Charge> get upcomingManual {
+    final edge = today.add(Duration(days: settings.manualReminderDaysBefore));
+    return charges
+        .where((c) => c.isOpen() && c.manual && c.status != ChargeStatus.failed && c.dueDate.isAfter(edge))
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
   }
 
   double get openDebt => round2(toCollect.where((c) => !c.dueDate.isAfter(today)).fold(0.0, (a, c) => a + c.amount));
@@ -327,6 +404,121 @@ class GymStore extends SimpleNotifier {
           !s.end!.isBefore(today) &&
           s.end!.difference(today).inDays <= settings.renewalReminderDaysBefore)
       .toList();
+
+  // ---------- check-in ----------
+  /// Visits recorded at the desk, oldest first.
+  final List<Visit> visits = [];
+
+  /// Today's visits, latest first.
+  List<Visit> get visitsToday =>
+      visits.where((v) => dateOnly(v.at) == today).toList()..sort((a, b) => b.at.compareTo(a.at));
+
+  /// A membership's visits, latest first.
+  List<Visit> visitsOf(String subscriptionId) =>
+      visits.where((v) => v.subscriptionId == subscriptionId).toList()..sort((a, b) => b.at.compareTo(a.at));
+
+  /// The week of a weekly limit starts on Sunday.
+  DateTime get weekStart => today.subtract(Duration(days: today.weekday % 7));
+  int visitsThisWeek(String subscriptionId) =>
+      visits.where((v) => v.subscriptionId == subscriptionId && !v.at.isBefore(weekStart)).length;
+
+  /// Entries left on a punch card: the membership's number less the visits kept
+  /// on this device only. Null for a membership without entries.
+  int? entriesLeft(Subscription s) {
+    if (s.entriesLeft == null) return null;
+    final left = s.entriesLeft! - visits.where((v) => v.local && v.subscriptionId == s.id).length;
+    return left < 0 ? 0 : left;
+  }
+
+  /// What is left after a visit, for the row and the confirmation: "6 entries
+  /// left", "2 of 3 this week", or nothing for an unlimited membership.
+  String visitBalance(Subscription s) {
+    final p = plan(s.planId);
+    final left = entriesLeft(s);
+    if (left != null) {
+      return left == 0
+          ? t('לא נשארו כניסות')
+          : left == 1
+              ? t('נשארה כניסה אחת')
+              : t('נשארו {0} כניסות', [left]);
+    }
+    if (p != null && p.weeklyLimit > 0) return t('{0} מתוך {1} השבוע', [visitsThisWeek(s.id), p.weeklyLimit]);
+    return '';
+  }
+
+  /// May [c] come in now? The first reason that blocks, else the first warning.
+  /// With several running memberships: the one that lets the member in (an
+  /// unlimited one before a punch card, so no entry is spent for nothing).
+  EntryCheck entryCheck(Customer c) {
+    final all = entryChecks(c);
+    if (all.isEmpty) {
+      final had = subscriptions.any((s) => s.customerId == c.id);
+      return EntryCheck(
+          level: EntryLevel.blocked, message: had ? t('המנוי הסתיים') : t('אין מנוי'), fix: EntryFix.renew);
+    }
+    int rank(EntryCheck x) => x.level.index * 2 + (x.subscription?.entriesLeft == null ? 0 : 1);
+    return all.reduce((a, b) => rank(b) < rank(a) ? b : a);
+  }
+
+  /// One answer per running membership of [c] (not cancelled, not ended).
+  List<EntryCheck> entryChecks(Customer c) => [
+        for (final s in subscriptions)
+          if (s.customerId == c.id && s.status != SubStatus.cancelled && s.status != SubStatus.expired)
+            entryCheckOn(c, s),
+      ];
+
+  /// May [c] come in now on the membership [sub]?
+  EntryCheck entryCheckOn(Customer c, Subscription sub) {
+    final p = plan(sub.planId);
+    final left = entriesLeft(sub);
+    final already = visitsToday.any((v) => v.subscriptionId == sub.id);
+    EntryCheck res(EntryLevel level, String message, [EntryFix fix = EntryFix.none]) =>
+        EntryCheck(level: level, message: message, subscription: sub, fix: fix, alreadyToday: already);
+
+    if (sub.status == SubStatus.frozen) {
+      return res(EntryLevel.blocked,
+          sub.frozenUntil == null ? t('המנוי מוקפא') : t('המנוי מוקפא עד {0}', [fmtDate(sub.frozenUntil!)]));
+    }
+    if (sub.status == SubStatus.pendingPayment) {
+      return res(EntryLevel.blocked, t('המנוי ממתין לתשלום'), EntryFix.collect);
+    }
+    if (sub.end != null && sub.end!.isBefore(today)) {
+      return res(EntryLevel.blocked, t('המנוי הסתיים ב-{0}', [fmtDate(sub.end!)]), EntryFix.renew);
+    }
+    if (left != null && left <= 0) return res(EntryLevel.blocked, t('הכרטיסייה נגמרה'), EntryFix.renew);
+    if (p != null && p.weeklyLimit > 0 && visitsThisWeek(sub.id) >= p.weeklyLimit) {
+      return res(EntryLevel.blocked, t('נוצלו כל {0} הכניסות של השבוע', [p.weeklyLimit]));
+    }
+    if (entryBlocked(c.id)) return res(EntryLevel.blocked, t('כניסה חסומה: תשלום באיחור'), EntryFix.collect);
+
+    if (left == 1) return res(EntryLevel.warn, t('כניסה אחרונה בכרטיסייה'), EntryFix.renew);
+    if (sub.status == SubStatus.paymentFailed || hasOverdue(sub.id)) {
+      return res(EntryLevel.warn, t('יש תשלום פתוח'), EntryFix.collect);
+    }
+    if (sub.end != null && !sub.end!.isAfter(today.add(const Duration(days: 7)))) {
+      return res(EntryLevel.warn, t('המנוי מסתיים ב-{0}', [fmtDate(sub.end!)]), EntryFix.renew);
+    }
+    return res(EntryLevel.ok, '');
+  }
+
+  /// Records a visit now. [local] is false when the server recorded it ([id] is its id there).
+  Visit checkIn(Subscription sub, {String? id, bool local = true, DateTime? at}) {
+    final v = Visit(
+        id: id == null || id.isEmpty ? _next('v') : id,
+        subscriptionId: sub.id,
+        customerId: sub.customerId,
+        at: at ?? now,
+        local: local);
+    visits.add(v);
+    notifyListeners();
+    return v;
+  }
+
+  /// Takes back a visit recorded by mistake: a punch card gets its entry back.
+  void undoVisit(Visit v) {
+    visits.removeWhere((x) => x.id == v.id);
+    notifyListeners();
+  }
 
   bool hasOverdue(String subscriptionId) =>
       charges.any((c) => c.subscriptionId == subscriptionId && c.isOpen() && c.daysOverdue(today) > 0);
@@ -554,7 +746,11 @@ class GymStore extends SimpleNotifier {
   }
 
   Receipt quickPay(
-      {Customer? customer, required String description, required List<PaymentLine> lines, String? reference, int? saleId}) {
+      {Customer? customer,
+      required String description,
+      required List<PaymentLine> lines,
+      String? reference,
+      int? saleId}) {
     final r = _receipt(customer?.name ?? t('לקוח מזדמן'), description, lines, ReceiptKind.quickPay,
         customerId: customer?.id, reference: reference, saleId: saleId);
     notifyListeners();

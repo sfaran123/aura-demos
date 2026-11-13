@@ -84,7 +84,11 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 14),
           _TileRow(
               left: _Tile(
-                  key: const Key('tileNewSub'), primary: true, icon: Icons.add, title: t('מנוי חדש'), sub: t('לקוח בקבלה')),
+                  key: const Key('tileNewSub'),
+                  primary: true,
+                  icon: Icons.add,
+                  title: t('מנוי חדש'),
+                  sub: t('לקוח בקבלה')),
               right: _Tile(
                   key: const Key('tileQuickPay'),
                   icon: Icons.point_of_sale,
@@ -142,159 +146,159 @@ class HomeScreen extends StatelessWidget {
     final documentsMonth = dash?.documentsMonth ??
         store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-        const SyncBanner(),
-        Row(children: [
-          _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: '$activeMembers'),
-          const SizedBox(width: 8),
-          _Kpi(key: const Key('kpiRevenue'), label: t('הכנסות היום'), value: money(revenueToday)),
-          const SizedBox(width: 8),
-          _Kpi(
-              key: const Key('kpiDebt'),
-              label: t('חוב פתוח'),
-              value: money(openDebt),
-              alert: openDebt > 0,
-              onTap: () => goTo(2)),
+      const SyncBanner(),
+      Row(children: [
+        _Kpi(key: const Key('kpiActive'), label: t('מנויים פעילים'), value: '$activeMembers'),
+        const SizedBox(width: 8),
+        _Kpi(key: const Key('kpiRevenue'), label: t('הכנסות היום'), value: money(revenueToday)),
+        const SizedBox(width: 8),
+        _Kpi(
+            key: const Key('kpiDebt'),
+            label: t('חוב פתוח'),
+            value: money(openDebt),
+            alert: openDebt > 0,
+            onTap: () => goTo(3)),
+      ]),
+      const SizedBox(height: 14),
+      _TileRow(
+          left: _Tile(
+            key: const Key('tileNewSub'),
+            primary: true,
+            icon: Icons.add,
+            title: t('מנוי חדש'),
+            sub: t('לקוח בקבלה'),
+            onTap: () => startCheckout(context, CheckoutFlow.subscription),
+          ),
+          right: _Tile(
+            key: const Key('tileQuickPay'),
+            icon: Icons.point_of_sale,
+            title: t('תשלום מהיר'),
+            sub: t('מוצרים, אימון אישי או סכום חופשי'),
+            onTap: () => startCheckout(context, CheckoutFlow.quickPay),
+          )),
+      const SizedBox(height: 10),
+      _TileRow(
+          // Signed in, sign-up links are not connected to the server yet: the
+          // members list takes the tile's place.
+          left: signedIn
+              ? _Tile(
+                  key: const Key('tileMembers'),
+                  icon: Icons.people_outline,
+                  title: t('מנויים'),
+                  sub: t('חיפוש לפי שם או טלפון'),
+                  onTap: () => goTo(2),
+                )
+              : _Tile(
+                  key: const Key('tileLink'),
+                  icon: Icons.ios_share,
+                  title: t('לינק הרשמה'),
+                  sub: t('הלקוח בוחר מסלול ומשלם לבד'),
+                  onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
+                ),
+          right: _Tile(
+            key: const Key('tileCollect'),
+            icon: Icons.receipt_long,
+            title: t('לגבייה'),
+            sub: collectSub,
+            onTap: () => goTo(3),
+          )),
+      const SizedBox(height: 10),
+      Panel(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          _LinkRow(
+            key: const Key('homeSales'),
+            icon: Icons.receipt_outlined,
+            title: t('מכירות וחשבוניות'),
+            sub: t('{0} מסמכים החודש', [documentsMonth]),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen())),
+          ),
+          const Divider(height: 1),
+          _LinkRow(
+            key: const Key('homePrices'),
+            icon: Icons.sell_outlined,
+            title: t('מחירון'),
+            sub: t('{0} מוצרים ו-{1} מסלולים', [store.items.length, store.plans.length]),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PriceListScreen())),
+          ),
+          const Divider(height: 1),
+          _LinkRow(
+            key: const Key('homePlans'),
+            icon: Icons.view_list,
+            title: t('מסלולי מנוי'),
+            sub: t('{0} מסלולים פעילים · הגדרת מסלול חדש', [store.activePlans.length]),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
+          ),
         ]),
-        const SizedBox(height: 14),
-        _TileRow(
-            left: _Tile(
-              key: const Key('tileNewSub'),
-              primary: true,
-              icon: Icons.add,
-              title: t('מנוי חדש'),
-              sub: t('לקוח בקבלה'),
-              onTap: () => startCheckout(context, CheckoutFlow.subscription),
-            ),
-            right: _Tile(
-              key: const Key('tileQuickPay'),
-              icon: Icons.point_of_sale,
-              title: t('תשלום מהיר'),
-              sub: t('מוצרים, אימון אישי או סכום חופשי'),
-              onTap: () => startCheckout(context, CheckoutFlow.quickPay),
-            )),
-        const SizedBox(height: 10),
-        _TileRow(
-            // Signed in, sign-up links are not connected to the server yet: the
-            // members list takes the tile's place.
-            left: signedIn
-                ? _Tile(
-                    key: const Key('tileMembers'),
-                    icon: Icons.people_outline,
-                    title: t('מנויים'),
-                    sub: t('חיפוש לפי שם או טלפון'),
-                    onTap: () => goTo(1),
-                  )
-                : _Tile(
-                    key: const Key('tileLink'),
-                    icon: Icons.ios_share,
-                    title: t('לינק הרשמה'),
-                    sub: t('הלקוח בוחר מסלול ומשלם לבד'),
-                    onTap: store.settings.signupLinkEnabled ? () => showSignupLinkSheet(context) : null,
-                  ),
-            right: _Tile(
-              key: const Key('tileCollect'),
-              icon: Icons.receipt_long,
-              title: t('לגבייה'),
-              sub: collectSub,
-              onTap: () => goTo(2),
-            )),
-        const SizedBox(height: 10),
-        Panel(
-          padding: EdgeInsets.zero,
-          child: Column(children: [
-            _LinkRow(
-              key: const Key('homeSales'),
-              icon: Icons.receipt_outlined,
-              title: t('מכירות וחשבוניות'),
-              sub: t('{0} מסמכים החודש', [documentsMonth]),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesScreen())),
-            ),
-            const Divider(height: 1),
-            _LinkRow(
-              key: const Key('homePrices'),
-              icon: Icons.sell_outlined,
-              title: t('מחירון'),
-              sub: t('{0} מוצרים ו-{1} מסלולים', [store.items.length, store.plans.length]),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PriceListScreen())),
-            ),
-            const Divider(height: 1),
-            _LinkRow(
-              key: const Key('homePlans'),
-              icon: Icons.view_list,
-              title: t('מסלולי מנוי'),
-              sub: t('{0} מסלולים פעילים · הגדרת מסלול חדש', [store.activePlans.length]),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen())),
-            ),
-          ]),
-        ),
-        if (dash != null) ..._serverAlerts(context, dash),
-        if (dash == null && (overdue.isNotEmpty || expiring.isNotEmpty)) ...[
-          const SizedBox(height: 8),
-          SectionLabel(t('דורש טיפול')),
-          for (final c in overdue.take(4))
-            _Alert(
-              icon: Icons.warning_amber_rounded,
-              tone: PillTone.bad,
-              title: store.customer(c.customerId)!.name,
-              text: c.manual
-                  ? t('גבייה ידנית · {0} · באיחור של {1} ימים', [money(c.amount), c.daysOverdue(store.today)])
-                  : t('חיוב באשראי נכשל · {0} · {1} ניסיונות', [money(c.amount), c.attempts]),
-              onTap: () => goTo(2),
-            ),
-          if (overdue.length > 4)
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: TextButton(
-                key: const Key('homeAllOverdue'),
-                onPressed: () => goTo(2),
-                child: Text(t('עוד {0} באיחור · לרשימת הגבייה', [overdue.length - 4])),
-              ),
-            ),
-          for (final s in expiring.take(3))
-            _Alert(
-              icon: Icons.event_busy,
-              tone: PillTone.info,
-              title: store.customer(s.customerId)!.name,
-              text: t('{0} מסתיים ב-{1} · להציע חידוש', [store.plan(s.planId)!.name, fmtDate(s.end!)]),
-              onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
-            ),
-        ],
-        // Sign-up links are not on the server yet: hidden while signed in.
-        if (!signedIn && waiting.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          SectionLabel(t('לינקים פתוחים ({0})', [waiting.length]),
-              trailing: TextButton(
-                key: const Key('allLinks'),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinksScreen())),
-                child: Text(t('כל הלינקים')),
-              )),
-          for (final l in waiting.take(3)) Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
-        ],
+      ),
+      if (dash != null) ..._serverAlerts(context, dash),
+      if (dash == null && (overdue.isNotEmpty || expiring.isNotEmpty)) ...[
         const SizedBox(height: 8),
-        SectionLabel(t('תשלומים אחרונים')),
-        if (dash != null)
-          for (final p in dash.recentPayments) _ServerPaymentTile(payment: p),
-        if (dash == null)
-          for (final r in store.receipts.reversed.take(5))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Panel(
-                key: Key('receipt-${r.number}'),
-                onTap: () => showReceiptSheet(context, r),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(r.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
-                      Text('${r.description} · ${r.lines.map((l) => l.method.label).join(' + ')}',
-                          style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
-                    ]),
-                  ),
-                  Text(money(r.total), style: const TextStyle(fontWeight: FontWeight.w600)),
-                ]),
-              ),
+        SectionLabel(t('דורש טיפול')),
+        for (final c in overdue.take(4))
+          _Alert(
+            icon: Icons.warning_amber_rounded,
+            tone: PillTone.bad,
+            title: store.customer(c.customerId)!.name,
+            text: c.manual
+                ? t('גבייה ידנית · {0} · באיחור של {1} ימים', [money(c.amount), c.daysOverdue(store.today)])
+                : t('חיוב באשראי נכשל · {0} · {1} ניסיונות', [money(c.amount), c.attempts]),
+            onTap: () => goTo(3),
+          ),
+        if (overdue.length > 4)
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton(
+              key: const Key('homeAllOverdue'),
+              onPressed: () => goTo(3),
+              child: Text(t('עוד {0} באיחור · לרשימת הגבייה', [overdue.length - 4])),
             ),
-      ]);
+          ),
+        for (final s in expiring.take(3))
+          _Alert(
+            icon: Icons.event_busy,
+            tone: PillTone.info,
+            title: store.customer(s.customerId)!.name,
+            text: t('{0} מסתיים ב-{1} · להציע חידוש', [store.plan(s.planId)!.name, fmtDate(s.end!)]),
+            onTap: () => startCheckout(context, CheckoutFlow.subscription, customer: store.customer(s.customerId)),
+          ),
+      ],
+      // Sign-up links are not on the server yet: hidden while signed in.
+      if (!signedIn && waiting.isNotEmpty) ...[
+        const SizedBox(height: 8),
+        SectionLabel(t('לינקים פתוחים ({0})', [waiting.length]),
+            trailing: TextButton(
+              key: const Key('allLinks'),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LinksScreen())),
+              child: Text(t('כל הלינקים')),
+            )),
+        for (final l in waiting.take(3)) Padding(padding: const EdgeInsets.only(bottom: 8), child: LinkTile(link: l)),
+      ],
+      const SizedBox(height: 8),
+      SectionLabel(t('תשלומים אחרונים')),
+      if (dash != null)
+        for (final p in dash.recentPayments) _ServerPaymentTile(payment: p),
+      if (dash == null)
+        for (final r in store.receipts.reversed.take(5))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Panel(
+              key: Key('receipt-${r.number}'),
+              onTap: () => showReceiptSheet(context, r),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(r.customerName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text('${r.description} · ${r.lines.map((l) => l.method.label).join(' + ')}',
+                        style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+                  ]),
+                ),
+                Text(money(r.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+    ]);
   }
 }
 
@@ -334,7 +338,7 @@ List<Widget> _serverAlerts(BuildContext context, ServerDashboard dash) {
           if (r != null) {
             showReceiptSheet(context, r);
           } else {
-            goTo.value = 2;
+            goTo.value = 3;
           }
         },
       ),
@@ -343,7 +347,7 @@ List<Widget> _serverAlerts(BuildContext context, ServerDashboard dash) {
         alignment: AlignmentDirectional.centerEnd,
         child: TextButton(
           key: const Key('homeAllOverdue'),
-          onPressed: () => goTo.value = 2,
+          onPressed: () => goTo.value = 3,
           child: Text(t('עוד {0} באיחור · לרשימת הגבייה', [dash.debts.length - 4])),
         ),
       ),

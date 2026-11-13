@@ -120,13 +120,13 @@ class _TopicTile extends StatelessWidget {
         if (SyncScope.maybeOf(context) != null) return showDone(context, t('תשלום בלינק עדיין לא זמין כאן.'));
         showSignupLinkSheet(context);
       case GuideAction.members:
-        tab(1);
-      case GuideAction.collect:
         tab(2);
-      case GuideAction.reports:
+      case GuideAction.collect:
         tab(3);
-      case GuideAction.settings:
+      case GuideAction.reports:
         tab(4);
+      case GuideAction.settings:
+        tab(5);
       case GuideAction.plans:
         Navigator.push(context, MaterialPageRoute(builder: (_) => const PlansScreen()));
       case GuideAction.reportPicker:

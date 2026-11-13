@@ -50,7 +50,13 @@ final dashboard = {
       },
     ],
     'expiring': [
-      {'subscription_id': 6, 'customer_id': 8, 'customer_name': 'Avi Cohen', 'plan_name': '10 entries', 'end_date': '2026-11-20'},
+      {
+        'subscription_id': 6,
+        'customer_id': 8,
+        'customer_name': 'Avi Cohen',
+        'plan_name': '10 entries',
+        'end_date': '2026-11-20'
+      },
     ],
     'expiring_days': 14,
     'recent_payments': [
@@ -88,10 +94,10 @@ void main() {
     expect(d.businessName, 'Salams Ltd.');
     expect(d.activeMembers, 42);
     expect(d.revenueToday, 1234.5);
-    expect(d.openDebt, 299.1);
-    expect(d.debts.map((x) => x.kind), [DebtKind.failedCharge, DebtKind.unpaidInvoice]);
-    expect(d.debts[1].reference, 'TIR-1001');
-    expect(d.debts[1].saleId, '500');
+    // The server sends 299.10 with an unpaid membership document of 120 (TIR-1001):
+    // that one is not a debt to collect, so it is left out of the list and the total.
+    expect(d.openDebt, 179.1);
+    expect(d.debts.map((x) => x.kind), [DebtKind.failedCharge]);
     expect(d.expiring.single.endDate, DateTime(2026, 11, 20));
     expect(d.recentPayments.map((p) => p.method), [PayMethod.cash, PayMethod.cash]);
     expect(d.recentPayments[1].methodName, 'Gift Card');
@@ -110,8 +116,10 @@ void main() {
     return (s, a);
   }
 
-  String text(WidgetTester t, String key) =>
-      t.widgetList<Text>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(Text))).map((w) => w.data).join(' | ');
+  String text(WidgetTester t, String key) => t
+      .widgetList<Text>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(Text)))
+      .map((w) => w.data)
+      .join(' | ');
 
   testWidgets('home shows the server numbers and lists', (t) async {
     final (store, api) = await boot(t);
@@ -120,15 +128,15 @@ void main() {
     expect(find.text(isolate('Salams Ltd.')), findsOneWidget);
     expect(text(t, 'kpiActive'), contains('42'));
     expect(text(t, 'kpiRevenue'), contains('1,234.50'));
-    expect(text(t, 'kpiDebt'), contains('299.10'));
+    expect(text(t, 'kpiDebt'), contains('179.10'));
     expect(find.textContaining('17'), findsWidgets);
 
-    // Needs attention: both debts and the membership ending soon.
-    Future<void> see(String key) => t.scrollUntilVisible(find.byKey(Key(key)), 200, scrollable: find.byType(Scrollable).first);
+    // Needs attention: the failed charge and the membership ending soon; not the unpaid document.
+    Future<void> see(String key) =>
+        t.scrollUntilVisible(find.byKey(Key(key)), 200, scrollable: find.byType(Scrollable).first);
     await see('debt-failed-3');
     expect(find.byKey(const Key('debt-failed-3')), findsOneWidget);
-    await see('debt-sale-500');
-    expect(text(t, 'debt-sale-500'), contains('Invoice TIR-1001 unpaid'));
+    expect(find.byKey(const Key('debt-sale-500'), skipOffstage: false), findsNothing);
     await see('expiring-6');
     expect(find.byKey(const Key('expiring-6')), findsOneWidget);
 
@@ -160,7 +168,7 @@ void main() {
     await s1.save();
     final s2 = GymStore(repository: repo, clock: () => today);
     expect(s2.dashboard?.businessName, 'Salams Ltd.');
-    expect(s2.dashboard?.debts, hasLength(2));
+    expect(s2.dashboard?.debts, hasLength(1));
     s2.resetDemo();
     expect(s2.dashboard, isNull);
   });

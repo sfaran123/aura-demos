@@ -11,6 +11,7 @@ import '../domain/receipt_sending.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/sale_builder.dart';
+import '../domain/visits.dart';
 import '../integration/aura_api.dart';
 import '../integration/server_mapping.dart';
 import 'auth.dart';
@@ -45,6 +46,7 @@ class GymSync extends ChangeNotifier {
   Future<void>? _running;
 
   bool get syncing => _syncing;
+
   /// When the data on the screen last came from the server (kept between runs).
   DateTime? get lastSynced => store.lastSynced;
 
@@ -112,7 +114,9 @@ class GymSync extends ChangeNotifier {
         'card_expiry_date': expiry.trim(),
       });
       final data = body is Map && body['data'] is Map ? body['data'] as Map : null;
-      if (data == null || data['has_saved_card'] != true) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      if (data == null || data['has_saved_card'] != true) {
+        throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      }
       final last4 = '${data['card_last4'] ?? ''}';
       customer.savedCardLast4 = last4.isEmpty ? '••••' : last4;
       store.touch();
@@ -195,7 +199,8 @@ class GymSync extends ChangeNotifier {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
     try {
-      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/pay-failed-months', {'months': monthKeys});
+      final res =
+          await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/pay-failed-months', {'months': monthKeys});
       _applyMembership(res);
       final doc = res is Map && res['document'] is Map ? res['document'] as Map : const {};
       final left = res is Map && res['remaining_months'] is List ? res['remaining_months'] as List : const [];
@@ -274,7 +279,11 @@ class GymSync extends ChangeNotifier {
     final row = res is Map ? res['data'] : null;
     final mapped = mapMemberships({
       'data': [row]
-    }, customers: [...store.customers], plans: [...store.plans], today: store.today);
+    }, customers: [
+      ...store.customers
+    ], plans: [
+      ...store.plans
+    ], today: store.today);
     if (row is! Map || mapped.subscriptions.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
     return store.replaceServerMembership(mapped.subscriptions.single, mapped.charges);
   }
@@ -310,7 +319,11 @@ class GymSync extends ChangeNotifier {
       final row = body is Map ? body['data'] : null;
       final mapped = mapMemberships({
         'data': [row]
-      }, customers: [...store.customers], plans: [...store.plans], today: store.today);
+      }, customers: [
+        ...store.customers
+      ], plans: [
+        ...store.plans
+      ], today: store.today);
       if (row is! Map || mapped.subscriptions.isEmpty) {
         throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
       }
@@ -330,8 +343,7 @@ class GymSync extends ChangeNotifier {
   }
 
   /// Freezes a membership on the server for [days] days from today.
-  Future<Subscription> freezeMembership(Subscription sub, int days) =>
-      _membershipAction(sub, 'freeze', {'days': days});
+  Future<Subscription> freezeMembership(Subscription sub, int days) => _membershipAction(sub, 'freeze', {'days': days});
 
   /// Ends the current freeze today; the unused days are given back.
   Future<Subscription> unfreezeMembership(Subscription sub) => _membershipAction(sub, 'unfreeze', {});
@@ -481,6 +493,47 @@ class GymSync extends ChangeNotifier {
     }
   }
 
+  /// Records that the member came in now (POST gym/memberships/{id}/visits). The
+  /// server takes one entry off a punch card and answers the visit and
+  /// `entries_remaining`; [force] is the desk letting in a member the rules stop.
+  /// A server without visits yet (404): the visit is kept on this device.
+  Future<Visit> checkIn(Subscription sub, {bool force = false}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/memberships/${sub.id}/visits', {'force': force});
+      final d = res is Map && res['data'] is Map ? res['data'] as Map : const {};
+      final left = res is Map ? res['entries_remaining'] : null;
+      if (left is num) sub.entriesLeft = left.toInt();
+      return store.checkIn(sub,
+          id: '${d['id'] ?? ''}',
+          local: false,
+          at: DateTime.tryParse('${d['created_at'] ?? ''}'.replaceFirst(' ', 'T')));
+    } on AuraApiException catch (e) {
+      if (_missing(e)) return store.checkIn(sub);
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Takes back a visit recorded by mistake (POST gym/visits/{id}/cancel): the
+  /// server gives a punch card its entry back and answers `entries_remaining`.
+  Future<void> undoVisit(Visit v) async {
+    if (v.local) return store.undoVisit(v);
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/visits/${v.id}/cancel', {});
+      final left = res is Map ? res['entries_remaining'] : null;
+      final sub = store.subscriptions.where((s) => s.id == v.subscriptionId).firstOrNull;
+      if (left is num && sub != null) sub.entriesLeft = left.toInt();
+      store.undoVisit(v);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
   /// Loads everything. A second call while one is running waits for that one.
   Future<void> pull() => _running ??= _pull().whenComplete(() => _running = null);
 
@@ -557,6 +610,16 @@ class GymSync extends ChangeNotifier {
         if (!_missing(e)) rethrow;
       }
 
+      // Visits of the last 60 days (today's list, the weekly limit, the member's
+      // history). A server without visits yet (404) leaves the ones on this device.
+      List<Visit>? visits;
+      try {
+        final since = today.subtract(const Duration(days: 60));
+        visits = mapVisits(await get('/gym/visits', {'from': '${since.year}-${two(since.month)}-${two(since.day)}'}));
+      } on AuraApiException catch (e) {
+        if (!_missing(e)) rethrow;
+      }
+
       // Signed out, or another user or business signed in, while this was loading:
       // the answer belongs to nobody on the screen now.
       final nowWs = auth.workspace;
@@ -573,6 +636,7 @@ class GymSync extends ChangeNotifier {
         charges: [...memberships.charges, ...invoiceCharges(mapDashboard(dashboard), memberships.subscriptions)],
         items: items,
         receipts: receipts,
+        visits: visits,
       );
     } on AuraApiException catch (e) {
       _error = e;

@@ -42,17 +42,16 @@ void main() {
   testWidgets('debts: the server list, same total as the home screen', (t) async {
     final s = await synced(t);
     final d = debtsReport(s, Period.month);
-    expect(kpi(d, 'Open debt'), money(299.1));
-    // Failed charge of 1 Nov = 10 days, unpaid invoice of 5 Nov = 6 days.
-    expect(kpi(d, 'Up to 7 days'), money(120));
+    expect(kpi(d, 'Open debt'), money(179.1));
+    // Failed charge of 1 Nov = 10 days. The unpaid membership document is not a debt to collect.
+    expect(kpi(d, 'Up to 7 days'), money(0));
     expect(kpi(d, '8–30 days'), money(179.1));
     expect(kpi(d, 'Over 30'), money(0));
     final rows = d.sections.single.rows;
-    expect(rows.map((r) => r.subtitle), ['Card failed · due 01/11/2026', 'Invoice TIR-1001 · due 05/11/2026']);
+    expect(rows.map((r) => r.subtitle), ['Card failed · due 01/11/2026']);
     expect(rows.first.chargeId, 'failed-3', reason: 'a failed charge can be collected from the report');
-    expect(rows.last.chargeId, 'sale-500', reason: 'an unpaid membership invoice can be collected too');
     // The hub card shows the same number.
-    expect(allReports.firstWhere((r) => r.id == 'debts').headline!(s), money(299.1));
+    expect(allReports.firstWhere((r) => r.id == 'debts').headline!(s), money(179.1));
   });
 
   testWidgets('active: running memberships, members counted once (as the home screen)', (t) async {
@@ -113,9 +112,9 @@ void main() {
     final d = summaryReport(s, Period.month);
     expect(kpi(d, 'Revenue'), money(221));
     expect(kpi(d, 'Active members'), '2');
-    expect(kpi(d, 'Open debt'), money(299.1));
-    // Collected 199 (membership payment) of 199 + 299.10 open in the period.
-    expect(kpi(d, 'Collection rate'), '40%');
+    expect(kpi(d, 'Open debt'), money(179.1));
+    // Collected 199 (membership payment) of 199 + 179.10 open in the period.
+    expect(kpi(d, 'Collection rate'), '53%');
     expect(d.kpis.any((k) => k.label == 'Link conversion'), isFalse);
   });
 
@@ -178,7 +177,13 @@ void main() {
     });
     final s = GymStore(seed: false, clock: () => today)
       ..applyServerData(
-          customers: [], plans: [], subscriptions: [], charges: [], items: [], receipts: docs, dashboardJson: dashboard);
+          customers: [],
+          plans: [],
+          subscriptions: [],
+          charges: [],
+          items: [],
+          receipts: docs,
+          dashboardJson: dashboard);
     final d = accountantReport(s, Period.month);
 
     expect(kpi(d, 'Sales incl. VAT'), money(1180 + 118 + 7080 + 7080));
@@ -189,13 +194,21 @@ void main() {
     final checks = d.sections.firstWhere((x) => x.title == 'Checks before filing').rows;
     expect(checks.map((r) => r.title), contains('Tax Invoice TI-5'));
     final journal = d.sections.firstWhere((x) => x.title == 'Document journal').rows;
-    expect(journal.map((r) => r.title).toList(),
-        ['Tax Invoice TI-1', 'Tax Invoice/Receipt TIN-2', 'Tax Invoice Credit TIC-3', 'Receipt R-4', 'Tax Invoice TI-5', 'Tax Invoice TI-6']);
+    expect(journal.map((r) => r.title).toList(), [
+      'Tax Invoice TI-1',
+      'Tax Invoice/Receipt TIN-2',
+      'Tax Invoice Credit TIC-3',
+      'Receipt R-4',
+      'Tax Invoice TI-5',
+      'Tax Invoice TI-6'
+    ]);
     expect(journal[1].tag, 'Cancelled');
     expect(journal[0].subtitle, contains('VAT 180'), reason: 'control: a tax invoice shows its VAT');
     expect(journal[3].subtitle, isNot(contains('VAT')), reason: 'a receipt carries no VAT');
     expect(journal[5].subtitle, contains('AL-1'));
-    final byMethod = {for (final r in d.sections.firstWhere((x) => x.title == 'Receipts by payment method').rows) r.title: r.value};
+    final byMethod = {
+      for (final r in d.sections.firstWhere((x) => x.title == 'Receipts by payment method').rows) r.title: r.value
+    };
     expect(byMethod, {'Card': money(118), 'Cash': money(1180 - 59)});
   });
 }

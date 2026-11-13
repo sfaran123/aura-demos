@@ -474,7 +474,8 @@ class Charge {
     this.attempts = 0,
     this.reminders = 0,
     this.serverRef,
-  });
+    List<(DateTime, String)>? tries,
+  }) : tries = tries ?? [];
 
   final String id;
   final String subscriptionId;
@@ -486,6 +487,19 @@ class Charge {
   /// From the AURA server: a failed month's key ("2026-10|12"), or the id of an
   /// unpaid membership invoice. Null for charges made in the app.
   final String? serverRef;
+
+  /// A failed month from the AURA server: every try of the month, oldest first
+  /// (when, and the card company's answer). One row in "to collect" stands for
+  /// the whole month, however many times the server tried.
+  final List<(DateTime, String)> tries;
+
+  /// The month a failed charge is for, "MM/yyyy": from the server's month key
+  /// ("2026-10|12"), else from the date.
+  String get monthLabel {
+    final m = RegExp(r'^(\d{4})-(\d{2})').firstMatch(serverRef ?? '');
+    return m != null ? '${m[2]}/${m[1]}' : '${dueDate.month.toString().padLeft(2, '0')}/${dueDate.year}';
+  }
+
   ChargeStatus status;
   PayMethod? paidWith;
   DateTime? paidAt;
@@ -514,6 +528,10 @@ class Charge {
         'attempts': attempts,
         'reminders': reminders,
         if (serverRef != null) 'serverRef': serverRef,
+        if (tries.isNotEmpty)
+          'tries': [
+            for (final x in tries) {'d': x.$1.toIso8601String(), 'm': x.$2}
+          ],
       };
 
   factory Charge.fromJson(Map<String, dynamic> j) => Charge(
@@ -529,6 +547,9 @@ class Charge {
         attempts: j['attempts'] ?? 0,
         reminders: j['reminders'] ?? 0,
         serverRef: j['serverRef'],
+        tries: [
+          for (final x in (j['tries'] as List? ?? const [])) (DateTime.parse('${(x as Map)['d']}'), '${x['m'] ?? ''}')
+        ],
       );
 }
 

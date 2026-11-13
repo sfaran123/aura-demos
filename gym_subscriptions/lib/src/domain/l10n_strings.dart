@@ -65,7 +65,10 @@ const Map<String, (String, String)> strings = {
   'ב-10 לחודש': ('في 10 من الشهر', 'On the 10th'),
   'חשבונית מס קבלה': ('فاتورة ضريبية إيصال', 'Tax invoice-receipt'),
   'קבלה (עוסק פטור)': ('إيصال (مرخّص معفى)', 'Receipt (exempt dealer)'),
-  'לפי סוג העסק בהגדרות המערכת של AURA': ('حسب نوع العمل في إعدادات نظام AURA', 'By the business type in the AURA system settings'),
+  'לפי סוג העסק בהגדרות המערכת של AURA': (
+    'حسب نوع العمل في إعدادات نظام AURA',
+    'By the business type in the AURA system settings'
+  ),
   'מייל': ('بريد إلكتروني', 'Email'),
   'בקבוק מים': ('قنينة ماء', 'Water bottle'),
   'שייק חלבון': ('شيك بروتين', 'Protein shake'),
@@ -1602,10 +1605,19 @@ const Map<String, (String, String)> strings = {
   'איך מחזירים את הכסף?': ('كيف يُعاد المال؟', 'How is the money returned?'),
   'החזר לכרטיס': ('إعادة إلى البطاقة', 'Refund to card'),
   'סיבה': ('السبب', 'Reason'),
-  'לדוגמה: חיוב כפול, ביטול מנוי, טעות במחיר': ('مثلًا: خصم مكرر، إلغاء اشتراك، خطأ في السعر', 'e.g. double charge, cancelled membership, wrong price'),
+  'לדוגמה: חיוב כפול, ביטול מנוי, טעות במחיר': (
+    'مثلًا: خصم مكرر، إلغاء اشتراك، خطأ في السعر',
+    'e.g. double charge, cancelled membership, wrong price'
+  ),
   'לבטל גם את המנוי': ('إلغاء الاشتراك أيضًا', 'Also cancel the membership'),
-  'המנוי מסתיים היום והחיובים הפתוחים נמחקים': ('ينتهي الاشتراك اليوم وتُحذف الخصومات المفتوحة', 'The membership ends today and open charges are removed'),
-  'תופק חשבונית זיכוי עם מספר חדש. המסמך המקורי לא נמחק ולא משתנה, כנדרש בניהול ספרים.': ('سيصدر إشعار دائن برقم جديد. المستند الأصلي لا يُحذف ولا يتغير، كما يتطلب مسك الدفاتر.', 'A credit note is issued with a new number. The original document is not deleted or changed, as bookkeeping rules require.'),
+  'המנוי מסתיים היום והחיובים הפתוחים נמחקים': (
+    'ينتهي الاشتراك اليوم وتُحذف الخصومات المفتوحة',
+    'The membership ends today and open charges are removed'
+  ),
+  'תופק חשבונית זיכוי עם מספר חדש. המסמך המקורי לא נמחק ולא משתנה, כנדרש בניהול ספרים.': (
+    'سيصدر إشعار دائن برقم جديد. المستند الأصلي لا يُحذف ولا يتغير، كما يتطلب مسك الدفاتر.',
+    'A credit note is issued with a new number. The original document is not deleted or changed, as bookkeeping rules require.'
+  ),
   'הפקת זיכוי · {0}': ('إصدار إشعار دائن · {0}', 'Issue credit · {0}'),
   'הופקה {0} {1}': ('صدر {0} {1}', 'Issued {0} {1}'),
   'היסטוריית תשלומים': ('سجل الدفعات', 'Payment history'),
@@ -1615,21 +1627,36 @@ const Map<String, (String, String)> strings = {
   'זוכה': ('مُلغى جزئيًا', 'Credited'),
   'ועוד {0} במסך המכירות': ('و{0} أخرى في شاشة المبيعات', 'and {0} more on the sales screen'),
   'המייל של רואה החשבון': ('بريد المحاسب', "Accountant's email"),
-  'הדוח הועתק. בגרסה המחוברת הוא יישלח ל-{0} כקובץ אקסל': ('نُسخ التقرير. في النسخة المتصلة سيُرسل إلى {0} كملف إكسل', "Report copied. In the connected version it's emailed to {0} as an Excel file"),
+  'הדוח הועתק. בגרסה המחוברת הוא יישלח ל-{0} כקובץ אקסל': (
+    'نُسخ التقرير. في النسخة المتصلة سيُرسل إلى {0} كملف إكسل',
+    "Report copied. In the connected version it's emailed to {0} as an Excel file"
+  ),
   'שליחה לרואה החשבון': ('إرسال إلى المحاسب', 'Send to the accountant'),
   'שליחה ל-{0}': ('إرسال إلى {0}', 'Send to {0}'),
   'הנהלת חשבונות': ('المحاسبة', 'Accounting'),
   'זיכויים ודוחות לרואה החשבון.': ('الإشعارات الدائنة وتقارير المحاسب.', 'Credit notes and accountant reports.'),
   'לא הוגדר': ('غير محدد', 'Not set'),
   'הצוות יכול להפיק זיכוי': ('يمكن للطاقم إصدار إشعار دائن', 'Staff can issue credits'),
-  'כבוי = רק בעל העסק (בחיבור למערכת, לפי הרשאות)': ('مطفأ = صاحب المصلحة فقط (عند الربط بالنظام، حسب الصلاحيات)', 'Off = owner only (with the system connected, by permissions)'),
+  'כבוי = רק בעל העסק (בחיבור למערכת, לפי הרשאות)': (
+    'مطفأ = صاحب المصلحة فقط (عند الربط بالنظام، حسب الصلاحيات)',
+    'Off = owner only (with the system connected, by permissions)'
+  ),
   'נתונים': ('البيانات', 'Data'),
   'הנתונים נשמרים במכשיר': ('البيانات محفوظة في الجهاز', 'Data is saved on the device'),
-  'כל פעולה נשמרת מיד, גם כשסוגרים את האפליקציה. בחיבור למערכת AURA הנתונים יישמרו בשרת.': ('كل إجراء يُحفظ فورًا، حتى عند إغلاق التطبيق. عند الربط بنظام AURA تُحفظ البيانات في الخادم.', 'Every action is saved right away, even when the app closes. Connected to AURA, data is kept on the server.'),
+  'כל פעולה נשמרת מיד, גם כשסוגרים את האפליקציה. בחיבור למערכת AURA הנתונים יישמרו בשרת.': (
+    'كل إجراء يُحفظ فورًا، حتى عند إغلاق التطبيق. عند الربط بنظام AURA تُحفظ البيانات في الخادم.',
+    'Every action is saved right away, even when the app closes. Connected to AURA, data is kept on the server.'
+  ),
   'איפוס לנתוני הדגמה': ('إعادة إلى بيانات العرض', 'Reset to demo data'),
-  'מוחק את מה שנעשה במכשיר ומחזיר את נתוני ההדגמה': ('يحذف ما تم في الجهاز ويعيد بيانات العرض', 'Deletes what was done on this device and restores the demo data'),
+  'מוחק את מה שנעשה במכשיר ומחזיר את נתוני ההדגמה': (
+    'يحذف ما تم في الجهاز ويعيد بيانات العرض',
+    'Deletes what was done on this device and restores the demo data'
+  ),
   'לאפס את הנתונים?': ('إعادة ضبط البيانات؟', 'Reset the data?'),
-  'כל המנויים, התשלומים וההגדרות שנעשו במכשיר יימחקו ויוחלפו בנתוני ההדגמה. אי אפשר לבטל.': ('كل الاشتراكات والدفعات والإعدادات التي تمت في الجهاز ستُحذف وتُستبدل ببيانات العرض. لا يمكن التراجع.', "All memberships, payments and settings made on this device will be deleted and replaced with demo data. This can't be undone."),
+  'כל המנויים, התשלומים וההגדרות שנעשו במכשיר יימחקו ויוחלפו בנתוני ההדגמה. אי אפשר לבטל.': (
+    'كل الاشتراكات والدفعات والإعدادات التي تمت في الجهاز ستُحذف وتُستبدل ببيانات العرض. لا يمكن التراجع.',
+    "All memberships, payments and settings made on this device will be deleted and replaced with demo data. This can't be undone."
+  ),
   'איפוס': ('إعادة ضبط', 'Reset'),
   'הנתונים אופסו לנתוני ההדגמה': ('أُعيدت البيانات إلى بيانات العرض', 'Data reset to the demo data'),
   'מחזור כולל מע״מ': ('المبيعات شاملة الضريبة', 'Sales incl. VAT'),
@@ -1653,68 +1680,162 @@ const Map<String, (String, String)> strings = {
   'חסרים: {0}': ('ناقص: {0}', 'Missing: {0}'),
   'תקין': ('سليم', 'OK'),
   'לבדוק': ('للفحص', 'Check'),
-  'חשבוניות מעל {0} לפני מע״מ בלי מספר הקצאה': ('فواتير فوق {0} قبل الضريبة بلا رقم تخصيص', 'Invoices over {0} before VAT without an allocation number'),
-  'נדרש מספר הקצאה אם הלקוח הוא עסק (חשבוניות ישראל)': ('يلزم رقم تخصيص إن كان الزبون مصلحة (فواتير إسرائيل)', 'An allocation number is needed if the customer is a business (Israel Invoice)'),
-  'תקבולים בהעברה או בלינק שעוד לא אושרו': ('مقبوضات بتحويل أو رابط لم تُؤكد بعد', 'Transfer or link receipts not confirmed yet'),
+  'חשבוניות מעל {0} לפני מע״מ בלי מספר הקצאה': (
+    'فواتير فوق {0} قبل الضريبة بلا رقم تخصيص',
+    'Invoices over {0} before VAT without an allocation number'
+  ),
+  'נדרש מספר הקצאה אם הלקוח הוא עסק (חשבוניות ישראל)': (
+    'يلزم رقم تخصيص إن كان الزبون مصلحة (فواتير إسرائيل)',
+    'An allocation number is needed if the customer is a business (Israel Invoice)'
+  ),
+  'תקבולים בהעברה או בלינק שעוד לא אושרו': (
+    'مقبوضات بتحويل أو رابط لم تُؤكد بعد',
+    'Transfer or link receipts not confirmed yet'
+  ),
   'זיכויים בלי סיבה': ('إشعارات دائنة بلا سبب', 'Credits without a reason'),
   'יומן מסמכים': ('سجل المستندات', 'Document journal'),
   'מע״מ {0}': ('ضريبة {0}', 'VAT {0}'),
   'שיקים שהתקבלו': ('الشيكات المستلمة', 'Cheques received'),
   'מסמך {0}': ('مستند {0}', 'Document {0}'),
-  'הדוח מוכן להעברה לרואה החשבון (העתקה לאקסל). קובץ במבנה אחיד לרשות המסים ובקשת מספרי הקצאה מופקים בצד השרת, אחרי החיבור למערכת.': ('التقرير جاهز للإرسال إلى المحاسب (نسخ إلى إكسل). ملف الهيكل الموحد لسلطة الضرائب وطلب أرقام التخصيص يُنتَجان في الخادم بعد الربط بالنظام.', "The report is ready for the accountant (copy to Excel). The tax authority's unified-format file and allocation-number requests are produced on the server once the system is connected."),
+  'הדוח מוכן להעברה לרואה החשבון (העתקה לאקסל). קובץ במבנה אחיד לרשות המסים ובקשת מספרי הקצאה מופקים בצד השרת, אחרי החיבור למערכת.':
+      (
+    'التقرير جاهز للإرسال إلى المحاسب (نسخ إلى إكسل). ملف الهيكل الموحد لسلطة الضرائب وطلب أرقام التخصيص يُنتَجان في الخادم بعد الربط بالنظام.',
+    "The report is ready for the accountant (copy to Excel). The tax authority's unified-format file and allocation-number requests are produced on the server once the system is connected."
+  ),
   'נכנס': ('دخل', 'Came in'),
   'מזומן בקופה': ('النقد في الصندوق', 'Cash in the drawer'),
   'לספור ולהשוות': ('عُدّ وقارن', 'Count and compare'),
   'העברות': ('التحويلات', 'Transfers'),
   'מסמכים': ('المستندات', 'Documents'),
-  'בסוף היום סופרים את המזומן בקופה ומשווים ל"מזומן בקופה". הפרש צריך הסבר.': ('في نهاية اليوم يُعدّ النقد في الصندوق ويُقارن بـ"النقد في الصندوق". أي فرق يحتاج تفسيرًا.', 'At the end of the day, count the cash in the drawer and compare it with "Cash in the drawer". Any difference needs an explanation.'),
+  'בסוף היום סופרים את המזומן בקופה ומשווים ל"מזומן בקופה". הפרש צריך הסבר.': (
+    'في نهاية اليوم يُعدّ النقد في الصندوق ويُقارن بـ"النقد في الصندوق". أي فرق يحتاج تفسيرًا.',
+    'At the end of the day, count the cash in the drawer and compare it with "Cash in the drawer". Any difference needs an explanation.'
+  ),
   'חבילה לרואה חשבון': ('حزمة للمحاسب', 'Accountant package'),
-  'מע״מ, יומן מסמכים, זיכויים, שיקים ובדיקות לפני הגשה': ('الضريبة، سجل المستندات، الإشعارات الدائنة، الشيكات وفحوص قبل التقديم', 'VAT, document journal, credits, cheques and checks before filing'),
+  'מע״מ, יומן מסמכים, זיכויים, שיקים ובדיקות לפני הגשה': (
+    'الضريبة، سجل المستندات، الإشعارات الدائنة، الشيكات وفحوص قبل التقديم',
+    'VAT, document journal, credits, cheques and checks before filing'
+  ),
   'סגירת קופה יומית': ('إغلاق الصندوق اليومي', 'Daily cash close'),
-  'מה נכנס היום ובאיזה אמצעי, לספירת הקופה': ('ماذا دخل اليوم وبأي طريقة، لعدّ الصندوق', 'What came in today and how, to count the drawer'),
+  'מה נכנס היום ובאיזה אמצעי, לספירת הקופה': (
+    'ماذا دخل اليوم وبأي طريقة، لعدّ الصندوق',
+    'What came in today and how, to count the drawer'
+  ),
   'זיכוי למסמך {0} · {1}': ('إشعار دائن للمستند {0} · {1}', 'Credit for document {0} · {1}'),
   'מבטלים עסקה או מחזירים כסף': ('إلغاء صفقة أو إعادة مال', 'Cancel a sale or refund money'),
-  'חיוב כפול, טעות במחיר, או לקוח שמבטל ומקבל החזר.': ('خصم مكرر، خطأ في السعر، أو زبون يلغي ويسترد.', 'Double charge, wrong price, or a customer who cancels and gets a refund.'),
-  'פותחים את החשבונית: מ"מכירות וחשבוניות", מ"תשלומים אחרונים" או מכרטיס הלקוח.': ('افتح الفاتورة: من "المبيعات والفواتير"، من "دفعات أخيرة" أو من بطاقة الزبون.', 'Open the invoice: from "Sales and invoices", "Recent payments" or the customer card.'),
+  'חיוב כפול, טעות במחיר, או לקוח שמבטל ומקבל החזר.': (
+    'خصم مكرر، خطأ في السعر، أو زبون يلغي ويسترد.',
+    'Double charge, wrong price, or a customer who cancels and gets a refund.'
+  ),
+  'פותחים את החשבונית: מ"מכירות וחשבוניות", מ"תשלומים אחרונים" או מכרטיס הלקוח.': (
+    'افتح الفاتورة: من "المبيعات والفواتير"، من "دفعات أخيرة" أو من بطاقة الزبون.',
+    'Open the invoice: from "Sales and invoices", "Recent payments" or the customer card.'
+  ),
   'לוחצים "זיכוי / ביטול עסקה".': ('اضغط "إشعار دائن / إلغاء صفقة".', 'Tap "Credit / cancel sale".'),
-  'בוחרים סכום (הכל או חלק), איך מחזירים את הכסף, וכותבים סיבה.': ('اختر المبلغ (الكل أو جزء)، كيف يُعاد المال، واكتب السبب.', 'Choose the amount (all or part), how the money goes back, and write the reason.'),
-  'אם זה מנוי, אפשר לבטל אותו באותה פעולה.': ('إن كان اشتراكًا، يمكن إلغاؤه في نفس الإجراء.', "If it's a membership, you can cancel it in the same step."),
-  'מופקת חשבונית זיכוי עם מספר חדש. המסמך המקורי נשאר כמו שהוא.': ('يصدر إشعار دائن برقم جديد. المستند الأصلي يبقى كما هو.', 'A credit note is issued with a new number. The original stays as it is.'),
-  'זיכוי על תשלום חודשי מחזיר את החודש לרשימת "לגבייה".': ('الإشعار الدائن على دفعة شهرية يعيد الشهر إلى قائمة "للتحصيل".', 'A credit on a monthly payment puts the month back in "To collect".'),
+  'בוחרים סכום (הכל או חלק), איך מחזירים את הכסף, וכותבים סיבה.': (
+    'اختر المبلغ (الكل أو جزء)، كيف يُعاد المال، واكتب السبب.',
+    'Choose the amount (all or part), how the money goes back, and write the reason.'
+  ),
+  'אם זה מנוי, אפשר לבטל אותו באותה פעולה.': (
+    'إن كان اشتراكًا، يمكن إلغاؤه في نفس الإجراء.',
+    "If it's a membership, you can cancel it in the same step."
+  ),
+  'מופקת חשבונית זיכוי עם מספר חדש. המסמך המקורי נשאר כמו שהוא.': (
+    'يصدر إشعار دائن برقم جديد. المستند الأصلي يبقى كما هو.',
+    'A credit note is issued with a new number. The original stays as it is.'
+  ),
+  'זיכוי על תשלום חודשי מחזיר את החודש לרשימת "לגבייה".': (
+    'الإشعار الدائن على دفعة شهرية يعيد الشهر إلى قائمة "للتحصيل".',
+    'A credit on a monthly payment puts the month back in "To collect".'
+  ),
   'רואים את כל התשלומים של לקוח': ('رؤية كل دفعات الزبون', "See all of a customer's payments"),
-  'לקוח שואל כמה שילם, או שיש ויכוח על תשלום.': ('زبون يسأل كم دفع، أو هناك خلاف على دفعة.', 'A customer asks how much they paid, or a payment is disputed.'),
-  'למטה, ב"היסטוריית תשלומים", רואים כמה שילם בסך הכל, כמה פתוח, וכל המסמכים.': ('في الأسفل، في "سجل الدفعات"، ترى كم دفع إجمالًا، كم مفتوح، وكل المستندات.', 'At the bottom, under "Payment history", see the total paid, what’s open, and every document.'),
-  'לוחצים על מסמך כדי לראות אותו, לשלוח אותו או לזכות אותו.': ('اضغط على مستند لرؤيته أو إرساله أو إصدار إشعار دائن له.', 'Tap a document to view, send or credit it.'),
+  'לקוח שואל כמה שילם, או שיש ויכוח על תשלום.': (
+    'زبون يسأل كم دفع، أو هناك خلاف على دفعة.',
+    'A customer asks how much they paid, or a payment is disputed.'
+  ),
+  'למטה, ב"היסטוריית תשלומים", רואים כמה שילם בסך הכל, כמה פתוח, וכל המסמכים.': (
+    'في الأسفل، في "سجل الدفعات"، ترى كم دفع إجمالًا، كم مفتوح، وكل المستندات.',
+    'At the bottom, under "Payment history", see the total paid, what’s open, and every document.'
+  ),
+  'לוחצים על מסמך כדי לראות אותו, לשלוח אותו או לזכות אותו.': (
+    'اضغط على مستند لرؤيته أو إرساله أو إصدار إشعار دائن له.',
+    'Tap a document to view, send or credit it.'
+  ),
   'שולחים חומר לרואה החשבון': ('إرسال المواد إلى المحاسب', 'Send material to the accountant'),
   'פעם בחודש, לדיווח המע״מ.': ('مرة في الشهر، لتقرير الضريبة.', 'Once a month, for the VAT return.'),
-  'בדוחות לוחצים "חבילה לרואה חשבון" ובוחרים את החודש הקודם.': ('في التقارير اضغط "حزمة للمحاسب" واختر الشهر الماضي.', 'In Reports tap "Accountant package" and pick last month.'),
-  'בודקים את "בדיקות לפני הגשה": מספור רציף, מספרי הקצאה ותקבולים ממתינים.': ('راجع "فحوص قبل التقديم": ترقيم متسلسل، أرقام التخصيص ومقبوضات معلّقة.', 'Review "Checks before filing": sequential numbering, allocation numbers and pending receipts.'),
-  'לוחצים "שליחה לרואה החשבון". בפעם הראשונה רושמים את המייל שלו.': ('اضغط "إرسال إلى المحاسب". في المرة الأولى اكتب بريده.', 'Tap "Send to the accountant". The first time, enter their email.'),
-  'בגרסת ההדגמה הדוח מועתק כקובץ לאקסל. בחיבור למערכת הוא יישלח במייל.': ('في نسخة العرض يُنسخ التقرير كملف لإكسل. عند الربط بالنظام يُرسل بالبريد.', "In the demo the report is copied for Excel. With the system connected, it's emailed."),
+  'בדוחות לוחצים "חבילה לרואה חשבון" ובוחרים את החודש הקודם.': (
+    'في التقارير اضغط "حزمة للمحاسب" واختر الشهر الماضي.',
+    'In Reports tap "Accountant package" and pick last month.'
+  ),
+  'בודקים את "בדיקות לפני הגשה": מספור רציף, מספרי הקצאה ותקבולים ממתינים.': (
+    'راجع "فحوص قبل التقديم": ترقيم متسلسل، أرقام التخصيص ومقبوضات معلّقة.',
+    'Review "Checks before filing": sequential numbering, allocation numbers and pending receipts.'
+  ),
+  'לוחצים "שליחה לרואה החשבון". בפעם הראשונה רושמים את המייל שלו.': (
+    'اضغط "إرسال إلى المحاسب". في المرة الأولى اكتب بريده.',
+    'Tap "Send to the accountant". The first time, enter their email.'
+  ),
+  'בגרסת ההדגמה הדוח מועתק כקובץ לאקסל. בחיבור למערכת הוא יישלח במייל.': (
+    'في نسخة العرض يُنسخ التقرير كملف لإكسل. عند الربط بالنظام يُرسل بالبريد.',
+    "In the demo the report is copied for Excel. With the system connected, it's emailed."
+  ),
   'סוגרים קופה בסוף היום': ('إغلاق الصندوق في نهاية اليوم', 'Close the drawer at the end of the day'),
   'לפני שהולכים הביתה.': ('قبل المغادرة.', 'Before going home.'),
-  'בדוחות לוחצים "סגירת קופה יומית".': ('في التقارير اضغط "إغلاق الصندوق اليومي".', 'In Reports tap "Daily cash close".'),
-  'סופרים את המזומן בקופה ומשווים ל"מזומן בקופה".': ('عُدّ النقد في الصندوق وقارنه بـ"النقد في الصندوق".', 'Count the cash and compare it with "Cash in the drawer".'),
-  'אם יש הפרש, בודקים ברשימת המסמכים של היום.': ('إن وُجد فرق، افحص قائمة مستندات اليوم.', "If there's a difference, check today's document list."),
-  'כל מה שרואה החשבון צריך לדיווח החודשי, במקום אחד, בלי לאסוף קבלות.': ('كل ما يحتاجه المحاسب للتقرير الشهري، في مكان واحد، دون جمع الإيصالات.', 'Everything the accountant needs for the monthly return, in one place, without collecting receipts.'),
-  'סיכום מע״מ: עסקאות, זיכויים ומע״מ לתשלום': ('ملخص الضريبة: صفقات، إشعارات دائنة وضريبة للدفع', 'VAT summary: sales, credits and VAT to pay'),
-  'יומן מסמכים עם בדיקת מספור רציף': ('سجل المستندات مع فحص الترقيم المتسلسل', 'Document journal with a sequential-numbering check'),
-  'תקבולים לפי אמצעי תשלום ושיקים שהתקבלו': ('المقبوضات حسب طريقة الدفع والشيكات المستلمة', 'Receipts by payment method and cheques received'),
-  'התראה על חשבוניות שצריכות מספר הקצאה': ('تنبيه على فواتير تحتاج رقم تخصيص', 'Alerts for invoices that need an allocation number'),
+  'בדוחות לוחצים "סגירת קופה יומית".': (
+    'في التقارير اضغط "إغلاق الصندوق اليومي".',
+    'In Reports tap "Daily cash close".'
+  ),
+  'סופרים את המזומן בקופה ומשווים ל"מזומן בקופה".': (
+    'عُدّ النقد في الصندوق وقارنه بـ"النقد في الصندوق".',
+    'Count the cash and compare it with "Cash in the drawer".'
+  ),
+  'אם יש הפרש, בודקים ברשימת המסמכים של היום.': (
+    'إن وُجد فرق، افحص قائمة مستندات اليوم.',
+    "If there's a difference, check today's document list."
+  ),
+  'כל מה שרואה החשבון צריך לדיווח החודשי, במקום אחד, בלי לאסוף קבלות.': (
+    'كل ما يحتاجه المحاسب للتقرير الشهري، في مكان واحد، دون جمع الإيصالات.',
+    'Everything the accountant needs for the monthly return, in one place, without collecting receipts.'
+  ),
+  'סיכום מע״מ: עסקאות, זיכויים ומע״מ לתשלום': (
+    'ملخص الضريبة: صفقات، إشعارات دائنة وضريبة للدفع',
+    'VAT summary: sales, credits and VAT to pay'
+  ),
+  'יומן מסמכים עם בדיקת מספור רציף': (
+    'سجل المستندات مع فحص الترقيم المتسلسل',
+    'Document journal with a sequential-numbering check'
+  ),
+  'תקבולים לפי אמצעי תשלום ושיקים שהתקבלו': (
+    'المقبوضات حسب طريقة الدفع والشيكات المستلمة',
+    'Receipts by payment method and cheques received'
+  ),
+  'התראה על חשבוניות שצריכות מספר הקצאה': (
+    'تنبيه على فواتير تحتاج رقم تخصيص',
+    'Alerts for invoices that need an allocation number'
+  ),
   'שליחה לרואה החשבון בלחיצה': ('إرسال إلى المحاسب بضغطة', 'Send to the accountant in one tap'),
-  'בסוף כל יום יודעים כמה מזומן צריך להיות בקופה, ומגלים טעויות באותו יום.': ('في نهاية كل يوم تعرف كم نقدًا يجب أن يكون في الصندوق، وتكتشف الأخطاء في نفس اليوم.', 'At the end of each day you know how much cash should be in the drawer, and catch mistakes the same day.'),
+  'בסוף כל יום יודעים כמה מזומן צריך להיות בקופה, ומגלים טעויות באותו יום.': (
+    'في نهاية كل يوم تعرف كم نقدًا يجب أن يكون في الصندوق، وتكتشف الأخطاء في نفس اليوم.',
+    'At the end of each day you know how much cash should be in the drawer, and catch mistakes the same day.'
+  ),
   'סכום לכל אמצעי תשלום': ('مجموع لكل طريقة دفع', 'Total for each payment method'),
   'כל המסמכים של היום': ('كل مستندات اليوم', "All of today's documents"),
   'זיכויים שבוצעו': ('الإشعارات الدائنة التي تمت', 'Credits issued'),
   // Sign-in (domain + login screens)
   'חיבור לעסק': ('ربط المصلحة', 'Connect your business'),
-  'הזינו את הדומיין ואת שם החברה שקיבלתם מ-AURA': ('أدخلوا النطاق واسم الشركة اللذين حصلتم عليهما من AURA', 'Enter the domain and company name you got from AURA'),
+  'הזינו את הדומיין ואת שם החברה שקיבלתם מ-AURA': (
+    'أدخلوا النطاق واسم الشركة اللذين حصلتم عليهما من AURA',
+    'Enter the domain and company name you got from AURA'
+  ),
   'דומיין': ('النطاق', 'Domain'),
   'כתובת השרת: {0}': ('عنوان الخادم: {0}', 'Server address: {0}'),
   'שם החברה': ('اسم الشركة', 'Company name'),
   'המשך': ('متابعة', 'Continue'),
   'ברוכים הבאים': ('أهلًا وسهلًا', 'Welcome back'),
-  'התחברו עם שם המשתמש והסיסמה של AURA': ('سجّلوا الدخول باسم المستخدم وكلمة المرور الخاصة بـ AURA', 'Sign in with your AURA username and password'),
+  'התחברו עם שם המשתמש והסיסמה של AURA': (
+    'سجّلوا الدخول باسم المستخدم وكلمة المرور الخاصة بـ AURA',
+    'Sign in with your AURA username and password'
+  ),
   'שם משתמש': ('اسم المستخدم', 'Username'),
   'סיסמה': ('كلمة المرور', 'Password'),
   'כניסה': ('دخول', 'Sign in'),
@@ -1724,19 +1845,37 @@ const Map<String, (String, String)> strings = {
   'התחברות': ('تسجيل الدخول', 'Sign in'),
   'שדה חובה': ('حقل إلزامي', 'Required'),
   'בלי @ – שם בלבד, לא אימייל': ('بدون @ – الاسم فقط، ليس بريدًا إلكترونيًا', 'No @ – a name, not an email'),
-  'מנויים, תשלומים וגבייה – במקום אחד': ('اشتراكات، دفعات وتحصيل – في مكان واحد', 'Memberships, payments and collection – in one place'),
+  'מנויים, תשלומים וגבייה – במקום אחד': (
+    'اشتراكات، دفعات وتحصيل – في مكان واحد',
+    'Memberships, payments and collection – in one place'
+  ),
   'משהו השתבש. נסו שוב.': ('حدث خطأ ما. حاولوا مرة أخرى.', 'Something went wrong. Please try again.'),
-  'בגרסה הזו חסר מפתח האימות (AURA_VERIFY_KEY). פנו לצוות AURA.': ('هذه النسخة ينقصها مفتاح التحقق (AURA_VERIFY_KEY). توجّهوا إلى فريق AURA.', 'This build has no verification key (AURA_VERIFY_KEY). Contact the AURA team.'),
+  'בגרסה הזו חסר מפתח האימות (AURA_VERIFY_KEY). פנו לצוות AURA.': (
+    'هذه النسخة ينقصها مفتاح التحقق (AURA_VERIFY_KEY). توجّهوا إلى فريق AURA.',
+    'This build has no verification key (AURA_VERIFY_KEY). Contact the AURA team.'
+  ),
   'לא נמצא עסק בשם "{0}" ב-{1}': ('لم يتم العثور على مصلحة باسم "{0}" في {1}', 'No business named "{0}" on {1}'),
   'שם משתמש או סיסמה שגויים': ('اسم المستخدم أو كلمة المرور غير صحيحة', 'Wrong username or password'),
-  'אין חיבור ל-{0}. בדקו את האינטרנט ואת שם הדומיין.': ('لا يوجد اتصال بـ {0}. افحصوا الإنترنت واسم النطاق.', "Can't reach {0}. Check the internet connection and the domain."),
-  'השרת לא ענה בזמן. נסו שוב.': ('الخادم لم يردّ في الوقت المحدد. حاولوا مرة أخرى.', "The server didn't answer in time. Please try again."),
+  'אין חיבור ל-{0}. בדקו את האינטרנט ואת שם הדומיין.': (
+    'لا يوجد اتصال بـ {0}. افحصوا الإنترنت واسم النطاق.',
+    "Can't reach {0}. Check the internet connection and the domain."
+  ),
+  'השרת לא ענה בזמן. נסו שוב.': (
+    'الخادم لم يردّ في الوقت المحدد. حاولوا مرة أخرى.',
+    "The server didn't answer in time. Please try again."
+  ),
   'שגיאת שרת ({0})': ('خطأ في الخادم ({0})', 'Server error ({0})'),
   'התנתקות': ('تسجيل الخروج', 'Sign out'),
   'להתנתק?': ('تسجيل الخروج؟', 'Sign out?'),
-  'תחזרו למסך ההתחברות של {0}.': ('ستعودون إلى شاشة تسجيل الدخول الخاصة بـ {0}.', "You'll go back to the {0} sign-in screen."),
+  'תחזרו למסך ההתחברות של {0}.': (
+    'ستعودون إلى شاشة تسجيل الدخول الخاصة بـ {0}.',
+    "You'll go back to the {0} sign-in screen."
+  ),
   // Server sync
-  'החיבור פג. התחברו שוב.': ('انتهت صلاحية الاتصال. سجّلوا الدخول مرة أخرى.', 'Your session has expired. Please sign in again.'),
+  'החיבור פג. התחברו שוב.': (
+    'انتهت صلاحية الاتصال. سجّلوا الدخول مرة أخرى.',
+    'Your session has expired. Please sign in again.'
+  ),
   'אין לכם הרשאה ({0})': ('ليست لديكم صلاحية ({0})', "You don't have permission ({0})"),
   'מסנכרן עם השרת…': ('جارٍ المزامنة مع الخادم…', 'Syncing with the server…'),
   'עוד לא סונכרן': ('لم تتم المزامنة بعد', 'Not synced yet'),
@@ -1746,7 +1885,10 @@ const Map<String, (String, String)> strings = {
   'חיוב נכשל · {0} · {1}': ('فشل الخصم · {0} · {1}', 'Charge failed · {0} · {1}'),
   'חשבונית {0} לא שולמה · נותרו {1}': ('الفاتورة {0} لم تُدفع · متبقٍّ {1}', 'Invoice {0} unpaid · {1} left'),
   // Add member on the server
-  'כבר קיים לקוח עם הטלפון הזה: {0}. הוא נבחר.': ('يوجد زبون بهذا الهاتف: {0}. تم اختياره.', 'A customer with this phone already exists: {0}. They were selected.'),
+  'כבר קיים לקוח עם הטלפון הזה: {0}. הוא נבחר.': (
+    'يوجد زبون بهذا الهاتف: {0}. تم اختياره.',
+    'A customer with this phone already exists: {0}. They were selected.'
+  ),
   // Reports from the server
   'חשבונית {0}': ('الفاتورة {0}', 'Invoice {0}'),
   'עד 7 ימים': ('حتى 7 أيام', 'Up to 7 days'),
@@ -1783,8 +1925,14 @@ const Map<String, (String, String)> strings = {
   'לא כלול באפליקציה': ('غير مضمّن في التطبيق', 'Not in this app'),
   'לא הוגדר למשתמש': ('غير معرّف للمستخدم', 'Not set for this user'),
   'ברירת מחדל של Sandbox': ('الافتراضي لـ Sandbox', 'Sandbox default'),
-  'האפליקציה נבנתה בלי ה-SDK של Tap to Pay (חסרים פרטי הגישה של Dejavoo בזמן הבנייה).': ('تم بناء التطبيق بدون SDK الخاص بـ Tap to Pay (بيانات وصول Dejavoo غير موجودة وقت البناء).', 'This app was built without the Tap to Pay SDK (the Dejavoo access details were missing at build time).'),
-  'גרסה אמיתית: בדיקה תחייב את הכרטיס ב-1 ₪.': ('نسخة حقيقية: الفحص سيخصم 1 ₪ من البطاقة.', 'Live build: the test charges the card ₪1.'),
+  'האפליקציה נבנתה בלי ה-SDK של Tap to Pay (חסרים פרטי הגישה של Dejavoo בזמן הבנייה).': (
+    'تم بناء التطبيق بدون SDK الخاص بـ Tap to Pay (بيانات وصول Dejavoo غير موجودة وقت البناء).',
+    'This app was built without the Tap to Pay SDK (the Dejavoo access details were missing at build time).'
+  ),
+  'גרסה אמיתית: בדיקה תחייב את הכרטיס ב-1 ₪.': (
+    'نسخة حقيقية: الفحص سيخصم 1 ₪ من البطاقة.',
+    'Live build: the test charges the card ₪1.'
+  ),
   'רישום המכשיר': ('تسجيل الجهاز', 'Register this device'),
   'עסקת בדיקה · 1 ₪': ('عملية تجريبية · 1 ₪', 'Test sale · ₪1'),
   'המכשיר נרשם · session …{0}': ('تم تسجيل الجهاز · session …{0}', 'Device registered · session …{0}'),
@@ -1795,21 +1943,126 @@ const Map<String, (String, String)> strings = {
   'העתקת הדוח': ('نسخ التقرير', 'Copy report'),
   'הדוח {0} הועתק': ('تم نسخ التقرير {0}', 'Report {0} copied'),
   // Payments saved on the server (sales/store-v2)
-  'חייבו את הכרטיס במסוף הסליקה, ואשרו כאן רק אחרי שהעסקה אושרה.': ('اخصموا البطاقة في جهاز الدفع، وأكّدوا هنا فقط بعد الموافقة على العملية.', 'Charge the card on the payment terminal, and confirm here only after it is approved.'),
+  'חייבו את הכרטיס במסוף הסליקה, ואשרו כאן רק אחרי שהעסקה אושרה.': (
+    'اخصموا البطاقة في جهاز الدفع، وأكّدوا هنا فقط بعد الموافقة على العملية.',
+    'Charge the card on the payment terminal, and confirm here only after it is approved.'
+  ),
   ' · במסוף הסליקה': (' · في جهاز الدفع', ' · on the payment terminal'),
-  'למסלול יש דמי רישום: בחרו בהגדרות את המוצר של דמי הרישום.': ('للباقة رسوم تسجيل: اختاروا في الإعدادات منتج رسوم التسجيل.', 'This plan has a sign-up fee: choose the sign-up fee product in Settings.'),
-  'יש פריט שאינו מוצר במערכת AURA. סנכרנו ונסו שוב.': ('هناك عنصر ليس منتجًا في نظام AURA. زامنوا وحاولوا مرة أخرى.', 'An item is not an AURA product. Sync and try again.'),
-  'הסכום לתשלום השתנה ל-{0}. חזרו לשלב התשלום.': ('تغيّر المبلغ المستحق إلى {0}. ارجعوا إلى خطوة الدفع.', 'The amount due changed to {0}. Go back to the payment step.'),
-  'תשלום בלינק עדיין לא זמין כאן.': ('الدفع عبر الرابط غير متاح هنا بعد.', 'Payment by link is not available here yet.'),
-  'המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.': ('تم فتح الاشتراك في الخادم لكن الدفع لم يُحفظ. حاولوا مرة أخرى.', 'The membership was opened on the server but the payment was not saved. Try again.'),
-  'התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.': ('تم حفظ الدفع. حاولوا مرة أخرى لربطه بالاشتراك.', 'The payment was saved. Try again to link it to the membership.'),
+  'למסלול יש דמי רישום: בחרו בהגדרות את המוצר של דמי הרישום.': (
+    'للباقة رسوم تسجيل: اختاروا في الإعدادات منتج رسوم التسجيل.',
+    'This plan has a sign-up fee: choose the sign-up fee product in Settings.'
+  ),
+  'יש פריט שאינו מוצר במערכת AURA. סנכרנו ונסו שוב.': (
+    'هناك عنصر ليس منتجًا في نظام AURA. زامنوا وحاولوا مرة أخرى.',
+    'An item is not an AURA product. Sync and try again.'
+  ),
+  'הסכום לתשלום השתנה ל-{0}. חזרו לשלב התשלום.': (
+    'تغيّر المبلغ المستحق إلى {0}. ارجعوا إلى خطوة الدفع.',
+    'The amount due changed to {0}. Go back to the payment step.'
+  ),
+  'תשלום בלינק עדיין לא זמין כאן.': (
+    'الدفع عبر الرابط غير متاح هنا بعد.',
+    'Payment by link is not available here yet.'
+  ),
+  'המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.': (
+    'تم فتح الاشتراك في الخادم لكن الدفع لم يُحفظ. حاولوا مرة أخرى.',
+    'The membership was opened on the server but the payment was not saved. Try again.'
+  ),
+  'התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.': (
+    'تم حفظ الدفع. حاولوا مرة أخرى لربطه بالاشتراك.',
+    'The payment was saved. Try again to link it to the membership.'
+  ),
   // Sync, connection, member card, version
-  'הנתונים לא עודכנו. עדכון אחרון: {0}': ('لم يتم تحديث البيانات. آخر تحديث: {0}', 'The data is not up to date. Last update: {0}'),
-  'אין חיבור לאינטרנט או לשרת. בדקו את החיבור ונסו שוב.': ('لا يوجد اتصال بالإنترنت أو بالخادم. افحصوا الاتصال وحاولوا مرة أخرى.', 'No connection to the internet or the server. Check the connection and try again.'),
+  'הנתונים לא עודכנו. עדכון אחרון: {0}': (
+    'لم يتم تحديث البيانات. آخر تحديث: {0}',
+    'The data is not up to date. Last update: {0}'
+  ),
+  'אין חיבור לאינטרנט או לשרת. בדקו את החיבור ונסו שוב.': (
+    'لا يوجد اتصال بالإنترنت أو بالخادم. افحصوا الاتصال وحاولوا مرة أخرى.',
+    'No connection to the internet or the server. Check the connection and try again.'
+  ),
   'חיוג': ('اتصال', 'Call'),
   'לא ניתן לפתוח במכשיר הזה': ('لا يمكن الفتح على هذا الجهاز', "Can't open this on this device"),
   'גרסה {0}': ('النسخة {0}', 'Version {0}'),
-  'נקבע במערכת AURA לפי סוג העוסק. עוסק פטור: קבלה בלי מע״מ.': ('يُحدَّد في نظام AURA حسب نوع المشتغل. المشتغل المعفى: إيصال بدون ضريبة.', 'Set in the AURA system by the kind of dealer. Exempt dealer: a receipt without VAT.'),
+  'נקבע במערכת AURA לפי סוג העוסק. עוסק פטור: קבלה בלי מע״מ.': (
+    'يُحدَّد في نظام AURA حسب نوع المشتغل. المشتغل المعفى: إيصال بدون ضريبة.',
+    'Set in the AURA system by the kind of dealer. Exempt dealer: a receipt without VAT.'
+  ),
+  // Collection list: dates and tries
+  'חיוב חודש {0}': ('خصم شهر {0}', 'Charge for {0}'),
+  'נכשל ב-{0}': ('فشل في {0}', 'Failed on {0}'),
+  'ניסיון אחרון: {0}': ('آخر محاولة: {0}', 'Last try: {0}'),
+  'מועד תשלום: {0}': ('موعد الدفع: {0}', 'Due: {0}'),
+  'ניסיונות חיוב': ('محاولات الخصم', 'Charge attempts'),
+  'התשלומים הבאים בגבייה ידנית ({0})': (
+    'الدفعات القادمة بالتحصيل اليدوي ({0})',
+    'Next payments in manual collection ({0})'
+  ),
+  'חובות ישנים · {0} לקוחות · {1}': ('ديون قديمة · {0} زبائن · {1}', 'Old debts · {0} members · {1}'),
+  'חיובים שנכשלו לפני יותר מ-{0} חודשים, או של מנוי שכבר לא פעיל. לא נספרים בחוב הפתוח.': (
+    'خصومات فشلت قبل أكثر من {0} أشهر، أو لاشتراك لم يعد فعّالاً. لا تُحسب ضمن الدين المفتوح.',
+    'Charges that failed more than {0} months ago, or of a membership that is no longer active. Not counted in the open debt.'
+  ),
+  '{0} חודשים שנכשלו': ('{0} أشهر فشل خصمها', '{0} failed months'),
+  // Check-in
+  'לא נשארו כניסות': ('لم يبقَ دخول', 'No entries left'),
+  'נשארה כניסה אחת': ('بقي دخول واحد', '1 entry left'),
+  'לבטל את ההגעה?': ('إلغاء الحضور؟', 'Cancel the visit?'),
+  '{0} · {1} בשעה {2}. כניסה שירדה מכרטיסייה תחזור.': (
+    '{0} · {1} الساعة {2}. الدخول الذي خُصم من البطاقة سيعود.',
+    '{0} · {1} at {2}. An entry taken off a punch card comes back.'
+  ),
+  'ביטול ההגעה': ('إلغاء الحضور', 'Cancel the visit'),
+  'על איזה מנוי לרשום את ההגעה של {0}?': (
+    'على أي اشتراك يُسجَّل حضور {0}؟',
+    "Which membership is {0}'s visit recorded on?"
+  ),
+  'לכרטיס המנוי': ('إلى بطاقة المشترك', 'Open the member card'),
+  'כניסה חד-פעמית בתשלום': ('دخول لمرة واحدة بالدفع', 'Paid one-time entry'),
+  'הגעה': ('حضور', 'Check-in'),
+  'שם, או ספרות אחרונות של הטלפון': ('الاسم، أو آخر أرقام الهاتف', 'Name, or the last digits of the phone'),
+  'הגיעו היום ({0})': ('حضروا اليوم ({0})', 'Came in today ({0})'),
+  'עדיין אף אחד לא נרשם היום. מחפשים לקוח ונוגעים בו כדי לרשום הגעה.': (
+    'لم يُسجَّل أحد اليوم بعد. ابحثوا عن زبون واضغطوا عليه لتسجيل الحضور.',
+    'Nobody is checked in yet today. Find a member and touch the row to record the visit.'
+  ),
+  'נרשמה הגעה בטעות? לוחצים על "ביטול" בשורה שלה, וכניסה שירדה מכרטיסייה חוזרת.': (
+    'سُجّل حضور بالخطأ؟ اضغطوا "إلغاء" في سطره، والدخول الذي خُصم من البطاقة يعود.',
+    'A visit recorded by mistake? Press "Cancel" on its row; an entry taken off a punch card comes back.'
+  ),
+  'לא נמצא לקוח כזה.': ('لم يُعثر على زبون كهذا.', 'No such member.'),
+  'הגעה נרשמה ב-{0}': ('سُجّل الحضور في {0}', 'Checked in at {0}'),
+  'הגעה נרשמה': ('سُجّل الحضور', 'Checked in'),
+  'ההגעה של {0} בוטלה': ('أُلغي حضور {0}', "{0}'s visit was cancelled"),
+  'ההגעה בוטלה': ('أُلغي الحضور', 'The visit was cancelled'),
+  'ההגעה לא נרשמה.': ('لم يُسجَّل الحضور.', 'The visit was not recorded.'),
+  'להכניס בכל זאת ולרשום הגעה': ('السماح بالدخول وتسجيل الحضور', 'Let in anyway and record the visit'),
+  'חידוש / מנוי חדש': ('تجديد / اشتراك جديد', 'Renew / new membership'),
+  '{0} כבר נרשם היום': ('{0} سُجّل اليوم', '{0} is already checked in today'),
+  'לרשום הגעה נוספת? בכרטיסייה תרד כניסה נוספת.': (
+    'تسجيل حضور إضافي؟ في البطاقة سيُخصم دخول إضافي.',
+    'Record another visit? A punch card loses another entry.'
+  ),
+  'לרשום שוב': ('تسجيل مرة أخرى', 'Record again'),
+  'כבר נרשם היום': ('سُجّل اليوم', 'Already in today'),
+  '{0} מתוך {1} השבוע': ('{0} من {1} هذا الأسبوع', '{0} of {1} this week'),
+  'כניסות השבוע': ('الدخول هذا الأسبوع', 'Visits this week'),
+  'הגעות אחרונות ({0})': ('آخر مرات الحضور ({0})', 'Last visits ({0})'),
+  'המנוי הסתיים': ('انتهى الاشتراك', 'The membership has ended'),
+  'אין מנוי': ('لا يوجد اشتراك', 'No membership'),
+  'המנוי מוקפא': ('الاشتراك مجمّد', 'The membership is frozen'),
+  'המנוי מוקפא עד {0}': ('الاشتراك مجمّد حتى {0}', 'The membership is frozen until {0}'),
+  'המנוי ממתין לתשלום': ('الاشتراك بانتظار الدفع', 'The membership is waiting for payment'),
+  'המנוי הסתיים ב-{0}': ('انتهى الاشتراك في {0}', 'The membership ended on {0}'),
+  'הכרטיסייה נגמרה': ('انتهت البطاقة', 'The punch card is used up'),
+  'נוצלו כל {0} הכניסות של השבוע': (
+    'استُخدمت كل الـ {0} مرات دخول لهذا الأسبوع',
+    "All {0} of this week's visits are used"
+  ),
+  'כניסה חסומה: תשלום באיחור': ('الدخول محظور: دفعة متأخرة', 'Entry blocked: a payment is overdue'),
+  'כניסה אחרונה בכרטיסייה': ('آخر دخول في البطاقة', 'Last entry on the card'),
+  'יש תשלום פתוח': ('توجد دفعة مفتوحة', 'A payment is open'),
+  'המנוי מסתיים ב-{0}': ('ينتهي الاشتراك في {0}', 'The membership ends on {0}'),
   // First load after sign-in
   'טוען את נתוני העסק…': ('جارٍ تحميل بيانات العمل…', 'Loading your business data…'),
   'טוען נתונים': ('جارٍ تحميل البيانات', 'Loading data'),
@@ -1818,52 +2071,97 @@ const Map<String, (String, String)> strings = {
   'מוצר דמי רישום': ('منتج رسوم التسجيل', 'Sign-up fee product'),
   'לא נבחר': ('لم يتم الاختيار', 'Not chosen'),
   'המוצר לא נמצא במחירון': ('المنتج غير موجود في قائمة الأسعار', 'The product is not in the price list'),
-  'המוצר בקבלה של מנוי חדש עם דמי רישום': ('المنتج في إيصال اشتراك جديد مع رسوم تسجيل', 'The product on a new membership\'s receipt when there is a sign-up fee'),
+  'המוצר בקבלה של מנוי חדש עם דמי רישום': (
+    'المنتج في إيصال اشتراك جديد مع رسوم تسجيل',
+    'The product on a new membership\'s receipt when there is a sign-up fee'
+  ),
   // A member's saved card (member_card.dart, card_entry.dart).
   'צריך מספר כרטיס': ('رقم البطاقة مطلوب', 'A card number is needed'),
   'מספר הכרטיס לא תקין': ('رقم البطاقة غير صالح', 'The card number is not valid'),
   'CVV צריך 3 או 4 ספרות': ('يجب أن يتكون CVV من 3 أو 4 أرقام', 'CVV needs 3 or 4 digits'),
   'תוקף בפורמט MM/YY': ('تاريخ الانتهاء بصيغة MM/YY', 'Expiry as MM/YY'),
   'תוקף הכרטיס עבר': ('انتهت صلاحية البطاقة', 'The card has expired'),
-  'הכרטיס לא אושר. בדקו את הפרטים ונסו שוב.': ('لم تتم الموافقة على البطاقة. تحقق من التفاصيل وحاول مرة أخرى.', 'The card was not approved. Check the details and try again.'),
-  'לא הוגדר מסוף Z Credit בהגדרות המערכת של AURA.': ('لم يتم إعداد جهاز Z Credit في إعدادات نظام AURA.', 'No Z Credit terminal is set in the AURA system settings.'),
-  'אין חיבור לחברת האשראי. נסו שוב.': ('لا يوجد اتصال بشركة البطاقات. حاول مرة أخرى.', 'The card company cannot be reached. Try again.'),
+  'הכרטיס לא אושר. בדקו את הפרטים ונסו שוב.': (
+    'لم تتم الموافقة على البطاقة. تحقق من التفاصيل وحاول مرة أخرى.',
+    'The card was not approved. Check the details and try again.'
+  ),
+  'לא הוגדר מסוף Z Credit בהגדרות המערכת של AURA.': (
+    'لم يتم إعداد جهاز Z Credit في إعدادات نظام AURA.',
+    'No Z Credit terminal is set in the AURA system settings.'
+  ),
+  'אין חיבור לחברת האשראי. נסו שוב.': (
+    'لا يوجد اتصال بشركة البطاقات. حاول مرة أخرى.',
+    'The card company cannot be reached. Try again.'
+  ),
   'תוקף': ('تاريخ الانتهاء', 'Expiry'),
-  'הכרטיס נבדק מול חברת האשראי, ללא חיוב, ונשמר ללקוח לחיובים הבאים. באפליקציה נשמרות רק 4 הספרות האחרונות.': ('يتم التحقق من البطاقة لدى شركة البطاقات دون خصم، وتُحفظ للعميل للدفعات القادمة. يحفظ التطبيق آخر 4 أرقام فقط.', 'The card is checked with the card company, without a charge, and saved for the member\'s next payments. The app keeps only the last 4 digits.'),
+  'הכרטיס נבדק מול חברת האשראי, ללא חיוב, ונשמר ללקוח לחיובים הבאים. באפליקציה נשמרות רק 4 הספרות האחרונות.': (
+    'يتم التحقق من البطاقة لدى شركة البطاقات دون خصم، وتُحفظ للعميل للدفعات القادمة. يحفظ التطبيق آخر 4 أرقام فقط.',
+    'The card is checked with the card company, without a charge, and saved for the member\'s next payments. The app keeps only the last 4 digits.'
+  ),
   'הכרטיס נשמר · •••• {0}': ('تم حفظ البطاقة · •••• {0}', 'Card saved · •••• {0}'),
   'החלפת כרטיס': ('تغيير البطاقة', 'Change card'),
   'הוספת כרטיס': ('إضافة بطاقة', 'Add card'),
-  'הכרטיס השמור •••• {0} יוחלף בכרטיס החדש.': ('ستُستبدل البطاقة المحفوظة •••• {0} بالبطاقة الجديدة.', 'The saved card •••• {0} will be replaced by the new card.'),
+  'הכרטיס השמור •••• {0} יוחלף בכרטיס החדש.': (
+    'ستُستبدل البطاقة المحفوظة •••• {0} بالبطاقة الجديدة.',
+    'The saved card •••• {0} will be replaced by the new card.'
+  ),
   'אישור והחלפת הכרטיס': ('تأكيد وتغيير البطاقة', 'Confirm and change the card'),
   'אישור ושמירת הכרטיס': ('تأكيد وحفظ البطاقة', 'Confirm and save the card'),
   'כרטיס אשראי': ('بطاقة ائتمان', 'Credit card'),
   'לא שמור': ('غير محفوظة', 'Not saved'),
-  'ללקוח כבר שמור כרטיס •••• {0}; אפשר להחליף אותו מכרטיס המנוי.': ('لدى العميل بطاقة محفوظة •••• {0}؛ يمكن تغييرها من بطاقة المشترك.', 'This member already has a saved card •••• {0}; it can be changed from the member\'s card.'),
-  'הלקוח נשמר, אבל הכרטיס לא נשמר: {0}': ('تم حفظ العميل، لكن لم يتم حفظ البطاقة: {0}', 'The member was saved, but the card was not: {0}'),
+  'ללקוח כבר שמור כרטיס •••• {0}; אפשר להחליף אותו מכרטיס המנוי.': (
+    'لدى العميل بطاقة محفوظة •••• {0}؛ يمكن تغييرها من بطاقة المشترك.',
+    'This member already has a saved card •••• {0}; it can be changed from the member\'s card.'
+  ),
+  'הלקוח נשמר, אבל הכרטיס לא נשמר: {0}': (
+    'تم حفظ العميل، لكن لم يتم حفظ البطاقة: {0}',
+    'The member was saved, but the card was not: {0}'
+  ),
   'הוספת כרטיס אשראי (לא חובה)': ('إضافة بطاقة ائتمان (اختياري)', 'Add a credit card (optional)'),
   'בלי כרטיס': ('بدون بطاقة', 'No card'),
   'ניסיון חוזר לשמירת הכרטיס': ('إعادة محاولة حفظ البطاقة', 'Try saving the card again'),
   'המשך בלי כרטיס': ('المتابعة بدون بطاقة', 'Continue without a card'),
   // A membership's own card (member_card.dart, members_screen.dart).
-  'המנוי לא מחויב בכרטיס אשראי, ולכן אין לו כרטיס לעדכן.': ('الاشتراك لا يُدفع ببطاقة ائتمان، لذا لا توجد بطاقة لتحديثها.', 'This membership is not charged to a credit card, so it has no card to update.'),
+  'המנוי לא מחויב בכרטיס אשראי, ולכן אין לו כרטיס לעדכן.': (
+    'الاشتراك لا يُدفع ببطاقة ائتمان، لذا لا توجد بطاقة لتحديثها.',
+    'This membership is not charged to a credit card, so it has no card to update.'
+  ),
   'כרטיס המנוי עודכן': ('تم تحديث بطاقة الاشتراك', 'Membership card updated'),
   'חויב {0} בכרטיס המנוי · {1}': ('تم خصم {0} من بطاقة الاشتراك · {1}', '{0} charged to the membership card · {1}'),
   'החיוב לא אושר: {0}': ('لم تتم الموافقة على الخصم: {0}', 'The charge was not approved: {0}'),
   'החלפת כרטיס המנוי': ('تغيير بطاقة الاشتراك', 'Change the membership card'),
   'הוספת כרטיס למנוי': ('إضافة بطاقة للاشتراك', 'Add a card to the membership'),
-  'הכרטיס השמור במנוי יוחלף בכרטיס החדש.': ('ستُستبدل البطاقة المحفوظة في الاشتراك بالبطاقة الجديدة.', 'The card saved on the membership will be replaced by the new card.'),
-  'החיוב החודשי ({0}) יחויב בכרטיס החדש החל מ-{1}.': ('سيُخصم المبلغ الشهري ({0}) من البطاقة الجديدة اعتبارًا من {1}.', 'The monthly charge ({0}) goes to the new card from {1}.'),
-  'הכרטיס השמור של הלקוח לא משתנה.': ('بطاقة العميل المحفوظة لا تتغير.', 'The member\'s own saved card does not change.'),
+  'הכרטיס השמור במנוי יוחלף בכרטיס החדש.': (
+    'ستُستبدل البطاقة المحفوظة في الاشتراك بالبطاقة الجديدة.',
+    'The card saved on the membership will be replaced by the new card.'
+  ),
+  'החיוב החודשי ({0}) יחויב בכרטיס החדש החל מ-{1}.': (
+    'سيُخصم المبلغ الشهري ({0}) من البطاقة الجديدة اعتبارًا من {1}.',
+    'The monthly charge ({0}) goes to the new card from {1}.'
+  ),
+  'הכרטיס השמור של הלקוח לא משתנה.': (
+    'بطاقة العميل المحفوظة لا تتغير.',
+    'The member\'s own saved card does not change.'
+  ),
   'אישור ועדכון כרטיס המנוי': ('تأكيد وتحديث بطاقة الاشتراك', 'Confirm and update the membership card'),
   'חודשים שהחיוב בהם נכשל': ('أشهر فشل فيها الخصم', 'Months whose charge failed'),
-  'הכרטיס נשמר. בחרו חודשים לחיוב עכשיו בכרטיס החדש, בחיוב אחד ובחשבונית מס קבלה אחת.': ('تم حفظ البطاقة. اختر الأشهر لخصمها الآن من البطاقة الجديدة، بخصم واحد وفاتورة ضريبية إيصال واحدة.', 'The card is saved. Choose months to charge to the new card now, in one charge and one tax invoice-receipt.'),
+  'הכרטיס נשמר. בחרו חודשים לחיוב עכשיו בכרטיס החדש, בחיוב אחד ובחשבונית מס קבלה אחת.': (
+    'تم حفظ البطاقة. اختر الأشهر لخصمها الآن من البطاقة الجديدة، بخصم واحد وفاتورة ضريبية إيصال واحدة.',
+    'The card is saved. Choose months to charge to the new card now, in one charge and one tax invoice-receipt.'
+  ),
   'בחרו חודשים': ('اختر الأشهر', 'Choose months'),
   'חיוב {0} בכרטיס המנוי': ('خصم {0} من بطاقة الاشتراك', 'Charge {0} to the membership card'),
-  'כרטיס המנוי עודכן. החודשים שלא חויבו נשארים ברשימת הגבייה.': ('تم تحديث بطاقة الاشتراك. الأشهر غير المدفوعة تبقى في قائمة التحصيل.', 'Membership card updated. The unpaid months stay on the to-collect list.'),
+  'כרטיס המנוי עודכן. החודשים שלא חויבו נשארים ברשימת הגבייה.': (
+    'تم تحديث بطاقة الاشتراك. الأشهر غير المدفوعة تبقى في قائمة التحصيل.',
+    'Membership card updated. The unpaid months stay on the to-collect list.'
+  ),
   'לא עכשיו': ('ليس الآن', 'Not now'),
   'כרטיס המנוי': ('بطاقة الاشتراك', 'Membership card'),
   'שמור': ('محفوظة', 'Saved'),
-  'המנוי מחויב בכרטיס אשראי, אבל אין בו כרטיס שמור: החיוב החודשי לא יתבצע עד שיעודכן כרטיס.': ('الاشتراك يُدفع ببطاقة ائتمان لكن لا توجد بطاقة محفوظة: لن يتم الخصم الشهري حتى يتم تحديث البطاقة.', 'This membership is charged to a credit card but has no saved card: the monthly charge will not happen until a card is updated.'),
+  'המנוי מחויב בכרטיס אשראי, אבל אין בו כרטיס שמור: החיוב החודשי לא יתבצע עד שיעודכן כרטיס.': (
+    'الاشتراك يُدفع ببطاقة ائتمان لكن لا توجد بطاقة محفوظة: لن يتم الخصم الشهري حتى يتم تحديث البطاقة.',
+    'This membership is charged to a credit card but has no saved card: the monthly charge will not happen until a card is updated.'
+  ),
   'עדכון כרטיס המנוי': ('تحديث بطاقة الاشتراك', 'Update membership card'),
   // PDFs (pdf_view.dart, pdf_documents.dart).
   'הופק {0}': ('أُنشئ {0}', 'Generated {0}'),
@@ -1874,11 +2172,20 @@ const Map<String, (String, String)> strings = {
   'לא הצלחנו להפיק את ה-PDF: {0}': ('تعذر إنشاء ملف PDF: {0}', 'Could not make the PDF: {0}'),
   'נסו שוב': ('حاول مرة أخرى', 'Try again'),
   // Plans saved on the server (plans_screen.dart).
-  'יש מנויים על המסלול, ולכן אי אפשר לשנות את סוג המסלול. אפשר ליצור מסלול חדש.': ('توجد اشتراكات على هذه الخطة، لذا لا يمكن تغيير نوعها. يمكن إنشاء خطة جديدة.', 'This plan has memberships, so its type cannot change. You can create a new plan.'),
-  'יש מנויים על המסלול, ולכן סוג המסלול קבוע.': ('توجد اشتراكات على هذه الخطة، لذا نوعها ثابت.', 'This plan has memberships, so its type is fixed.'),
+  'יש מנויים על המסלול, ולכן אי אפשר לשנות את סוג המסלול. אפשר ליצור מסלול חדש.': (
+    'توجد اشتراكات على هذه الخطة، لذا لا يمكن تغيير نوعها. يمكن إنشاء خطة جديدة.',
+    'This plan has memberships, so its type cannot change. You can create a new plan.'
+  ),
+  'יש מנויים על המסלול, ולכן סוג המסלול קבוע.': (
+    'توجد اشتراكات على هذه الخطة، لذا نوعها ثابت.',
+    'This plan has memberships, so its type is fixed.'
+  ),
   '₪ לפני מע״מ': ('₪ قبل الضريبة', '₪ before VAT'),
   // Monthly by the member's saved card, signed in (checkout).
   'שמרו את הכרטיס החדש של הלקוח': ('احفظ البطاقة الجديدة للعميل', 'Save the member\'s new card'),
   'כרטיס אחר': ('بطاقة أخرى', 'Another card'),
-  'ללקוח אין כרטיס שמור במערכת. בחרו "כרטיס חדש" כדי לשמור כרטיס, או אמצעי אחר לחיוב החודשי.': ('لا توجد بطاقة محفوظة للعميل في النظام. اختر "بطاقة جديدة" لحفظ بطاقة، أو طريقة أخرى للدفع الشهري.', 'The member has no saved card in the system. Choose "New card" to save one, or another way to pay monthly.'),
+  'ללקוח אין כרטיס שמור במערכת. בחרו "כרטיס חדש" כדי לשמור כרטיס, או אמצעי אחר לחיוב החודשי.': (
+    'لا توجد بطاقة محفوظة للعميل في النظام. اختر "بطاقة جديدة" لحفظ بطاقة، أو طريقة أخرى للدفع الشهري.',
+    'The member has no saved card in the system. Choose "New card" to save one, or another way to pay monthly.'
+  ),
 };

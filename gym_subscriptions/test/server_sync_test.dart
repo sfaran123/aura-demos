@@ -181,7 +181,13 @@ Map<String, Object?> salesPage(List<Map<String, Object?>> rows, int last) => {
 
 final sales1 = salesPage([
   {
-    'sale': {'id': 500, 'reference_no': 'TIR-1001', 'grand_total': 199, 'created_at': '2026-11-05 10:00:00', 'subscription_id': 5},
+    'sale': {
+      'id': 500,
+      'reference_no': 'TIR-1001',
+      'grand_total': 199,
+      'created_at': '2026-11-05 10:00:00',
+      'subscription_id': 5
+    },
     'customer': {'id': 7, 'name': 'Dana Levi'},
     'product_sale': [
       {'product_id': 10}
@@ -338,6 +344,27 @@ void main() {
       expect(p[1].allowCash, isTrue, reason: 'missing setting -> default');
     });
 
+    test('failed tries of one month are one charge: its date, the last amount, all the tries', () {
+      final copy = jsonDecode(jsonEncode(memberships)) as Map<String, dynamic>;
+      ((copy['data'] as List).first as Map)['failed_payments'] = [
+        {'id': 3, 'amount': 179.1, 'message': 'declined', 'date': '2026-10-01 06:00:00'},
+        {'id': 4, 'amount': 179.1, 'message': 'insufficient funds', 'date': '2026-10-04 06:00:00'},
+        {'id': 5, 'amount': 179.1, 'message': 'declined', 'date': '2026-10-08 06:00:00'},
+        {'id': 6, 'amount': 179.1, 'message': 'declined', 'date': '2026-11-01 06:00:00'},
+      ];
+      final m = mapMemberships(copy, customers: mapMembers(members), plans: mapPlans(plans), today: today);
+      final failed = m.charges.where((c) => c.status == ChargeStatus.failed).toList();
+      expect(failed.map((c) => c.id), ['failed-3', 'failed-6'], reason: 'October once, November once');
+      final october = failed.first;
+      expect(october.amount, 179.1, reason: 'the month, not the tries added up');
+      expect(october.attempts, 3);
+      expect(october.dueDate, DateTime(2026, 10, 1));
+      expect(october.monthLabel, '10/2026');
+      expect(october.tries.map((x) => x.$2), ['declined', 'insufficient funds', 'declined']);
+      expect(october.tries.last.$1, DateTime(2026, 10, 8, 6));
+      expect(Charge.fromJson(october.toJson().cast<String, dynamic>()).tries.length, 3, reason: 'kept on the device');
+    });
+
     test('a membership status the app does not know is shown as the server wrote it', () {
       final copy = jsonDecode(jsonEncode(memberships)) as Map<String, dynamic>;
       ((copy['data'] as List).first as Map)['status'] = 'on_hold';
@@ -346,7 +373,8 @@ void main() {
       expect(m.subscriptions.first.statusText, 'on_hold');
       final known = mapMemberships(memberships, customers: mapMembers(members), plans: mapPlans(plans), today: today);
       expect(known.subscriptions.first.serverStatus, isNull);
-      expect(Subscription.fromJson(m.subscriptions.first.toJson()).serverStatus, 'on_hold', reason: 'kept on the device');
+      expect(Subscription.fromJson(m.subscriptions.first.toJson()).serverStatus, 'on_hold',
+          reason: 'kept on the device');
     });
 
     test('memberships: statuses, charges, stand-ins for deactivated member/plan', () {

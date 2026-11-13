@@ -11,6 +11,7 @@ import 'state/server_sync.dart';
 import 'ui/auth_screens.dart';
 import 'ui/collect_screen.dart';
 import 'ui/home_screen.dart';
+import 'ui/checkin_screen.dart';
 import 'ui/loading_bar.dart';
 import 'ui/members_screen.dart';
 import 'ui/reports_screen.dart';
@@ -190,6 +191,7 @@ class _ShellState extends State<_Shell> {
     final firstLoad = sync != null && !store.serverLoaded;
     final pages = [
       HomeScreen(goTo: (i) => tabs.value = i),
+      firstLoad ? const _FirstLoadTab() : const CheckInScreen(),
       firstLoad ? const _FirstLoadTab() : const MembersScreen(),
       firstLoad ? const _FirstLoadTab() : const CollectScreen(),
       firstLoad ? const _FirstLoadTab() : const ReportsScreen(),
@@ -206,6 +208,11 @@ class _ShellState extends State<_Shell> {
         destinations: [
           NavigationDestination(
               key: Key('navHome'), icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: t('ראשי')),
+          NavigationDestination(
+              key: const Key('navCheckin'),
+              icon: const Icon(Icons.how_to_reg_outlined),
+              selectedIcon: const Icon(Icons.how_to_reg),
+              label: t('הגעה')),
           NavigationDestination(
               key: Key('navMembers'),
               icon: Icon(Icons.people_outline),
