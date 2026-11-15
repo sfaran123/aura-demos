@@ -12,6 +12,7 @@ import '../state/server_sync.dart';
 import 'auth_screens.dart';
 import 'pdf_documents.dart' show pdfFileName, receiptPdf;
 import 'pdf_view.dart';
+import 'sale_credit_sheet.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -302,15 +303,24 @@ Future<void> showReceiptSheet(BuildContext context, Receipt r) {
         ),
         const SizedBox(height: 10),
         ReceiptSendPanel(receipt: r),
-        // Signed in, a credit note is not saved on the server yet (and refunds nothing): not offered.
-        if (!signedIn && !r.isCredit && r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund) ...[
+        // Signed in: the server's document, cancelled or refunded as the web does
+        // (the server decides who may). The demo: a credit note made in the app.
+        if (!r.isCredit &&
+            (signedIn
+                ? r.saleId != null && !r.cancelled
+                : r.creditable > 0 && StoreScope.read(ctx).settings.staffCanRefund)) ...[
           const SizedBox(height: 10),
           OutlinedButton.icon(
             key: const Key('creditReceipt'),
             style: OutlinedButton.styleFrom(foregroundColor: Aura.warn, minimumSize: const Size.fromHeight(44)),
             onPressed: () async {
+              final sync = SyncScope.maybeOf(ctx);
               Navigator.pop(ctx);
-              await showCreditSheet(context, r);
+              if (sync != null) {
+                await showServerCreditSheet(context, sync, r);
+              } else {
+                await showCreditSheet(context, r);
+              }
             },
             icon: const Icon(Icons.undo),
             label: Text(t('זיכוי / ביטול עסקה')),

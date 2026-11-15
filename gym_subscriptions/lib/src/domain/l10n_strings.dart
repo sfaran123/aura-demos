@@ -2288,4 +2288,46 @@ const Map<String, (String, String)> strings = {
     'تم هذا الخصم بمبلغ آخر. راجعوا المدير.',
     'This charge was already made for another amount. Ask the manager.'
   ),
+  // Cancel a sale / credit (TIC) on the server
+  'ביטול המסמך': ('إلغاء المستند', 'Cancel the document'),
+  'ביטול המסמך · {0}': ('إلغاء المستند · {0}', 'Cancel the document · {0}'),
+  'החזר לכרטיס · {0}': ('استرداد إلى البطاقة · {0}', 'Refund to card · {0}'),
+  'החזר במסוף': ('استرداد على الجهاز', 'Refund on the terminal'),
+  'Z Credit יחזיר את הסכום לכרטיס של הלקוח, ויופקו מסמכי זיכוי. המסמך המקורי נשאר כמו שהוא.': (
+    'سيعيد Z Credit المبلغ إلى بطاقة الزبون، وتصدر مستندات إشعار دائن. المستند الأصلي يبقى كما هو.',
+    "Z Credit refunds the amount to the customer's card, and credit documents are issued. The original document stays as it is."
+  ),
+  'תופק חשבונית זיכוי על כל הסכום, והמסמך יסומן כמבוטל.': (
+    'ستصدر فاتورة ضريبية دائنة بكامل المبلغ، ويُعلَّم المستند كملغى.',
+    'A tax credit invoice is issued for the whole amount, and the document is marked cancelled.'
+  ),
+  'הקבלה תבוטל. לא מופק מסמך חדש.': ('سيُلغى الإيصال. لا يصدر مستند جديد.', 'The receipt is cancelled. No new document is issued.'),
+  'כבר הוחזר לכרטיס: {0}': ('أُعيد إلى البطاقة سابقًا: {0}', 'Already refunded to the card: {0}'),
+  'יש החזר של {0} שעדיין לא ידוע אם עבר. בדקו במערכת Z Credit.': (
+    'هناك استرداد بقيمة {0} لا يُعرف بعد إن تم. افحصوا في نظام Z Credit.',
+    'A refund of {0} has no clear answer yet. Check in Z Credit.'
+  ),
+  'להחזיר {0} לכרטיס?': ('إعادة {0} إلى البطاقة؟', 'Refund {0} to the card?'),
+  'לבטל את {0}?': ('إلغاء {0}؟', 'Cancel {0}?'),
+  'כן, להחזיר': ('نعم، أعيدوا المبلغ', 'Yes, refund'),
+  'כן, לבטל': ('نعم، ألغوا', 'Yes, cancel'),
+  'הוחזר {0} לכרטיס · {1}': ('أُعيد {0} إلى البطاقة · {1}', '{0} refunded to the card · {1}'),
+  'בוטל {0}': ('أُلغي {0}', '{0} cancelled'),
+  'בוטל {0} · הופקה {1}': ('أُلغي {0} · صدر {1}', '{0} cancelled · {1} issued'),
+  'המנוי מתבטל היום': ('يُلغى الاشتراك اليوم', 'The membership ends today'),
+  'ההחזר לא בוצע': ('لم يتم الاسترداد', 'The refund was not made'),
+  'המסמך לא בוטל': ('لم يُلغَ المستند', 'The document was not cancelled'),
+  'לא ידוע אם ההחזר בוצע': ('لا يُعرف إن تم الاسترداد', 'Unknown whether the refund was made'),
+  'אין לכם הרשאה לבטל מסמכים': ('ليست لديكم صلاحية لإلغاء المستندات', "You don't have permission to cancel documents"),
+  'Z Credit לא אישר את ההחזר: {0}': ('لم يوافق Z Credit على الاسترداد: {0}', 'Z Credit did not approve the refund: {0}'),
+  'המסמך כבר בוטל': ('المستند ملغى مسبقًا', 'The document is already cancelled'),
+  'אי אפשר לבטל את המסמך הזה': ('لا يمكن إلغاء هذا المستند', 'This document cannot be cancelled'),
+  'בחרו איך מחזירים את הכסף': ('اختاروا كيف يُعاد المال', 'Choose how the money is given back'),
+  'אין החזר לכרטיס למסמך הזה': ('لا يوجد استرداد إلى البطاقة لهذا المستند', 'This document has no card refund'),
+  'הסכום גבוה ממה שאפשר להחזיר': ('المبلغ أعلى مما يمكن استرداده', 'The amount is more than can be refunded'),
+  'אין מה לזכות במסמך הזה': ('لا يوجد ما يُسترد في هذا المستند', 'Nothing can be credited on this document'),
+  'לא התקבלה תשובה ברורה מ-Z Credit. בדקו במערכת Z Credit אם ההחזר עבר לפני שמנסים שוב.': (
+    'لم يصل رد واضح من Z Credit. افحصوا في نظام Z Credit إن تم الاسترداد قبل المحاولة مجددًا.',
+    'No clear answer from Z Credit. Check in Z Credit whether the refund went through before trying again.'
+  ),
 };

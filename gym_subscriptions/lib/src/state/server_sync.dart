@@ -11,6 +11,7 @@ import '../domain/receipt_sending.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
 import '../domain/sale_builder.dart';
+import '../domain/sale_credit.dart';
 import '../domain/visits.dart';
 import '../integration/aura_api.dart';
 import '../integration/server_mapping.dart';
@@ -560,6 +561,79 @@ class GymSync extends ChangeNotifier {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
       rethrow;
     }
+  }
+
+  /// What undoing sale [saleId] can do here (GET gym/sales/{id}/credit).
+  Future<SaleCreditOptions> saleCreditOptions(int saleId) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.getJson(ws, session, '/gym/sales/$saleId/credit');
+      final data = res is Map && res['data'] is Map ? res['data'] as Map : null;
+      if (data == null) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      return SaleCreditOptions.fromJson(data);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// The web's Cancel Document (POST gym/sales/{id}/cancel): a receipt is cancelled
+  /// at once, a tax invoice(-receipt) by a credit (TIC) for the whole document, the
+  /// money given back by [method]. [appUuid] stays the same when it is tried again
+  /// (nothing is saved twice). Returns the credit's number ('' for a receipt), then
+  /// loads everything again.
+  Future<String> cancelSale(int saleId,
+      {required String appUuid, PayMethod? method, String reason = '', bool cancelMembership = false}) async {
+    final res = await _saleCredit('/gym/sales/$saleId/cancel', {
+      'app_uuid': appUuid,
+      if (method != null)
+        'method': switch (method) {
+          PayMethod.bank => 'bank',
+          PayMethod.card => 'card',
+          _ => 'cash',
+        },
+      if (reason.trim().isNotEmpty) 'reason': reason.trim(),
+      'cancel_membership': cancelMembership,
+    });
+    final doc = res is Map && res['data'] is Map && (res['data'] as Map)['document'] is Map
+        ? (res['data'] as Map)['document'] as Map
+        : null;
+    return '${doc?['reference_no'] ?? ''}';
+  }
+
+  /// The web's Refund Card Payment (POST gym/sales/{id}/card-refund): Z Credit
+  /// refunds [amount] to the card, and the credit and minus receipt are made.
+  /// [appUuid] stays the same when it is tried again: never refunded twice.
+  /// Returns the documents' numbers, then loads everything again.
+  Future<({String tic, String receipt})> refundSaleCard(int saleId,
+      {required String appUuid, required double amount, String reason = '', bool cancelMembership = false}) async {
+    final res = await _saleCredit('/gym/sales/$saleId/card-refund', {
+      'app_uuid': appUuid,
+      'amount': amount,
+      if (reason.trim().isNotEmpty) 'reason': reason.trim(),
+      'cancel_membership': cancelMembership,
+    });
+    final d = res is Map && res['data'] is Map ? res['data'] as Map : const {};
+    return (tic: '${d['tic'] ?? ''}', receipt: '${d['receipt'] ?? ''}');
+  }
+
+  Future<Object?> _saleCredit(String path, Map<String, Object?> body) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    final Object? res;
+    try {
+      res = await auth.api.postJson(ws, session, path, body);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (e.kind == AuraErrorKind.server) {
+        final known = saleCreditError(e.detail);
+        if (known != null) throw known;
+      }
+      rethrow;
+    }
+    await pull();
+    return res;
   }
 
   /// Records that the member came in now (POST gym/memberships/{id}/visits). The

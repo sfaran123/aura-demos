@@ -313,7 +313,8 @@ List<Receipt> mapSales(Object? body, {required Map<String, String> names}) {
   final rows = data is Map ? _list(data['sale_data']) : const <Map<String, dynamic>>[];
   return [
     for (final row in rows)
-      if (row['sale'] is Map)
+      // Not drafts (sale_status 3/5), as gym/sales.
+      if (row['sale'] is Map && !const {3, 5}.contains(_i((row['sale'] as Map)['sale_status'])))
         () {
           final sale = (row['sale'] as Map).cast<String, dynamic>();
           final customer = row['customer'] is Map ? (row['customer'] as Map).cast<String, dynamic>() : null;

@@ -689,9 +689,9 @@ void main() {
     expect(body(api, '/sales/send-invoice-via-mail')['sale_id'], 501);
     expect(find.text('Sent by SMS · 054-1112222'), findsOneWidget);
     expect(find.text('Sent by Email · guest@example.com'), findsOneWidget);
-    // Not connected to the server yet, so not offered: a credit note.
+    // The saved sale can be cancelled or refunded on the server, as the web (sale_credit_test.dart).
     await tapKey(t, 'viewReceipt');
     expect(find.byKey(const Key('receiptCard')), findsOneWidget);
-    expect(find.byKey(const Key('creditReceipt'), skipOffstage: false), findsNothing);
+    expect(find.byKey(const Key('creditReceipt'), skipOffstage: false), findsOneWidget);
   });
 }
