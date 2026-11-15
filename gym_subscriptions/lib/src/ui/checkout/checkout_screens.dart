@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/help.dart';
 import 'package:flutter/services.dart';
 
-import '../../domain/card_entry.dart' show CardSaveException;
+import '../../domain/card_entry.dart' show CardSaveException, CardChargeException;
 import '../../domain/checkout.dart';
 import '../../domain/models.dart';
 import '../../domain/sale_builder.dart';
@@ -28,6 +28,27 @@ void startCheckout(BuildContext context, CheckoutFlow flow, {Customer? customer}
   } else {
     Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerStep(draft: draft)));
   }
+}
+
+/// The desk picks the membership's first day (the months count from it), within
+/// the plan's limits ([earliestStart] .. [latestStart]). True when a day was picked.
+Future<bool> pickStartDate(BuildContext context, CheckoutDraft d) async {
+  final p = d.plan;
+  if (p == null) return false;
+  final first = earliestStart(p, d.store.now), last = latestStart(d.store.now);
+  var initial = d.startDay;
+  if (initial.isBefore(first)) initial = first;
+  if (initial.isAfter(last)) initial = last;
+  final picked = await showDatePicker(
+    context: context,
+    helpText: t('בחרו תאריך תחילה'),
+    initialDate: initial,
+    firstDate: first,
+    lastDate: last,
+  );
+  if (picked == null) return false;
+  d.setStart(StartOption.date, picked);
+  return true;
 }
 
 Widget _nextAfterCustomer(CheckoutDraft d) => d.isSubscription ? PlanStep(draft: d) : ItemsStep(draft: d);
@@ -190,15 +211,27 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     final failed = await saveMemberCard(context, widget.store, c, card);
     if (!mounted) return;
     if (failed == null) {
-      if (existing) _snack(exists);
       Navigator.pop(context, c);
+      showCardSaved(context, [
+        if (existing) exists,
+        t('הכרטיס נשמר בהצלחה · •••• {0}', [c.savedCardLast4]),
+      ].join(' '));
       return;
     }
+    // The member is saved, the card is not: the sheet stays here (no going on)
+    // until the card is saved, or the sheet is closed.
     setState(() {
       saving = false;
       created = c;
       error = t('הלקוח נשמר, אבל הכרטיס לא נשמר: {0}', [failed]);
     });
+    await showCardProblem(context, t('הכרטיס לא נשמר'), failed);
+  }
+
+  /// The typed card is not valid: said in the sheet and as an alert.
+  Future<void> _cardInvalid(String problem) async {
+    setState(() => error = problem);
+    await showCardProblem(context, t('הכרטיס לא תקין'), problem);
   }
 
   Future<void> _save() async {
@@ -206,7 +239,7 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     if (created != null) {
       // Retry the card only.
       final problem = card.validate(widget.store.today);
-      if (problem != null) return setState(() => error = problem);
+      if (problem != null) return _cardInvalid(problem);
       return _finish(created!);
     }
     final s = widget.store.settings;
@@ -218,7 +251,7 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
     }
     if (_wantsCard) {
       final problem = card.validate(widget.store.today);
-      if (problem != null) return setState(() => error = problem);
+      if (problem != null) return _cardInvalid(problem);
     }
     final dup = widget.store.customers
         .where((c) => c.phone.replaceAll(RegExp(r'\D'), '') == phone.text.replaceAll(RegExp(r'\D'), ''))
@@ -337,11 +370,14 @@ class _NewCustomerSheetState extends State<_NewCustomerSheet> {
                     width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight))
                 : Text(saved ? t('ניסיון חוזר לשמירת הכרטיס') : t('שמירה והמשך')),
           ),
+          // No "go on without the card": a card that was not saved stops here.
           if (saved)
-            TextButton(
-              key: const Key('ncSkipCard'),
-              onPressed: saving ? null : () => Navigator.pop(context, created),
-              child: Text(t('המשך בלי כרטיס')),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(t('אי אפשר להמשיך בלי שהכרטיס נשמר. הקלידו את הכרטיס שוב, או סגרו את החלון.'),
+                  key: const Key('ncCardBlocked'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12.5, color: Aura.warn)),
             ),
         ]),
       ),
@@ -417,11 +453,21 @@ class PlanStep extends StatelessWidget {
                   Text(t('תחילת מנוי'), style: TextStyle(fontSize: 13, color: Aura.muted)),
                   const SizedBox(height: 6),
                   ChoiceRow<StartOption>(
+                    key: const Key('startOptions'),
                     values: StartOption.values,
                     selected: draft.start,
-                    label: (o) => o.label,
-                    onSelected: draft.setStart,
+                    // The picked day on its chip, so the desk sees it.
+                    label: (o) => o == StartOption.date && draft.startOn != null ? fmtDate(draft.startOn!) : o.label,
+                    onSelected: (o) async {
+                      if (o != StartOption.date) return draft.setStart(o);
+                      await pickStartDate(context, draft);
+                    },
                   ),
+                  if (p.isRecurring && draft.start == StartOption.date && draft.startOn != null) ...[
+                    const SizedBox(height: 6),
+                    Text(t('החיוב החודשי הבא: {0}', [fmtDate(addMonths(draft.startDay, 1))]),
+                        key: const Key('nextChargeHint'), style: TextStyle(fontSize: 12, color: Aura.muted)),
+                  ],
                   const SizedBox(height: 12),
                   Text(t('הנחה'), style: TextStyle(fontSize: 13, color: Aura.muted)),
                   const SizedBox(height: 6),
@@ -708,8 +754,10 @@ class PaymentStep extends StatelessWidget {
                   if (d.onServer && m == RecurringMethod.newCard) {
                     // Saved for the member on the server (Z Credit check, nothing charged);
                     // the membership then takes the member's saved card.
-                    await showMemberCardSheet(context, d.customer!);
-                    if (d.customer!.hasSavedCard) d.setRecurring(RecurringMethod.savedCard);
+                    // Not saved: "new card" stays chosen, so the step is blocked until a
+                    // card is saved or another monthly method is picked.
+                    final saved = await showMemberCardSheet(context, d.customer!);
+                    d.setRecurring(saved ? RecurringMethod.savedCard : RecurringMethod.newCard);
                     return;
                   }
                   d.setRecurring(m);
@@ -772,10 +820,14 @@ class _LineEditor extends StatefulWidget {
 class _LineEditorState extends State<_LineEditor> {
   late final TextEditingController ctrl;
 
+  /// Signed in, the saved card in installments: how many (typed, as on the web).
+  late final TextEditingController payments;
+
   @override
   void initState() {
     super.initState();
     ctrl = TextEditingController(text: _fmt(widget.line.amount));
+    payments = TextEditingController(text: widget.line.installments > 1 ? '${widget.line.installments}' : '');
   }
 
   String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
@@ -783,7 +835,79 @@ class _LineEditorState extends State<_LineEditor> {
   @override
   void dispose() {
     ctrl.dispose();
+    payments.dispose();
     super.dispose();
+  }
+
+  /// Regular or installments for the saved card, asked every time (the web's
+  /// "existing card": a number of payments, or none = regular). The number is any
+  /// number from 2, as on the web; the first payment takes the leftover agorot.
+  List<Widget> _regularOrInstallments(CheckoutDraft d, PaymentLine l) {
+    final i = d.lines.indexOf(l);
+    final charged = l.chargeReceipt != null;
+    final regular = l.installments == 1;
+    final split = l.installments != 0 && !regular;
+    final n = l.installments > 1 ? l.installments : 0;
+    final parts = n > 1 ? splitInstallments(l.amount, n) : null;
+    return [
+      const SizedBox(height: 10),
+      Text(t('איך לחייב את הכרטיס?'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      Wrap(key: Key('payKind-$i'), spacing: 8, runSpacing: 8, children: [
+        ChoiceChip(
+          key: Key('payRegular-$i'),
+          label: Text(t('תשלום רגיל')),
+          selected: regular,
+          labelStyle: TextStyle(color: regular ? Colors.white : Aura.ink),
+          onSelected: charged ? null : (_) => d.setInstallments(l, 1),
+        ),
+        ChoiceChip(
+          key: Key('payInstallments-$i'),
+          label: Text(t('תשלומים')),
+          selected: split,
+          labelStyle: TextStyle(color: split ? Colors.white : Aura.ink),
+          onSelected: charged
+              ? null
+              : (_) {
+                  final typed = int.tryParse(payments.text) ?? 0;
+                  d.setInstallments(l, typed >= 2 ? typed : -1);
+                },
+        ),
+      ]),
+      if (split) ...[
+        const SizedBox(height: 8),
+        Row(children: [
+          Flexible(child: Text(t('מספר תשלומים'), style: const TextStyle(fontSize: 13))),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 80,
+            child: TextField(
+              key: Key('paymentsCount-$i'),
+              controller: payments,
+              enabled: !charged,
+              autofocus: n == 0,
+              textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(2)],
+              decoration: const InputDecoration(
+                  isDense: true, hintText: '2+', contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
+              onChanged: (v) {
+                final typed = int.tryParse(v) ?? 0;
+                d.setInstallments(l, typed >= 2 ? typed : -1);
+              },
+            ),
+          ),
+        ]),
+        if (parts != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+                t('תשלום ראשון {0}, ואחריו {1} תשלומים של {2}', [money(parts.first), n - 1, money(parts.other)]),
+                key: Key('paymentsSplit-$i'),
+                style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
+          ),
+      ],
+    ];
   }
 
   @override
@@ -809,6 +933,7 @@ class _LineEditorState extends State<_LineEditor> {
             child: TextField(
               key: Key('amount-${d.lines.indexOf(l)}'),
               controller: ctrl,
+              enabled: l.chargeReceipt == null,
               textAlign: TextAlign.left,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
@@ -820,13 +945,68 @@ class _LineEditorState extends State<_LineEditor> {
           ),
           IconButton(
             tooltip: t('הסרה'),
-            onPressed: () => d.removeLine(l),
+            onPressed: l.chargeReceipt != null ? null : () => d.removeLine(l),
             icon: const Icon(Icons.close, color: Aura.muted),
           ),
         ]),
-        // Signed in: the card is charged on the payment terminal, as the POS's
-        // "other device" card; the sale records it as a card payment.
-        if (l.method == PayMethod.card && d.onServer)
+        // Signed in, a new membership: the terminal, or the member's saved card
+        // (charged by the server on confirm), or a new card saved first.
+        if (l.method == PayMethod.card && d.onServer && d.savedCardCharge) ...[
+          const SizedBox(height: 8),
+          Wrap(key: Key('cardSource-${d.lines.indexOf(l)}'), spacing: 8, runSpacing: 8, children: [
+            ChoiceChip(
+              label: Text(t('מסוף סליקה')),
+              selected: l.cardSource == CardSource.terminal,
+              labelStyle: TextStyle(color: l.cardSource == CardSource.terminal ? Colors.white : Aura.ink),
+              onSelected: l.chargeReceipt != null ? null : (_) => d.setCardSource(l, CardSource.terminal),
+            ),
+            if (card != null)
+              ChoiceChip(
+                key: const Key('savedCardChip'),
+                label: Text(t('חיוב כרטיס שמור •••• {0}', [card])),
+                selected: l.cardSource == CardSource.saved,
+                labelStyle: TextStyle(color: l.cardSource == CardSource.saved ? Colors.white : Aura.ink),
+                onSelected:
+                    l.chargeReceipt != null || !d.savedCardFree(l) ? null : (_) => d.setCardSource(l, CardSource.saved),
+              ),
+            if (l.chargeReceipt == null)
+              ActionChip(
+                key: const Key('addCardChip'),
+                avatar: const Icon(Icons.add_card, size: 18),
+                label: Text(card == null ? t('הוספת כרטיס') : t('החלפת כרטיס')),
+                // Saved for the member on the server (Z Credit check, nothing charged), as
+                // for a monthly plan; then this line takes the member's saved card.
+                onPressed: () async {
+                  final saved = await showMemberCardSheet(context, d.customer!);
+                  // Saved: this line takes it. Not saved: the line waits for a card and
+                  // the payment step is blocked until a card is saved or the terminal is picked.
+                  if (saved && d.savedCardFree(l)) {
+                    d.setCardSource(l, CardSource.saved);
+                  } else if (!saved) {
+                    d.setCardSource(l, CardSource.newCard);
+                  }
+                },
+              ),
+          ]),
+          Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                  l.chargeReceipt != null
+                      ? t('הכרטיס חויב.')
+                      : l.cardSource == CardSource.newCard
+                          ? t('הכרטיס לא נשמר. שמרו כרטיס, או בחרו מסוף סליקה.')
+                          : l.cardSource == CardSource.saved
+                              ? (l.installments > 1
+                                  ? t('הכרטיס השמור יחויב ב-{0} ב-{1} תשלומים כשתאשרו בסיכום.',
+                                      [money(l.amount), l.installments])
+                                  : t('הכרטיס השמור יחויב ב-{0} כשתאשרו בסיכום.', [money(l.amount)]))
+                              : t('חייבו את הכרטיס במסוף הסליקה, ואשרו כאן רק אחרי שהעסקה אושרה.'),
+                  key: Key('cardNote-${d.lines.indexOf(l)}'),
+                  style: TextStyle(fontSize: 12.5, color: l.cardSource == CardSource.newCard ? Aura.warn : Aura.muted))),
+          if (l.cardSource == CardSource.saved && card != null) ..._regularOrInstallments(d, l),
+        ] else if (l.method == PayMethod.card && d.onServer)
+          // Signed in otherwise: the card is charged on the payment terminal, as the
+          // POS's "other device" card; the sale records it as a card payment.
           Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(t('חייבו את הכרטיס במסוף הסליקה, ואשרו כאן רק אחרי שהעסקה אושרה.'),
@@ -930,6 +1110,7 @@ class _SummaryStepState extends State<SummaryStep> {
   ({Subscription sub, List<Charge> charges})? _created;
   final String _appUuid = newAppUuid();
   bool _saleSaved = false;
+  bool _cardLinked = false;
   int? _saleId;
   String _reference = '';
 
@@ -964,18 +1145,44 @@ class _SummaryStepState extends State<SummaryStep> {
         throw _CheckoutProblem(t('תשלום בלינק עדיין לא זמין כאן.'));
       }
 
+      // The member's saved card pays one line at most.
+      final cardLine =
+          d.lines.where((l) => l.method == PayMethod.card && l.cardSource == CardSource.saved).firstOrNull;
+      // 1 = regular, 2+ = installments (asked on the payment step).
+      final cardPayments = cardLine == null ? 1 : (cardLine.installments > 1 ? cardLine.installments : 1);
+
+      // A quick payment on the saved card: charged FIRST; a charge that does not
+      // succeed leaves no sale (no document). A charged line stays charged.
+      if (p == null && cardLine != null && cardLine.chargeReceipt == null) {
+        if (d.customer == null) throw _CheckoutProblem(t('חיוב בכרטיס שמור זמין רק ללקוח עם כרטיס שמור.'));
+        cardLine.chargeReceipt = await sync.chargeCustomerCard(d.customer!,
+            amount: round2(cardLine.amount), payments: cardPayments, appUuid: _appUuid);
+        if (mounted) setState(() {});
+      }
+
       Subscription? sub;
       if (p != null) {
         if (_created == null) {
+          // With the saved card, the server charges it FIRST and opens the membership
+          // only when the charge succeeded: a declined card leaves no membership, and
+          // no sale (no tax invoice-receipt) is saved. The sale's app_uuid is the key,
+          // so a retry never charges again.
           final res = await sync.createMembership(
             customer: d.customer!,
             plan: p,
-            start: startDate(d.start, d.store.now),
+            start: d.startDay,
             discountPct: d.discountPct,
             waiveRegistration: d.waiveRegistration,
             recurring: d.recurring,
+            cardChargeAmount: cardLine == null ? null : round2(cardLine.amount),
+            cardChargePayments: cardPayments,
+            appUuid: cardLine == null ? null : _appUuid,
           );
           _created = (sub: res.sub, charges: res.charges);
+          if (cardLine != null) {
+            cardLine.chargeReceipt = res.cardReceipt;
+            if (mounted) setState(() {});
+          }
         }
         sub = _created!.sub;
       }
@@ -993,6 +1200,10 @@ class _SummaryStepState extends State<SummaryStep> {
       if (sub != null) {
         final ref = await sync.linkSale(sub.id, saleId: _saleId, appUuid: _appUuid);
         if (ref.isNotEmpty) _reference = ref;
+      } else if (cardLine != null && !_cardLinked) {
+        // A quick payment's charge gets its sale (and the sale the Z Credit reference).
+        await sync.linkCustomerCardCharge(_appUuid);
+        _cardLinked = true;
       }
 
       final ({Subscription? sub, Receipt receipt}) done;
@@ -1045,12 +1256,27 @@ class _SummaryStepState extends State<SummaryStep> {
               ? e.message
               : e is CardSaveException
                   ? e.message
-                  : [
-                  authErrorText(e),
-                  if (_created != null && !_saleSaved) t('המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.'),
-                  if (_saleSaved) t('התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.'),
-                ].join(' ');
+                  : e is CardChargeException
+                      ? e.message
+                      : [
+                          authErrorText(e),
+                          if (d.cardCharged && !_saleSaved)
+                            t('הכרטיס חויב. נסו שוב כדי לשמור את המסמך — הכרטיס לא יחויב שוב.')
+                          else if (_created != null && !_saleSaved)
+                            t('המנוי נפתח בשרת אך התשלום לא נשמר. נסו שוב.'),
+                          if (_saleSaved) t('התשלום נשמר. נסו שוב כדי לשייך אותו למנוי.'),
+                        ].join(' ');
         });
+        // The card was not charged: an alert the desk has to close. Nothing was
+        // created (no membership, no tax invoice-receipt); the desk stays here.
+        if (e is CardChargeException) {
+          await showCardProblem(
+              context,
+              t('החיוב בכרטיס לא בוצע'),
+              '${e.message}\n\n${p != null ? t('המנוי לא נפתח ולא הופקה חשבונית. אפשר לנסות שוב או לחזור ולבחור אמצעי תשלום אחר.') : t('לא הופקה חשבונית. אפשר לנסות שוב או לחזור ולבחור אמצעי תשלום אחר.')}');
+        } else if (e is CardSaveException) {
+          await showCardProblem(context, t('אין כרטיס שמור'), e.message);
+        }
       }
       return null;
     }
@@ -1059,7 +1285,13 @@ class _SummaryStepState extends State<SummaryStep> {
   String _lineText(PaymentLine l) {
     final b = StringBuffer(money(l.amount));
     if (l.method == PayMethod.card && draft.onServer) {
-      b.write(t(' · במסוף הסליקה'));
+      b.write(l.cardSource == CardSource.saved
+          ? t(' · כרטיס שמור {0}', [draft.customer?.savedCardLast4 ?? ''])
+          : t(' · במסוף הסליקה'));
+      if (l.cardSource == CardSource.saved) {
+        b.write(l.installments > 1 ? t(' · {0} תשלומים', [l.installments]) : t(' · תשלום רגיל'));
+      }
+      if (l.chargeReceipt != null) b.write(t(' · חויב'));
     } else if (l.method == PayMethod.card) {
       b.write(
           t(' · כרטיס {0}', [l.cardSource == CardSource.saved ? draft.customer!.savedCardLast4 : draft.newCardLast4]));
@@ -1076,7 +1308,7 @@ class _SummaryStepState extends State<SummaryStep> {
     final d = draft;
     final store = d.store;
     final p = d.isSubscription ? d.plan : null;
-    final start = startDate(d.start, store.now);
+    final start = d.startDay;
     final rows = <(String, String)>[
       (t('לקוח'), d.walkIn ? t('לקוח מזדמן') : d.customer!.name),
       if (p != null) ...[
@@ -1090,6 +1322,8 @@ class _SummaryStepState extends State<SummaryStep> {
             PlanKind.punch => t('{0} כניסות, עד {1}', [p.entries, fmtDate(endDate(p, start)!)]),
           }
         ),
+        // The months count from the start: the next monthly payment is a month after it.
+        if (p.isRecurring) (t('התשלום החודשי הבא'), fmtDate(addMonths(start, 1))),
         if (d.discountPct > 0) (t('הנחה'), '${d.discountPct}%'),
         if (p.registrationFee > 0) (t('דמי רישום'), d.waiveRegistration ? t('בוטלו') : money(p.registrationFee)),
         if (p.isRecurring && p.prepayLastMonth) (t('חודש אחרון ששולם מראש'), money(d.monthly)),
@@ -1098,77 +1332,103 @@ class _SummaryStepState extends State<SummaryStep> {
     ];
     final pending = isPending(d.lines);
     final channel = store.settings.receiptChannels.map((c) => c.label).join(' / ');
-    return FlowScaffold(
-      title: t('סיכום ואישור'),
-      help: HelpTopic.summary,
-      step: 3,
-      bottom: FilledButton(
-        key: const Key('confirm'),
-        style: FilledButton.styleFrom(backgroundColor: Aura.goldLight, foregroundColor: Aura.ink),
-        onPressed: busy
-            ? null
-            : () async {
-                Receipt r;
-                Subscription? sub;
-                if (d.onServer) {
-                  final res = await _payOnServer(p);
-                  if (res == null || !context.mounted) return;
-                  r = res.receipt;
-                  sub = res.sub;
-                } else if (p != null) {
-                  final res = store.openSubscription(
-                    customer: d.customer!,
-                    plan: p,
-                    start: d.start,
-                    discountPct: d.discountPct,
-                    waiveRegistration: d.waiveRegistration,
-                    lines: d.lines,
-                    recurring: d.recurring,
-                    newCardLast4: d.newCardLast4,
+    // The saved card was charged and the document is not saved yet: no way back
+    // (a new try would be a new sale); "try again" here saves it without charging again.
+    return PopScope(
+      canPop: !d.cardCharged,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(t('הכרטיס כבר חויב. סיימו כאן כדי לשמור את המסמך.'))));
+        }
+      },
+      child: FlowScaffold(
+        title: t('סיכום ואישור'),
+        help: HelpTopic.summary,
+        step: 3,
+        bottom: FilledButton(
+          key: const Key('confirm'),
+          style: FilledButton.styleFrom(backgroundColor: Aura.goldLight, foregroundColor: Aura.ink),
+          onPressed: busy
+              ? null
+              : () async {
+                  Receipt r;
+                  Subscription? sub;
+                  if (d.onServer) {
+                    final res = await _payOnServer(p);
+                    if (res == null || !context.mounted) return;
+                    r = res.receipt;
+                    sub = res.sub;
+                  } else if (p != null) {
+                    final res = store.openSubscription(
+                      customer: d.customer!,
+                      plan: p,
+                      start: d.start,
+                      startOn: d.startOn,
+                      discountPct: d.discountPct,
+                      waiveRegistration: d.waiveRegistration,
+                      lines: d.lines,
+                      recurring: d.recurring,
+                      newCardLast4: d.newCardLast4,
+                    );
+                    r = res.receipt;
+                    sub = res.sub;
+                  } else {
+                    r = store.quickPay(customer: d.customer, description: d.itemsDescription, lines: d.lines);
+                  }
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => DoneScreen(draft: d, receipt: r, sub: sub)),
+                    (route) => route.isFirst,
                   );
-                  r = res.receipt;
-                  sub = res.sub;
-                } else {
-                  r = store.quickPay(customer: d.customer, description: d.itemsDescription, lines: d.lines);
-                }
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => DoneScreen(draft: d, receipt: r, sub: sub)),
-                  (route) => route.isFirst,
-                );
-              },
-        child: busy
-            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.ink))
-            : Text('${p != null ? t('פתיחת המנוי') : t('ביצוע התשלום')} · ${money(d.due)}'),
-      ),
-      children: [
-        if (error != null) Note(error!, warn: true),
-        SummaryBox(rows: rows),
-        SectionLabel(t('תשלום')),
-        SummaryBox(
-          rows: [for (final l in d.lines) (l.method.label, _lineText(l))],
-          total: (t('סה״כ היום'), money(d.due)),
+                },
+          child: busy
+              ? const SizedBox(
+                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.ink))
+              : Text('${p != null ? t('פתיחת המנוי') : t('ביצוע התשלום')} · ${money(d.due)}'),
         ),
-        if (p != null && p.isRecurring)
-          Note(d.recurring == RecurringMethod.manual
-              ? t('מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.', [money(d.monthly)])
-              : t('מהחודש הבא: {0} ב{1}.', [money(d.monthly), d.recurring!.label])),
-        Note([
-          if (pending && !d.onServer)
-            t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
-          t('{0} אחת עם כל אמצעי התשלום{1}.', [
-            (d.onServer
-                    ? ((store.posSettings?.noVat ?? false) ? DocType.receipt : DocType.taxInvoiceReceipt)
-                    : store.settings.docType)
-                .docName,
-            d.onServer
-                ? ''
-                : d.walkIn
-                    ? t(' תודפס או תישלח ב-SMS')
-                    : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
-          ]),
-        ].join(' ')),
-      ],
+        children: [
+          if (error != null) Note(error!, warn: true),
+          SummaryBox(rows: rows),
+          // The start can still change here, until the membership is opened on the server.
+          if (p != null && _created == null && !busy && !d.cardCharged)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: const Key('changeStart'),
+                onPressed: () async {
+                  if (await pickStartDate(context, d) && mounted) setState(() {});
+                },
+                icon: const Icon(Icons.event, size: 18),
+                label: Text(t('שינוי תאריך התחלה')),
+              ),
+            ),
+          SectionLabel(t('תשלום')),
+          SummaryBox(
+            rows: [for (final l in d.lines) (l.method.label, _lineText(l))],
+            total: (t('סה״כ היום'), money(d.due)),
+          ),
+          if (p != null && p.isRecurring)
+            Note(d.recurring == RecurringMethod.manual
+                ? t('מהחודש הבא: {0} בגבייה ידנית. התשלום יופיע ברשימת "לגבייה" בכל חודש.', [money(d.monthly)])
+                : t('מהחודש הבא: {0} ב{1}.', [money(d.monthly), d.recurring!.label])),
+          Note([
+            if (pending && !d.onServer)
+              t('המנוי ייפתח במצב "ממתין לתשלום" ויופעל אוטומטית כשהחלק שבלינק או בהעברה יאושר.'),
+            t('{0} אחת עם כל אמצעי התשלום{1}.', [
+              (d.onServer
+                      ? ((store.posSettings?.noVat ?? false) ? DocType.receipt : DocType.taxInvoiceReceipt)
+                      : store.settings.docType)
+                  .docName,
+              d.onServer
+                  ? ''
+                  : d.walkIn
+                      ? t(' תודפס או תישלח ב-SMS')
+                      : t(' תישלח ב-{0} ל-{1}', [channel, d.customer!.phone])
+            ]),
+          ].join(' ')),
+        ],
+      ),
     );
   }
 }

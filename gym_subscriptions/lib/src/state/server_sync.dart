@@ -289,15 +289,25 @@ class GymSync extends ChangeNotifier {
   }
 
   /// Opens a membership on the server (POST /api/gym/memberships): the web
-  /// subscription only, no sale, invoice or payment (the payment part stays in
-  /// the app for now). Returns it in the app's format with its open charges.
-  Future<({Subscription sub, List<Charge> charges, bool duplicate})> createMembership({
+  /// subscription only; the sale (the tax invoice-receipt) is saved after it.
+  /// Returns it in the app's format with its open charges.
+  ///
+  /// [cardChargeAmount]: paid now on the member's saved card. The server charges
+  /// the card FIRST and opens the membership only when the charge succeeded, so a
+  /// declined card leaves no membership (and the app saves no sale). [appUuid] is
+  /// the sale's: the same key again never charges twice. [cardReceipt] is Z
+  /// Credit's answer, saved as the card payment's receipt. A charge that does not
+  /// succeed throws [CardChargeException] with the text for the desk.
+  Future<({Subscription sub, List<Charge> charges, bool duplicate, String? cardReceipt})> createMembership({
     required Customer customer,
     required SubscriptionPlan plan,
     required DateTime start,
     required int discountPct,
     required bool waiveRegistration,
     RecurringMethod? recurring,
+    double? cardChargeAmount,
+    int cardChargePayments = 1,
+    String? appUuid,
   }) async {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
@@ -315,8 +325,19 @@ class GymSync extends ChangeNotifier {
             RecurringMethod.manual => 'manual',
             _ => 'credit_card',
           },
+        if (cardChargeAmount != null) ...{
+          'card_charge_amount': cardChargeAmount,
+          'card_charge_payments': cardChargePayments,
+          'app_uuid': appUuid,
+        },
       });
       final row = body is Map ? body['data'] : null;
+      final charge = body is Map && body['card_charge'] is Map ? body['card_charge'] as Map : null;
+      final cardReceipt = charge?['receipt'] is String ? charge!['receipt'] as String : null;
+      if (cardChargeAmount != null && (cardReceipt == null || cardReceipt.isEmpty)) {
+        // Asked to charge, but no charge in the answer: an older server. Nothing is saved as paid.
+        throw AuraApiException(AuraErrorKind.server, 'No card charge in the answer');
+      }
       final mapped = mapMemberships({
         'data': [row]
       }, customers: [
@@ -331,9 +352,15 @@ class GymSync extends ChangeNotifier {
         sub: mapped.subscriptions.single,
         charges: mapped.charges,
         duplicate: body is Map && body['duplicate'] == true,
+        cardReceipt: cardReceipt,
       );
     } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      // The card charge did not succeed: nothing was created.
+      if (cardChargeAmount != null && e.kind == AuraErrorKind.server) {
+        final text = cardChargeText(e.detail);
+        if (text != null) throw CardChargeException(text);
+      }
       // Monthly by card copies the member's saved card; the server has none.
       if (e.kind == AuraErrorKind.server && e.detail.endsWith(': member_has_no_card')) {
         throw const CardSaveException(CardSaveError.memberHasNoCard);
@@ -472,6 +499,48 @@ class GymSync extends ChangeNotifier {
     } on AuraApiException catch (e) {
       // Already saved by an earlier try whose answer was lost.
       if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 409')) return (saleId: null, reference: '');
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// A quick payment on the member's saved card (POST gym/card-charges): charged
+  /// now, before the sale is saved, so a charge that does not succeed leaves no
+  /// document. [payments] 1 = regular, 2+ = installments. [appUuid] is the sale's:
+  /// the same key again never charges twice. Returns Z Credit's answer (the card
+  /// payment's receipt); a charge that does not succeed throws [CardChargeException].
+  Future<String> chargeCustomerCard(Customer customer,
+      {required double amount, required int payments, required String appUuid}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/card-charges', {
+        'customer_id': int.tryParse(customer.id) ?? customer.id,
+        'amount': amount,
+        'payments': payments,
+        'app_uuid': appUuid,
+      });
+      final receipt = res is Map ? res['receipt'] : null;
+      if (receipt is! String || receipt.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      return receipt;
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (e.kind == AuraErrorKind.server) {
+        final text = cardChargeText(e.detail);
+        if (text != null) throw CardChargeException(text);
+      }
+      rethrow;
+    }
+  }
+
+  /// After a quick payment's sale is saved: its saved-card charge gets the sale,
+  /// and the sale the Z Credit reference (POST gym/card-charges/link).
+  Future<void> linkCustomerCardCharge(String appUuid) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      await auth.api.postJson(ws, session, '/gym/card-charges/link', {'app_uuid': appUuid});
+    } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
       rethrow;
     }

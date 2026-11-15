@@ -38,6 +38,34 @@ void main() {
       expect(startDate(StartOption.nextMonth, fixedNow), DateTime(2026, 12, 1));
       expect(startDate(StartOption.nextMonth, DateTime(2026, 12, 20)), DateTime(2027, 1, 1));
     });
+
+    test('installments split as the web splits them for Z Credit', () {
+      expect(splitInstallments(550, 3), (first: 183.34, other: 183.33));
+      expect(splitInstallments(450, 4), (first: 112.5, other: 112.5));
+      expect(splitInstallments(100, 3), (first: 33.34, other: 33.33));
+      expect(splitInstallments(99.99, 2), (first: 50.0, other: 49.99));
+      expect(splitInstallments(80, 1), (first: 80.0, other: 0.0));
+    });
+
+    test('start on a picked day; none picked = today', () {
+      expect(startDate(StartOption.date, fixedNow, DateTime(2026, 11, 3, 15)), DateTime(2026, 11, 3));
+      expect(startDate(StartOption.date, fixedNow, DateTime(2027, 2, 1)), DateTime(2027, 2, 1));
+      expect(startDate(StartOption.date, fixedNow), DateTime(2026, 11, 10));
+    });
+
+    test('earliest start: a monthly plan keeps its next charge after today', () {
+      final monthly = SubscriptionPlan(id: 'm', name: 'm', kind: PlanKind.recurring, price: 199);
+      final term = SubscriptionPlan(id: 't', name: 't', kind: PlanKind.term, price: 540, months: 3);
+      final first = earliestStart(monthly, fixedNow);
+      expect(first, DateTime(2026, 10, 11));
+      expect(addMonths(first, 1).isAfter(DateTime(2026, 11, 10)), isTrue);
+      expect(addMonths(first.subtract(const Duration(days: 1)), 1), DateTime(2026, 11, 10),
+          reason: 'one day earlier would put the charge on today');
+      // End of a long month: 31 Mar -> 1 Mar, next charge 1 Apr.
+      expect(earliestStart(monthly, DateTime(2027, 3, 31)), DateTime(2027, 3, 1));
+      expect(earliestStart(term, fixedNow), DateTime(2025, 11, 10));
+      expect(latestStart(fixedNow), DateTime(2027, 11, 10));
+    });
   });
 
   group('pricing', () {

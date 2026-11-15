@@ -6,17 +6,29 @@ import 'l10n.dart';
 
 enum CheckoutFlow { subscription, quickPay }
 
-enum StartOption { today, tomorrow, nextMonth }
+/// When a new membership starts. [date]: a day the desk picks (see [startDate]).
+enum StartOption { today, tomorrow, nextMonth, date }
 
 extension StartOptionLabel on StartOption {
   String get label => switch (this) {
         StartOption.today => t('היום'),
         StartOption.tomorrow => t('מחר'),
         StartOption.nextMonth => t('1 לחודש הבא'),
+        StartOption.date => t('תאריך אחר'),
       };
 }
 
 double round2(double v) => (v * 100).round() / 100;
+
+/// A card charge in [payments] installments, split as the web splits it for Z
+/// Credit (SaleController::splitZcreditInstallments): the other payments are
+/// whole agorot, the first takes what is left. 550 in 3 -> (183.34, 183.33).
+({double first, double other}) splitInstallments(double amount, int payments) {
+  if (payments <= 1) return (first: round2(amount), other: 0);
+  final total = (amount * 100).round();
+  final other = total ~/ payments;
+  return (first: (total - other * (payments - 1)) / 100, other: other / 100);
+}
 
 DateTime dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -28,14 +40,29 @@ DateTime addMonths(DateTime d, int months) {
   return DateTime(y, m, d.day > lastDay ? lastDay : d.day);
 }
 
-DateTime startDate(StartOption o, DateTime now) {
+/// The first day of a new membership. [on] is the day picked for
+/// [StartOption.date]; none picked = today. The months count from this day.
+DateTime startDate(StartOption o, DateTime now, [DateTime? on]) {
   final t = dateOnly(now);
   return switch (o) {
     StartOption.today => t,
     StartOption.tomorrow => t.add(const Duration(days: 1)),
     StartOption.nextMonth => DateTime(t.year, t.month + 1, 1),
+    StartOption.date => on == null ? t : dateOnly(on),
   };
 }
+
+/// The earliest start the desk may pick for [p]. A monthly plan: its next
+/// monthly charge (start + 1 month) must still be after today, because the
+/// server charges a card only on that exact day; an older start would never be
+/// charged. The server checks the same. Other plans: up to a year back.
+DateTime earliestStart(SubscriptionPlan p, DateTime now) {
+  final t = dateOnly(now);
+  return p.isRecurring ? addMonths(t, -1).add(const Duration(days: 1)) : t.subtract(const Duration(days: 365));
+}
+
+/// The latest start the desk may pick: a year ahead.
+DateTime latestStart(DateTime now) => addMonths(dateOnly(now), 12);
 
 /// End of a term plan, or punch-card expiry. Null for recurring plans.
 DateTime? endDate(SubscriptionPlan p, DateTime start) => switch (p.kind) {

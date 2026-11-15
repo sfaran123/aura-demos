@@ -5,6 +5,7 @@
 // OrderTotals.pos, without an order discount). The web is the reference for
 // the maths; nothing here is new maths.
 
+import 'dart:convert';
 import 'dart:math';
 
 import 'checkout.dart';
@@ -173,6 +174,7 @@ class _PayRow {
   String chequeAccount = '';
   String chequeAmount = '';
   String receipt = '';
+  String transactionReference = '';
   String depositDate = '';
   String depositAmount = '';
   String depositBank = '';
@@ -182,13 +184,19 @@ class _PayRow {
 /// The payment lines as rows: one row per cheque (a month apart, consecutive
 /// numbers; the last takes the rounding), the transfer as the web's Deposit,
 /// a card as taken on another terminal (the POS manual card, receipt
-/// "other_device").
+/// "other_device"), or, charged by the server on the member's saved card, with
+/// Z Credit's answer as the receipt and its ReferenceNumber (as the web saves
+/// its own card charges, so the Z Credit report and refunds find it).
 List<_PayRow> _rows(List<PaymentLine> lines, DateTime today) {
   final rows = <_PayRow>[];
   for (final l in lines) {
     switch (l.method) {
       case PayMethod.cash:
         rows.add(_PayRow(round2(l.amount), 1));
+      case PayMethod.card when l.chargeReceipt != null:
+        rows.add(_PayRow(round2(l.amount), 3)
+          ..receipt = l.chargeReceipt!
+          ..transactionReference = _referenceOf(l.chargeReceipt!));
       case PayMethod.card:
         rows.add(_PayRow(round2(l.amount), 3)..receipt = 'other_device');
       case PayMethod.cheque:
@@ -216,6 +224,16 @@ List<_PayRow> _rows(List<PaymentLine> lines, DateTime today) {
     }
   }
   return rows;
+}
+
+/// Z Credit's ReferenceNumber in its answer (JSON), else ''.
+String _referenceOf(String receipt) {
+  try {
+    final j = jsonDecode(receipt);
+    return j is Map ? '${j['ReferenceNumber'] ?? ''}' : '';
+  } on FormatException {
+    return '';
+  }
 }
 
 /// The POST sales/store-v2 body. [customerId] null = the POS default customer.
@@ -313,7 +331,7 @@ Map<String, Object?> storeV2Body({
     'all_cibus_application_code_number': join((r) => ''),
     'all_cibus_card_number': join((r) => ''),
     'all_cibus_company_card_number': join((r) => ''),
-    'all_transaction_reference': join((r) => ''),
+    'all_transaction_reference': join((r) => r.transactionReference),
     'all_deposit_date': join((r) => r.depositDate),
     'all_deposit_amount': join((r) => r.depositAmount),
     'all_deposit_bank_reference': join((r) => r.depositBank),

@@ -342,6 +342,37 @@ void showDone(BuildContext context, String text) {
     ..showSnackBar(SnackBar(content: Text(text)));
 }
 
+/// A card was saved (the card company gave a token): a clear green message, every time.
+void showCardSaved(BuildContext context, String text) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      key: const Key('cardSavedMessage'),
+      backgroundColor: const Color(0xFF1E7A4C),
+      duration: const Duration(seconds: 5),
+      content: Row(children: [
+        const Icon(Icons.check_circle, color: Colors.white),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+      ]),
+    ));
+}
+
+/// A card that was not saved, is not valid, or was not charged: an alert the desk
+/// has to close, so it cannot be missed. The flow does not go on.
+Future<void> showCardProblem(BuildContext context, String title, String message) => showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        key: const Key('cardProblemDialog'),
+        icon: const Icon(Icons.error_outline, color: Aura.warn, size: 40),
+        title: Text(title, textAlign: TextAlign.center),
+        content: Text(message),
+        actions: [
+          FilledButton(key: const Key('cardProblemOk'), onPressed: () => Navigator.pop(c), child: Text(t('הבנתי'))),
+        ],
+      ),
+    );
+
 /// "Go forward" arrow that points the right way in RTL and LTR.
 class ForwardChevron extends StatelessWidget {
   const ForwardChevron({super.key, this.size = 22, this.color = Aura.muted});

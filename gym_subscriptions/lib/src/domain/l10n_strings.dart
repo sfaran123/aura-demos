@@ -10,6 +10,11 @@ const Map<String, (String, String)> strings = {
   'היום': ('اليوم', 'Today'),
   'מחר': ('غدًا', 'Tomorrow'),
   '1 לחודש הבא': ('أول الشهر القادم', '1st of next month'),
+  'תאריך אחר': ('تاريخ آخر', 'Other date'),
+  'החיוב החודשי הבא: {0}': ('الخصم الشهري القادم: {0}', 'Next monthly charge: {0}'),
+  'בחרו תאריך תחילה': ('اختاروا تاريخ البدء', 'Pick a start date'),
+  'שינוי תאריך התחלה': ('تغيير تاريخ البدء', 'Change start date'),
+  'התשלום החודשי הבא': ('الدفعة الشهرية القادمة', 'Next monthly payment'),
   'אין סכום לתשלום': ('لا يوجد مبلغ للدفع', 'Nothing to pay'),
   'בחרו אמצעי תשלום': ('اختاروا طريقة الدفع', 'Choose a payment method'),
   'יש אמצעי תשלום בלי סכום': ('هناك طريقة دفع بدون مبلغ', 'A payment method has no amount'),
@@ -2187,5 +2192,100 @@ const Map<String, (String, String)> strings = {
   'ללקוח אין כרטיס שמור במערכת. בחרו "כרטיס חדש" כדי לשמור כרטיס, או אמצעי אחר לחיוב החודשי.': (
     'لا توجد بطاقة محفوظة للعميل في النظام. اختر "بطاقة جديدة" لحفظ بطاقة، أو طريقة أخرى للدفع الشهري.',
     'The member has no saved card in the system. Choose "New card" to save one, or another way to pay monthly.'
+  ),
+  // Desk charge on the member's saved card (a new membership, a quick payment).
+  'שמרו את הכרטיס של הלקוח': ('احفظوا بطاقة العميل', "Save the member's card"),
+  // Regular or installments, asked for every saved-card charge at the desk.
+  'בחרו: תשלום רגיל או תשלומים': ('اختاروا: دفعة عادية أو أقساط', 'Choose: regular payment or installments'),
+  'מספר התשלומים חייב להיות 2 לפחות': ('عدد الأقساط يجب أن يكون 2 على الأقل', 'The number of installments must be 2 or more'),
+  'איך לחייב את הכרטיס?': ('كيف يتم خصم البطاقة؟', 'How should the card be charged?'),
+  'תשלום רגיל': ('دفعة عادية', 'Regular payment'),
+  'תשלומים': ('أقساط', 'Installments'),
+  'מספר תשלומים': ('عدد الأقساط', 'Number of installments'),
+  'תשלום ראשון {0}, ואחריו {1} תשלומים של {2}': (
+    'الدفعة الأولى {0}، ثم {1} أقساط بقيمة {2}',
+    'First payment {0}, then {1} payments of {2}'
+  ),
+  'הכרטיס השמור יחויב ב-{0} ב-{1} תשלומים כשתאשרו בסיכום.': (
+    'سيتم خصم {0} من البطاقة المحفوظة على {1} أقساط عند التأكيد في الملخص.',
+    'The saved card is charged {0} in {1} installments when you confirm on the summary.'
+  ),
+  'הכרטיס השמור יחויב ב-{0} כשתאשרו בסיכום.': (
+    'سيتم خصم {0} من البطاقة المحفوظة عند التأكيد في الملخص.',
+    'The saved card is charged {0} when you confirm on the summary.'
+  ),
+  ' · תשלום רגיל': (' · دفعة عادية', ' · regular payment'),
+  'חיוב בכרטיס שמור זמין רק ללקוח עם כרטיס שמור.': (
+    'الخصم من بطاقة محفوظة متاح فقط لعميل لديه بطاقة محفوظة.',
+    'Charging a saved card is only for a member with a saved card.'
+  ),
+  'לא הופקה חשבונית. אפשר לנסות שוב או לחזור ולבחור אמצעי תשלום אחר.': (
+    'لم تصدر فاتورة. يمكن المحاولة مرة أخرى أو الرجوع واختيار طريقة دفع أخرى.',
+    'No invoice was issued. Try again, or go back and pick another payment method.'
+  ),
+  // Card saved / not saved / not charged: messages and alerts.
+  'הכרטיס לא תקין': ('البطاقة غير صالحة', 'The card is not valid'),
+  'הכרטיס לא נשמר': ('لم يتم حفظ البطاقة', 'The card was not saved'),
+  'הכרטיס נשמר בהצלחה · •••• {0}': ('تم حفظ البطاقة بنجاح · •••• {0}', 'Card saved successfully · •••• {0}'),
+  'כרטיס המנוי נשמר בהצלחה': ('تم حفظ بطاقة الاشتراك بنجاح', 'Membership card saved successfully'),
+  'החיוב לא בוצע': ('لم يتم الخصم', 'The charge did not go through'),
+  'החיוב בכרטיס לא בוצע': ('لم يتم خصم البطاقة', 'The card was not charged'),
+  'אין כרטיס שמור': ('لا توجد بطاقة محفوظة', 'No saved card'),
+  'אי אפשר להמשיך בלי שהכרטיס נשמר. הקלידו את הכרטיס שוב, או סגרו את החלון.': (
+    'لا يمكن المتابعة قبل حفظ البطاقة. أدخلوا البطاقة مرة أخرى، أو أغلقوا النافذة.',
+    'You cannot go on until the card is saved. Type the card again, or close this window.'
+  ),
+  'הכרטיס לא נשמר. שמרו כרטיס, או בחרו מסוף סליקה.': (
+    'لم يتم حفظ البطاقة. احفظوا بطاقة، أو اختاروا جهاز الدفع.',
+    'The card was not saved. Save a card, or pick the payment terminal.'
+  ),
+  'המנוי לא נפתח ולא הופקה חשבונית. אפשר לנסות שוב או לחזור ולבחור אמצעי תשלום אחר.': (
+    'لم يُفتح الاشتراك ولم تصدر فاتورة. يمكن المحاولة مرة أخرى أو الرجوع واختيار طريقة دفع أخرى.',
+    'No membership was opened and no invoice was issued. Try again, or go back and pick another payment method.'
+  ),
+  'מסוף סליקה': ('جهاز الدفع', 'Payment terminal'),
+  'חיוב כרטיס שמור •••• {0}': ('خصم البطاقة المحفوظة •••• {0}', 'Charge saved card •••• {0}'),
+  'הכרטיס חויב.': ('تم خصم البطاقة.', 'The card was charged.'),
+  'הכרטיס השמור יחויב ב-{0} בתשלום אחד כשתאשרו בסיכום.': (
+    'سيتم خصم {0} من البطاقة المحفوظة بدفعة واحدة عند التأكيد في الملخص.',
+    'The saved card is charged {0} in one payment when you confirm on the summary.'
+  ),
+  ' · כרטיס שמור {0}': (' · بطاقة محفوظة {0}', ' · saved card {0}'),
+  ' · חויב': (' · تم الخصم', ' · charged'),
+  'חיוב בכרטיס שמור זמין רק במכירת מנוי.': (
+    'الخصم من بطاقة محفوظة متاح فقط عند بيع اشتراك.',
+    'Charging a saved card is only for selling a membership.'
+  ),
+  'הכרטיס חויב. נסו שוב כדי לשמור את המסמך — הכרטיס לא יחויב שוב.': (
+    'تم خصم البطاقة. حاولوا مرة أخرى لحفظ المستند — لن يتم خصم البطاقة مرة أخرى.',
+    'The card was charged. Try again to save the document — the card will not be charged again.'
+  ),
+  'הכרטיס כבר חויב. סיימו כאן כדי לשמור את המסמך.': (
+    'تم خصم البطاقة. أكملوا هنا لحفظ المستند.',
+    'The card was already charged. Finish here to save the document.'
+  ),
+  'הכרטיס לא אושר.': ('لم تتم الموافقة على البطاقة.', 'The card was not approved.'),
+  'הכרטיס לא אושר: {0}': ('لم تتم الموافقة على البطاقة: {0}', 'The card was not approved: {0}'),
+  'לא התקבלה תשובה ברורה מחברת האשראי. בדקו במערכת Z Credit אם החיוב עבר לפני שמחייבים שוב.': (
+    'لم يصل رد واضح من شركة البطاقات. تحققوا في Z Credit إن تم الخصم قبل الخصم مرة أخرى.',
+    'No clear answer from the card company. Check in Z Credit whether the charge went through before charging again.'
+  ),
+  'החיוב עדיין בטיפול. המתינו רגע ונסו שוב.': (
+    'الخصم ما زال قيد المعالجة. انتظروا قليلاً وحاولوا مرة أخرى.',
+    'The charge is still being processed. Wait a moment and try again.'
+  ),
+  'כבר חויב כרטיס על המנוי הזה. אין לחייב שוב; פנו למנהל.': (
+    'تم خصم بطاقة لهذا الاشتراك. لا تخصموا مرة أخرى؛ راجعوا المدير.',
+    'A card was already charged for this membership. Do not charge again; ask the manager.'
+  ),
+  'המנוי כבר שולם.': ('الاشتراك مدفوع.', 'The membership is already paid.'),
+  'ללקוח אין כרטיס שמור. שמרו כרטיס או בחרו אמצעי אחר.': (
+    'لا توجد بطاقة محفوظة للعميل. احفظوا بطاقة أو اختاروا طريقة أخرى.',
+    'The member has no saved card. Save a card or choose another method.'
+  ),
+  'הסכום גבוה ממחיר המנוי.': ('المبلغ أعلى من سعر الاشتراك.', 'The amount is more than the membership costs.'),
+  'החיוב הזה כבר נעשה בסכום אחר. פנו למנהל.': (
+    'تم هذا الخصم بمبلغ آخر. راجعوا المدير.',
+    'This charge was already made for another amount. Ask the manager.'
   ),
 };

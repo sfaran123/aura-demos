@@ -263,7 +263,10 @@ extension PayMethodLabel on PayMethod {
   bool get isDeferred => this == PayMethod.link || this == PayMethod.bank;
 }
 
-enum CardSource { saved, newCard }
+/// Which card pays a card line. Signed in: [terminal] = charged on the payment
+/// terminal (the POS "other device" card); [saved] = the member's saved Z Credit
+/// card, charged by the server when the desk confirms (punch card / fixed term).
+enum CardSource { saved, newCard, terminal }
 
 /// One part of a split payment.
 class PaymentLine {
@@ -281,6 +284,11 @@ class PaymentLine {
 
   /// Card processor's transaction id, needed to refund a card payment.
   String? transactionId;
+
+  /// Signed in, [CardSource.saved]: Z Credit's answer for the charge the server
+  /// made (saved as the card payment's receipt, as the web saves its own card
+  /// charges). Set once charged, so a retry never charges again.
+  String? chargeReceipt;
 
   final PayMethod method;
   double amount;

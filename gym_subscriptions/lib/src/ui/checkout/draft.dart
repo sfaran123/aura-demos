@@ -21,6 +21,9 @@ class CheckoutDraft extends ChangeNotifier {
   bool walkIn = false;
   SubscriptionPlan? plan;
   StartOption start = StartOption.today;
+
+  /// The day picked when [start] is [StartOption.date].
+  DateTime? startOn;
   int discountPct = 0;
   bool waiveRegistration = false;
   final List<PaymentLine> lines = [];
@@ -68,7 +71,19 @@ class CheckoutDraft extends ChangeNotifier {
   String? get problem => onServer && recurring == RecurringMethod.newCard
       // Signed in, a new card is saved for the member first (then it is the saved card).
       ? t('שמרו את הכרטיס החדש של הלקוח')
-      : paymentProblem(
+      // Signed in, a card line waiting for a card that was not saved (or the saved
+      // card without one): blocked until a card is saved or the terminal is picked.
+      : onServer &&
+              lines.any((l) =>
+                  l.method == PayMethod.card &&
+                  (l.cardSource == CardSource.newCard || (l.cardSource == CardSource.saved && !hasSavedCard)))
+          ? t('שמרו את הכרטיס של הלקוח')
+          // The saved card: the desk must say regular or installments.
+          : onServer && lines.any((l) => _savedCardLine(l) && l.installments == 0)
+              ? t('בחרו: תשלום רגיל או תשלומים')
+              : onServer && lines.any((l) => _savedCardLine(l) && l.installments < 0)
+                  ? t('מספר התשלומים חייב להיות 2 לפחות')
+                  : paymentProblem(
         due: due,
         lines: lines,
         // Signed in, a card is charged on the payment terminal: nothing to type here.
@@ -108,16 +123,26 @@ class CheckoutDraft extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The first day of the membership, from [start] and the day picked ([startOn]).
+  DateTime get startDay => startDate(start, store.now, startOn);
+
   void setPlan(SubscriptionPlan p) {
     plan = p;
+    // A picked day too early for the new plan (a monthly plan allows less back): today.
+    if (start == StartOption.date && startOn != null && startOn!.isBefore(earliestStart(p, store.now))) {
+      start = StartOption.today;
+      startOn = null;
+    }
     if (p.registrationFee == 0) waiveRegistration = false;
     if (discountPct > store.settings.staffMaxDiscountPct) discountPct = 0;
     _resetPayment();
     notifyListeners();
   }
 
-  void setStart(StartOption s) {
+  /// [on]: the day picked for [StartOption.date].
+  void setStart(StartOption s, [DateTime? on]) {
     start = s;
+    startOn = s == StartOption.date ? on : null;
     notifyListeners();
   }
 
@@ -177,29 +202,63 @@ class CheckoutDraft extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Signed in, a payment at the desk for a member (a new membership's first
+  /// payment, or a quick payment; never the automatic monthly charge): a card line
+  /// may be the member's saved card, charged by the server on confirm, regular or
+  /// in installments, as the web's Add Sale "existing card". Needs the server's Z
+  /// Credit terminal. A walk-in has no saved card.
+  bool get savedCardCharge =>
+      onServer && cardBilling && !walkIn && customer != null && (!isSubscription || plan != null);
+
+  /// The saved card pays one line at most (one charge per sale).
+  bool savedCardFree(PaymentLine l) =>
+      !lines.any((x) => x != l && x.method == PayMethod.card && x.cardSource == CardSource.saved);
+
+  /// A card line was charged on the saved card already (the sale is not saved yet).
+  bool get cardCharged => lines.any((l) => l.chargeReceipt != null);
+
   PaymentLine addLine(PayMethod m) {
     final l = newLine(m, remaining, hasSavedCard: hasSavedCard, defaultCheques: maxCheques >= 3 ? 3 : maxCheques);
+    // Signed in: a member with a saved card pays with it (charged by the server on
+    // confirm), as the web's Add Sale charges the saved card; else the terminal.
+    if (onServer && m == PayMethod.card) {
+      l.cardSource = savedCardCharge && hasSavedCard && savedCardFree(l) ? CardSource.saved : CardSource.terminal;
+      // The saved card: regular or installments is asked, never assumed.
+      if (l.cardSource == CardSource.saved) l.installments = 0;
+    }
     lines.add(l);
     notifyListeners();
     return l;
   }
 
   void removeLine(PaymentLine l) {
+    if (l.chargeReceipt != null) return; // charged: it stays as it is
     lines.remove(l);
     notifyListeners();
   }
 
   void setAmount(PaymentLine l, double v) {
+    if (l.chargeReceipt != null) return;
     l.amount = v < 0 ? 0 : round2(v);
     notifyListeners();
   }
 
   void setCardSource(PaymentLine l, CardSource s) {
+    if (l.chargeReceipt != null) return;
+    // Signed in, the saved card: regular or installments is asked again (0 = not chosen).
+    if (onServer && s == CardSource.saved && l.cardSource != CardSource.saved) l.installments = 0;
+    if (onServer && s != CardSource.saved) l.installments = 1;
     l.cardSource = s;
     notifyListeners();
   }
 
+  /// A card line paid with the member's saved card (signed in).
+  bool _savedCardLine(PaymentLine l) => l.method == PayMethod.card && l.cardSource == CardSource.saved;
+
+  /// [n]: 1 = regular, 2+ = installments (signed in, the saved card; 0 = not chosen
+  /// yet; -1 = installments chosen, the number typed is not 2 or more).
   void setInstallments(PaymentLine l, int n) {
+    if (l.chargeReceipt != null) return;
     l.installments = n;
     notifyListeners();
   }

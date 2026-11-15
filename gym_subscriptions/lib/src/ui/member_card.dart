@@ -194,7 +194,10 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
     if (busy) return;
     final store = StoreScope.read(context);
     final problem = card.validate(store.today);
-    if (problem != null) return setState(() => error = problem);
+    if (problem != null) {
+      setState(() => error = problem);
+      return showCardProblem(context, t('הכרטיס לא תקין'), problem);
+    }
     final sync = SyncScope.maybeOf(context);
     setState(() {
       busy = true;
@@ -212,17 +215,18 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
             .failedMonths;
       }
     } on CardSaveException catch (e) {
-      return _fail(e.message);
+      return _fail(e.message, title: t('הכרטיס לא נשמר'));
     } catch (e) {
-      return _fail(authErrorText(e));
+      return _fail(authErrorText(e), title: t('הכרטיס לא נשמר'));
     }
     if (!mounted) return;
     card.clear();
     if (failed.isEmpty) {
       Navigator.pop(context);
-      showDone(context, t('כרטיס המנוי עודכן'));
+      showCardSaved(context, t('כרטיס המנוי נשמר בהצלחה'));
       return;
     }
+    showCardSaved(context, t('כרטיס המנוי נשמר בהצלחה'));
     setState(() {
       busy = false;
       months = failed;
@@ -252,18 +256,20 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
         picked.clear();
       });
     } on CardChargeException catch (e) {
-      _fail(t('החיוב לא אושר: {0}', [e.message]));
+      _fail(t('החיוב לא אושר: {0}', [e.message]), title: t('החיוב לא בוצע'));
     } catch (e) {
-      _fail(authErrorText(e));
+      _fail(authErrorText(e), title: t('החיוב לא בוצע'));
     }
   }
 
-  void _fail(String message) {
+  /// Shown in the sheet and, with [title], as an alert the desk has to close.
+  void _fail(String message, {String? title}) {
     if (!mounted) return;
     setState(() {
       busy = false;
       error = message;
     });
+    if (title != null) showCardProblem(context, title, message);
   }
 
   Widget _spinner() => const SizedBox(
@@ -361,13 +367,14 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
       ];
 }
 
-/// Adds a card for [customer], or replaces the saved one.
-Future<void> showMemberCardSheet(BuildContext context, Customer customer) => showModalBottomSheet<void>(
+/// Adds a card for [customer], or replaces the saved one. True when a card was
+/// saved now (closed without saving, or the card failed: false).
+Future<bool> showMemberCardSheet(BuildContext context, Customer customer) => showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => _MemberCardSheet(customer: customer),
-    );
+    ).then((saved) => saved == true);
 
 class _MemberCardSheet extends StatefulWidget {
   const _MemberCardSheet({required this.customer});
@@ -391,7 +398,10 @@ class _MemberCardSheetState extends State<_MemberCardSheet> {
     if (saving) return;
     final store = StoreScope.read(context);
     final problem = card.validate(store.today);
-    if (problem != null) return setState(() => error = problem);
+    if (problem != null) {
+      setState(() => error = problem);
+      return showCardProblem(context, t('הכרטיס לא תקין'), problem);
+    }
     setState(() {
       saving = true;
       error = null;
@@ -403,10 +413,11 @@ class _MemberCardSheetState extends State<_MemberCardSheet> {
         saving = false;
         error = failed;
       });
-      return;
+      // The sheet stays open: the card is typed again, or the sheet is closed.
+      return showCardProblem(context, t('הכרטיס לא נשמר'), failed);
     }
-    Navigator.pop(context);
-    showDone(context, t('הכרטיס נשמר · •••• {0}', [widget.customer.savedCardLast4]));
+    Navigator.pop(context, true);
+    showCardSaved(context, t('הכרטיס נשמר בהצלחה · •••• {0}', [widget.customer.savedCardLast4]));
   }
 
   @override

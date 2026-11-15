@@ -105,6 +105,29 @@ class CardChargeException implements Exception {
   String toString() => 'CardChargeException($message)';
 }
 
+/// The desk's text for a refused desk card charge (gym/memberships/{id}/charge-card),
+/// from the server's error (`HTTP 422: card_declined: <Z Credit text>`); null
+/// for an error that is not about the charge.
+String? cardChargeText(String detail) {
+  final i = detail.indexOf(': ');
+  final m = i < 0 ? detail : detail.substring(i + 2);
+  if (m.startsWith('card_declined')) {
+    final why = m.length > 'card_declined: '.length ? m.substring('card_declined: '.length) : '';
+    return why.isEmpty ? t('הכרטיס לא אושר.') : t('הכרטיס לא אושר: {0}', [why]);
+  }
+  return switch (m.split(' ').first) {
+    'charge_unknown' => t('לא התקבלה תשובה ברורה מחברת האשראי. בדקו במערכת Z Credit אם החיוב עבר לפני שמחייבים שוב.'),
+    'charge_in_progress' => t('החיוב עדיין בטיפול. המתינו רגע ונסו שוב.'),
+    'already_charged' => t('כבר חויב כרטיס על המנוי הזה. אין לחייב שוב; פנו למנהל.'),
+    'already_paid' => t('המנוי כבר שולם.'),
+    'member_has_no_card' => t('ללקוח אין כרטיס שמור. שמרו כרטיס או בחרו אמצעי אחר.'),
+    'card_terminal_not_set' => t('לא הוגדר מסוף Z Credit בהגדרות המערכת של AURA.'),
+    'amount_too_high' => t('הסכום גבוה ממחיר המנוי.'),
+    'charge_mismatch' => t('החיוב הזה כבר נעשה בסכום אחר. פנו למנהל.'),
+    _ => null,
+  };
+}
+
 /// Whether a membership's own card can be updated, as the web's subscription
 /// "Update Credit Card Info": only one the server charges monthly by card. On a
 /// membership paid at the desk the server would start charging the card, and

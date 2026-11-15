@@ -16,7 +16,7 @@ import 'package:aura_gym/src/state/auth.dart';
 import 'package:aura_gym/src/state/gym_store.dart';
 
 import 'add_member_test.dart' show customerStore;
-import 'new_membership_test.dart' as nm show posSettings;
+import 'new_membership_test.dart' as nm show posSettings, zReceipt;
 import 'new_membership_test.dart' show payingApi;
 import 'server_sync_test.dart' show memberships, serverApi, signedIn, today;
 import 'support/fake_api.dart';
@@ -115,7 +115,8 @@ void main() {
       expect(api.posts.last.$1, '/gym/members/8/card');
       expect(api.posts.last.$2, {'card_number': '4580000000001111', 'cvv': '123', 'card_expiry_date': '09/28'});
       expect(store.customer('8')!.savedCardLast4, '1111');
-      expect(find.text('Card saved · •••• 1111'), findsOneWidget);
+      expect(find.byKey(const Key('cardSavedMessage')), findsOneWidget, reason: 'a clear message every time');
+      expect(find.text('Card saved successfully · •••• 1111'), findsOneWidget);
       expect(find.byKey(const Key('saveMemberCard')), findsNothing, reason: 'the card sheet closed');
     });
 
@@ -144,8 +145,13 @@ void main() {
       await tapKey(t, 'memberCard');
       await typeCard(t);
       await tapKey(t, 'saveMemberCard');
+      // An alert the desk has to close, then the sheet stays open with the reason.
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.text('The card was not saved'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(find.text('The card was not approved. Check the details and try again.'), findsOneWidget);
       expect(find.byKey(const Key('saveMemberCard')), findsOneWidget);
+      expect(find.byKey(const Key('cardSavedMessage')), findsNothing);
       expect(store.customer('7')!.savedCardLast4, '4815');
     });
 
@@ -156,6 +162,9 @@ void main() {
       await tapKey(t, 'memberCard');
       await typeCard(t, expiry: '1025');
       await tapKey(t, 'saveMemberCard');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.text('The card is not valid'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(find.text('The card has expired'), findsOneWidget);
       expect(api.posts, isEmpty);
     });
@@ -196,6 +205,7 @@ void main() {
       expect(api.posts.map((p) => p.$1), ['/customer/store', '/gym/members/321/card']);
       expect(store.customer('321')!.savedCardLast4, '1111');
       expect(find.byKey(const Key('ncSave')), findsNothing, reason: 'the flow went on');
+      expect(find.text('Card saved successfully · •••• 1111'), findsOneWidget);
     });
 
     testWidgets('a wrong card stops before the member is created', (t) async {
@@ -208,11 +218,13 @@ void main() {
       await tapKey(t, 'ncAddCard');
       await typeCard(t, cvv: '1');
       await tapKey(t, 'ncSave');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(find.text('CVV needs 3 or 4 digits'), findsOneWidget);
       expect(api.posts, isEmpty);
     });
 
-    testWidgets('card declined: the member is kept; retry, or go on without the card', (t) async {
+    testWidgets('card declined: an alert, the member is kept, and there is no going on without the card', (t) async {
       final api = serverApi()
         ..responses['/gym/pos-settings'] = posSettings()
         ..postHandlers['/customer/store'] = customerStore()
@@ -223,19 +235,24 @@ void main() {
       await tapKey(t, 'ncAddCard');
       await typeCard(t);
       await tapKey(t, 'ncSave');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.text('The card was not saved'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(
           find.text(
               'The member was saved, but the card was not: The card was not approved. Check the details and try again.'),
           findsOneWidget);
       expect(store.customer('321'), isNotNull);
       expect(find.text('Try saving the card again'), findsOneWidget);
+      // Blocked: no "go on without the card".
+      expect(find.byKey(const Key('ncSkipCard')), findsNothing);
+      expect(find.byKey(const Key('ncCardBlocked')), findsOneWidget);
 
-      // Retry: the member is not created again.
+      // Retry: the member is not created again; still declined, still here.
       await tapKey(t, 'ncSave');
+      await tapKey(t, 'cardProblemOk');
       expect(api.posts.map((p) => p.$1), ['/customer/store', '/gym/members/321/card', '/gym/members/321/card']);
-
-      await tapKey(t, 'ncSkipCard');
-      expect(find.byKey(const Key('ncSave')), findsNothing, reason: 'went on without the card');
+      expect(find.byKey(const Key('ncSave')), findsOneWidget, reason: 'did not go on');
       expect(store.customer('321')!.hasSavedCard, isFalse);
     });
 
@@ -339,6 +356,9 @@ void main() {
       expect(a.posts.last.$2, {
         'months': ['2026-10|10', '2026-11|10']
       });
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.text('The charge did not go through'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(find.text('The charge was not approved: Declined by bank'), findsOneWidget);
       expect(find.byKey(const Key('chargeFailedMonths')), findsOneWidget);
     });
@@ -361,7 +381,7 @@ void main() {
       await tapKey(t, 'membershipCard');
       await typeCard(t);
       await tapKey(t, 'saveMembershipCard');
-      expect(find.text('Membership card updated'), findsOneWidget);
+      expect(find.text('Membership card saved successfully'), findsOneWidget);
       expect(find.byKey(const Key('saveMembershipCard')), findsNothing);
     });
 
@@ -373,7 +393,10 @@ void main() {
       await tapKey(t, 'membershipCard');
       await typeCard(t);
       await tapKey(t, 'saveMembershipCard');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
       expect(find.text('The card was not approved. Check the details and try again.'), findsOneWidget);
+      expect(find.byKey(const Key('saveMembershipCard')), findsOneWidget, reason: 'stays: no going on');
       expect(store.subscriptions.firstWhere((s) => s.id == '5').hasCardToken, isFalse);
     });
 
@@ -425,23 +448,32 @@ void main() {
       await t.pumpAndSettle();
       await tapKey(t, 'plan-10');
       await tapKey(t, 'toPayment');
-      // The monthly plan takes no cash: the first payment by card on the terminal.
+      // The monthly plan takes no cash: the first payment by card (the saved card
+      // when the member has one, else the terminal). The saved card: regular.
       await tapKey(t, 'add-card');
+      if (find.byKey(const Key('payRegular-0')).evaluate().isNotEmpty) await tapKey(t, 'payRegular-0');
       return store;
     }
 
     Map<String, Object?> sent(FakeApi a, String path) => a.posts.lastWhere((p) => p.$1 == path).$2;
 
-    testWidgets('a member with a saved card: chosen for the next months, sent as credit_card', (t) async {
+    testWidgets('a member with a saved card: charged for today and chosen for the next months', (t) async {
       final a = cardApi();
       await toPayment(t, a, 'Dana Levi');
-      expect(find.text('Saved card •••• 4815'), findsOneWidget);
+      expect(find.text('Charge saved card •••• 4815'), findsOneWidget, reason: 'today');
+      expect(find.text('Change card'), findsOneWidget, reason: "on today's card line");
       expect(find.byKey(const Key('payProblem')), findsNothing, reason: 'the saved card is chosen');
+      // The next months' card is further down (the card line is taller now).
+      await t.scrollUntilVisible(find.text('Saved card •••• 4815'), 200, scrollable: find.byType(Scrollable).first);
+      await t.pumpAndSettle();
+      expect(find.text('Saved card •••• 4815'), findsOneWidget, reason: 'the next months');
       expect(find.text('Another card'), findsOneWidget);
       await tapKey(t, 'toSummary');
       await tapKey(t, 'confirm');
       expect(sent(a, '/gym/memberships')['recurring_method'], 'credit_card');
+      expect(sent(a, '/gym/memberships')['card_charge_amount'], 498.0, reason: 'charged with the membership, first');
       expect(a.posts.map((p) => p.$1), ['/gym/memberships', '/sales/store-v2', '/gym/memberships/77/link-sale']);
+      expect(sent(a, '/sales/store-v2')['all_receipt'], nm.zReceipt);
     });
 
     testWidgets('no saved card: "New card" saves one for the member, then it is the monthly card', (t) async {
@@ -450,7 +482,7 @@ void main() {
       expect(find.textContaining('Saved card'), findsNothing);
       expect(find.byKey(const Key('payProblem')), findsOneWidget, reason: 'the monthly method is not chosen yet');
       final newCard = find.text('New card');
-      await t.ensureVisible(newCard);
+      await t.scrollUntilVisible(newCard, 200, scrollable: find.byType(Scrollable).first);
       await t.pumpAndSettle();
       await t.tap(newCard);
       await t.pumpAndSettle();
@@ -470,7 +502,7 @@ void main() {
       final a = cardApi();
       await toPayment(t, a, 'Avi Cohen');
       final newCard = find.text('New card');
-      await t.ensureVisible(newCard);
+      await t.scrollUntilVisible(newCard, 200, scrollable: find.byType(Scrollable).first);
       await t.pumpAndSettle();
       await t.tap(newCard);
       await t.pumpAndSettle();
@@ -488,8 +520,10 @@ void main() {
       await toPayment(t, a, 'Dana Levi');
       await tapKey(t, 'toSummary');
       await tapKey(t, 'confirm');
-      expect(find.textContaining('The member has no saved card in the system.'), findsOneWidget);
-      expect(a.posts.map((p) => p.$1), ['/gym/memberships']);
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
+      expect(find.text('The member has no saved card. Save a card or choose another method.'), findsOneWidget);
+      expect(a.posts.map((p) => p.$1), ['/gym/memberships'], reason: 'nothing created, no sale');
     });
 
     testWidgets('no Z Credit terminal: no card choices for the next months', (t) async {

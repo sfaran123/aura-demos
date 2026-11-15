@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:aura_gym/src/app.dart';
+import 'package:aura_gym/src/domain/checkout.dart';
+import 'package:aura_gym/src/domain/card_entry.dart' show cardChargeText;
 import 'package:aura_gym/src/domain/l10n.dart';
 import 'package:aura_gym/src/domain/models.dart';
 import 'package:aura_gym/src/integration/aura_api.dart';
@@ -11,12 +13,21 @@ import 'package:aura_gym/src/state/gym_store.dart';
 import 'server_sync_test.dart' show serverApi, signedIn, today, products;
 import 'support/fake_api.dart';
 
+/// Z Credit's answer for an approved saved-card charge (the fake server's).
+const zReceipt = '{"ReturnCode":0,"ReturnMessage":"OK","ReferenceNumber":"Z-778","ApprovalNumber":"0123456"}';
+
 /// Answers like GymController::storeMembership (same format as GET gym/memberships).
 Object? Function(Map<String, Object?>) membershipStore({int id = 77, bool duplicate = false}) => (body) {
       final recurring = body['plan_id'] == 10;
       final start = DateTime.parse(body['start_date'] as String);
       String d(DateTime x) => '${x.year}-${x.month.toString().padLeft(2, '0')}-${x.day.toString().padLeft(2, '0')}';
       return {
+        // With card_charge_amount the server charged the saved card first.
+        if (body['card_charge_amount'] != null)
+          'card_charge': {
+            'data': {'id': 3, 'status': 'approved', 'amount': body['card_charge_amount']},
+            'receipt': zReceipt,
+          },
         'duplicate': duplicate,
         'data': {
           'id': id,
@@ -181,6 +192,297 @@ void main() {
     expect(find.byKey(const Key('confirm')), findsNothing, reason: 'on the done screen');
   });
 
+  group('a new membership on the saved card', () {
+    /// The server has a Z Credit terminal (card_tokens); it answers quick-payment charges too.
+    FakeApi cardApi() => payingApi()
+      ..responses['/gym/pos-settings'] = {
+        'data': {...(posSettings['data'] as Map), 'card_tokens': true}
+      }
+      ..postHandlers['/gym/card-charges'] = ((b) => {
+            'data': {'id': 9, 'status': 'approved', 'amount': b['amount'], 'payments': b['payments']},
+            'receipt': zReceipt,
+            'duplicate': false,
+          })
+      ..postHandlers['/gym/card-charges/link'] = ((b) => {'data': {'id': 9}, 'sale': {'id': 501}});
+
+    bool canGoOn(WidgetTester t) => t.widget<FilledButton>(find.byKey(const Key('toSummary'))).onPressed != null;
+
+    /// Regular ([installments] 1) or installments, on the first card line.
+    Future<void> chooseHow(WidgetTester t, int installments) async {
+      if (installments <= 1) return tapKey(t, 'payRegular-0');
+      await tapKey(t, 'payInstallments-0');
+      await t.enterText(find.byKey(const Key('paymentsCount-0')), '$installments');
+      await t.pumpAndSettle();
+    }
+
+    /// Home -> New membership -> [member] -> punch card -> card line.
+    Future<void> toCardLine(WidgetTester t, {String member = 'Dana Levi'}) async {
+      await tapKey(t, 'tileNewSub');
+      await t.ensureVisible(find.text(member).first);
+      await t.pumpAndSettle();
+      await t.tap(find.text(member).first);
+      await t.pumpAndSettle();
+      await tapKey(t, 'plan-11');
+      await tapKey(t, 'toPayment');
+      await tapKey(t, 'add-card');
+    }
+
+    /// ... -> [saved] card, regular or [installments] (else the terminal) -> summary.
+    Future<void> toSavedCardSummary(WidgetTester t, {bool saved = true, int installments = 1}) async {
+      await toCardLine(t);
+      expect(find.byKey(const Key('savedCardChip')), findsOneWidget);
+      // A member with a saved card: the card line starts on the saved card.
+      expect(find.textContaining('The saved card is charged 450'), findsOneWidget);
+      // Regular or installments is asked, never assumed.
+      expect(find.text('Choose: regular payment or installments'), findsOneWidget);
+      expect(canGoOn(t), isFalse);
+      if (saved) {
+        await chooseHow(t, installments);
+        expect(canGoOn(t), isTrue);
+      }
+      if (!saved) {
+        final terminal = find.text('Payment terminal');
+        await t.ensureVisible(terminal);
+        await t.pumpAndSettle();
+        await t.tap(terminal);
+        await t.pumpAndSettle();
+        expect(find.textContaining('The saved card is charged'), findsNothing);
+      }
+      await tapKey(t, 'toSummary');
+    }
+
+    testWidgets('the card is charged with the membership, then the sale carries the Z Credit answer', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await toSavedCardSummary(t);
+      expect(find.textContaining('saved card 4815'), findsOneWidget);
+      await tapKey(t, 'confirm');
+
+      expect(paths(api), ['/gym/memberships', '/sales/store-v2', '/gym/memberships/77/link-sale']);
+      final sale = body(api, '/sales/store-v2');
+      final m = body(api, '/gym/memberships');
+      expect(m['card_charge_amount'], 450.0);
+      expect(m['app_uuid'], sale['app_uuid'], reason: 'the sale app_uuid is the charge key');
+      expect(sale['paid_by_ids'], '3');
+      expect(sale['all_receipt'], zReceipt, reason: 'the card payment keeps Z Credit answer, as the web saves it');
+      expect(sale['all_transaction_reference'], 'Z-778');
+      expect(find.textContaining('TIN-9001'), findsOneWidget, reason: 'on the done screen');
+    });
+
+    testWidgets('the terminal, when the desk picks it: no card charge asked', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await toSavedCardSummary(t, saved: false);
+      await tapKey(t, 'confirm');
+      expect(paths(api), ['/gym/memberships', '/sales/store-v2', '/gym/memberships/77/link-sale']);
+      expect(body(api, '/gym/memberships').containsKey('card_charge_amount'), isFalse);
+      expect(body(api, '/sales/store-v2')['all_receipt'], 'other_device');
+    });
+
+    testWidgets('declined: an alert, no membership, no tax invoice; the desk stays and can pick another method',
+        (t) async {
+      final api = cardApi()
+        ..postErrors['/gym/memberships'] =
+            AuraApiException(AuraErrorKind.server, 'HTTP 422: card_declined: Insufficient funds');
+      await boot(t, api);
+      await toSavedCardSummary(t);
+      await tapKey(t, 'confirm');
+
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget, reason: 'an alert the desk must close');
+      expect(find.text('The card was not charged'), findsOneWidget);
+      expect(find.textContaining('No membership was opened and no invoice was issued'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
+      expect(find.text('The card was not approved: Insufficient funds'), findsOneWidget, reason: 'also on the summary');
+      expect(paths(api), ['/gym/memberships'], reason: 'no sale (no TIN), no link');
+
+      // Not charged: the desk may go back and pay another way.
+      await t.pageBack();
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('toSummary')), findsOneWidget);
+    });
+
+    testWidgets('no clear answer from Z Credit: an alert, nothing created', (t) async {
+      final api = cardApi()
+        ..postErrors['/gym/memberships'] = AuraApiException(AuraErrorKind.server, 'HTTP 409: charge_unknown');
+      await boot(t, api);
+      await toSavedCardSummary(t);
+      await tapKey(t, 'confirm');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.textContaining('Check in Z Credit'), findsWidgets);
+      expect(paths(api), ['/gym/memberships']);
+    });
+
+    testWidgets('charged, the sale fails: no way back, the retry saves it without charging again', (t) async {
+      final api = cardApi()..postErrors['/sales/store-v2'] = AuraApiException(AuraErrorKind.server, 'HTTP 500');
+      await boot(t, api);
+      await toSavedCardSummary(t);
+      await tapKey(t, 'confirm');
+      expect(find.textContaining('the card will not be charged again'), findsOneWidget);
+
+      // Back is blocked: the charge must end in a document.
+      await t.pageBack();
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('confirm')), findsOneWidget);
+      expect(find.text('The card was already charged. Finish here to save the document.'), findsOneWidget);
+
+      api.postErrors.remove('/sales/store-v2');
+      await tapKey(t, 'confirm');
+      expect(paths(api).where((p) => p == '/gym/memberships').length, 1, reason: 'charged once, one membership');
+      expect(body(api, '/sales/store-v2')['all_receipt'], zReceipt);
+      expect(find.textContaining('TIN-9001'), findsOneWidget);
+    });
+
+    testWidgets('a monthly plan: the first payment is charged on the saved card too', (t) async {
+      final api = cardApi()..postHandlers['/gym/memberships'] = membershipStore(id: 78);
+      final (store, _, _) = await boot(t, api);
+      store.settings.registrationFeeProductId = '30';
+      await tapKey(t, 'tileNewSub');
+      await t.ensureVisible(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await tapKey(t, 'plan-10');
+      await tapKey(t, 'toPayment');
+      await tapKey(t, 'add-card');
+      expect(find.byKey(const Key('savedCardChip')), findsOneWidget);
+      expect(find.textContaining('The saved card is charged 498'), findsOneWidget,
+          reason: 'first month + prepaid last month + sign-up fee');
+      expect(find.byKey(const Key('payKind-0')), findsOneWidget, reason: 'asked for a monthly first payment too');
+      await chooseHow(t, 1);
+      final manual = find.text(RecurringMethod.manual.label);
+      await t.scrollUntilVisible(manual, 200, scrollable: find.byType(Scrollable).first);
+      await t.pumpAndSettle();
+      await t.tap(manual);
+      await t.pumpAndSettle();
+      await tapKey(t, 'toSummary');
+      await tapKey(t, 'confirm');
+
+      expect(paths(api), ['/gym/memberships', '/sales/store-v2', '/gym/memberships/78/link-sale']);
+      final sale = body(api, '/sales/store-v2');
+      expect(body(api, '/gym/memberships')['card_charge_amount'], 498.0);
+      expect(sale['all_receipt'], zReceipt);
+      expect(sale['all_transaction_reference'], 'Z-778');
+    });
+
+    testWidgets('"Add card" closed without saving: the payment step is blocked', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await toCardLine(t, member: 'Avi Cohen');
+      expect(find.byKey(const Key('savedCardChip')), findsNothing, reason: 'Avi has no saved card');
+      expect(find.byKey(const Key('payProblem')), findsNothing, reason: 'the terminal, until a card is asked for');
+
+      await tapKey(t, 'addCardChip');
+      Navigator.of(t.element(find.byKey(const Key('cardNumber')))).pop(); // closed, nothing saved
+      await t.pumpAndSettle();
+
+      expect(find.text("Save the member's card"), findsOneWidget, reason: 'blocked');
+      expect(find.text('The card was not saved. Save a card, or pick the payment terminal.'), findsOneWidget);
+      expect(t.widget<FilledButton>(find.byKey(const Key('toSummary'))).onPressed, isNull);
+
+      // Only an explicit choice of the terminal unblocks it.
+      final terminal = find.text('Payment terminal');
+      await t.ensureVisible(terminal);
+      await t.pumpAndSettle();
+      await t.tap(terminal);
+      await t.pumpAndSettle();
+      expect(t.widget<FilledButton>(find.byKey(const Key('toSummary'))).onPressed, isNotNull);
+      expect(api.posts, isEmpty);
+    });
+
+    testWidgets('installments: the number is asked, the split shown, sent with the charge', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await toCardLine(t);
+      await tapKey(t, 'payInstallments-0');
+      expect(find.text('The number of installments must be 2 or more'), findsOneWidget, reason: 'no number yet');
+      expect(canGoOn(t), isFalse);
+      await t.enterText(find.byKey(const Key('paymentsCount-0')), '1');
+      await t.pumpAndSettle();
+      expect(canGoOn(t), isFalse, reason: '1 is not installments');
+      await t.enterText(find.byKey(const Key('paymentsCount-0')), '4');
+      await t.pumpAndSettle();
+      expect(canGoOn(t), isTrue);
+      // 450 in 4: 112.50 each (as the web splits it).
+      expect(find.text('First payment 112.50 ₪, then 3 payments of 112.50 ₪'), findsOneWidget);
+      expect(find.textContaining('The saved card is charged 450 ₪ in 4 installments'), findsOneWidget);
+      await tapKey(t, 'toSummary');
+      expect(find.textContaining('4 installments'), findsWidgets, reason: 'on the summary');
+      await tapKey(t, 'confirm');
+
+      final m = body(api, '/gym/memberships');
+      expect(m['card_charge_amount'], 450.0);
+      expect(m['card_charge_payments'], 4);
+      expect(find.textContaining('TIN-9001'), findsOneWidget);
+    });
+
+    testWidgets('regular: sent as one payment', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await toSavedCardSummary(t);
+      expect(find.textContaining('regular payment'), findsWidgets, reason: 'on the summary');
+      await tapKey(t, 'confirm');
+      expect(body(api, '/gym/memberships')['card_charge_payments'], 1);
+    });
+
+    testWidgets('quick payment on the saved card: asked, charged first, then the sale, then the link', (t) async {
+      final api = cardApi();
+      await boot(t, api);
+      await tapKey(t, 'tileQuickPay');
+      await t.ensureVisible(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await tapKey(t, 'item-21');
+      await tapKey(t, 'item-20');
+      await tapKey(t, 'itemsToPayment');
+      await tapKey(t, 'add-card');
+      expect(find.byKey(const Key('savedCardChip')), findsOneWidget, reason: 'quick payment: the saved card too');
+      expect(canGoOn(t), isFalse, reason: 'regular or installments not chosen yet');
+      await chooseHow(t, 2);
+      await tapKey(t, 'toSummary');
+      await tapKey(t, 'confirm');
+
+      expect(paths(api), ['/gym/card-charges', '/sales/store-v2', '/gym/card-charges/link']);
+      final sale = body(api, '/sales/store-v2');
+      final charge = body(api, '/gym/card-charges');
+      expect(charge['customer_id'], 7);
+      expect(charge['payments'], 2);
+      expect(charge['amount'], sale['grand_total']);
+      expect(charge['app_uuid'], sale['app_uuid']);
+      expect(body(api, '/gym/card-charges/link'), {'app_uuid': sale['app_uuid']});
+      expect(sale['all_receipt'], zReceipt);
+      expect(find.textContaining('TIN-9001'), findsOneWidget);
+    });
+
+    testWidgets('quick payment declined: an alert, no sale', (t) async {
+      final api = cardApi()
+        ..postErrors['/gym/card-charges'] = AuraApiException(AuraErrorKind.server, 'HTTP 422: card_declined: Do not honor');
+      await boot(t, api);
+      await tapKey(t, 'tileQuickPay');
+      await t.ensureVisible(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await t.tap(find.text('Dana Levi').first);
+      await t.pumpAndSettle();
+      await tapKey(t, 'item-21');
+      await tapKey(t, 'itemsToPayment');
+      await tapKey(t, 'add-card');
+      await chooseHow(t, 1);
+      await tapKey(t, 'toSummary');
+      await tapKey(t, 'confirm');
+      expect(find.byKey(const Key('cardProblemDialog')), findsOneWidget);
+      expect(find.textContaining('No invoice was issued'), findsOneWidget);
+      await tapKey(t, 'cardProblemOk');
+      expect(paths(api), ['/gym/card-charges'], reason: 'no sale');
+    });
+  });
+
+  test('desk texts for refused charges', () {
+    expect(cardChargeText('HTTP 422: card_declined: Expired card'), 'The card was not approved: Expired card');
+    expect(cardChargeText('HTTP 409: charge_unknown'), startsWith('No clear answer'));
+    expect(cardChargeText('HTTP 409: already_charged'), startsWith('A card was already charged'));
+    expect(cardChargeText('HTTP 500'), isNull);
+  });
+
   testWidgets('monthly plan: card on the terminal, prepaid month and sign-up fee lines', (t) async {
     final api = payingApi()..postHandlers['/gym/memberships'] = membershipStore(id: 78);
     final (store, _, _) = await boot(t, api);
@@ -197,6 +499,75 @@ void main() {
     expect(sale['paid_by_ids'], '3');
     expect(sale['all_receipt'], 'other_device');
     expect(body(api, '/gym/memberships/78/link-sale'), {'sale_id': 501});
+  });
+
+  testWidgets('monthly plan on a picked start day: the months count from it', (t) async {
+    final api = payingApi()..postHandlers['/gym/memberships'] = membershipStore(id: 78);
+    final (store, _, _) = await boot(t, api);
+    store.settings.registrationFeeProductId = '30';
+    await tapKey(t, 'tileNewSub');
+    await t.ensureVisible(find.text('Dana Levi').first);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Dana Levi').first);
+    await t.pumpAndSettle();
+    await tapKey(t, 'plan-10');
+
+    // The options are below the plans: built once scrolled to.
+    await t.scrollUntilVisible(find.byKey(const Key('startOptions')), 200, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+    final other = find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(StartOption.date.label));
+    await t.ensureVisible(other);
+    await t.pumpAndSettle();
+    await t.tap(other);
+    await t.pumpAndSettle();
+    final picker = find.byType(DatePickerDialog);
+    expect(picker, findsOneWidget);
+    // today is 11 Nov: the earliest start for a monthly plan is 12 Oct, so the picker opens on November.
+    await t.tap(find.descendant(of: picker, matching: find.text('2')).first);
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: picker, matching: find.byType(TextButton)).last); // OK
+    await t.pumpAndSettle();
+
+    expect(find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(fmtDate(DateTime(2026, 11, 2)))),
+        findsOneWidget);
+    expect(find.byKey(const Key('nextChargeHint')), findsOneWidget);
+    expect(find.textContaining(fmtDate(DateTime(2026, 12, 2))), findsOneWidget);
+
+    await tapKey(t, 'toPayment');
+    await tapKey(t, 'add-card');
+    final manual = find.text(RecurringMethod.manual.label);
+    await t.ensureVisible(manual);
+    await t.pumpAndSettle();
+    await t.tap(manual);
+    await t.pumpAndSettle();
+    await tapKey(t, 'toSummary');
+    expect(find.textContaining(fmtDate(DateTime(2026, 11, 2)), findRichText: true), findsWidgets,
+        reason: 'the summary shows the picked start');
+    await tapKey(t, 'confirm');
+
+    expect(body(api, '/gym/memberships')['start_date'], '2026-11-02');
+  });
+
+  testWidgets('the start can be changed on the summary, until the membership is opened', (t) async {
+    final api = payingApi()..postHandlers['/gym/memberships'] = membershipStore(id: 78);
+    final (store, _, _) = await boot(t, api);
+    store.settings.registrationFeeProductId = '30';
+    await toSummary(t, '10', method: 'card');
+    expect(find.text(fmtDate(DateTime(2026, 11, 11))), findsOneWidget, reason: 'today by default');
+    expect(find.text(fmtDate(DateTime(2026, 12, 11))), findsOneWidget, reason: 'next monthly payment');
+
+    await tapKey(t, 'changeStart');
+    final picker = find.byType(DatePickerDialog);
+    expect(picker, findsOneWidget);
+    await t.tap(find.descendant(of: picker, matching: find.text('2')).first);
+    await t.pumpAndSettle();
+    await t.tap(find.descendant(of: picker, matching: find.byType(TextButton)).last); // OK
+    await t.pumpAndSettle();
+    expect(find.text(fmtDate(DateTime(2026, 11, 2))), findsOneWidget);
+    expect(find.text(fmtDate(DateTime(2026, 12, 2))), findsOneWidget);
+
+    await tapKey(t, 'confirm');
+    expect(body(api, '/gym/memberships')['start_date'], '2026-11-02');
   });
 
   testWidgets('no sign-up fee product: stops before anything is saved', (t) async {

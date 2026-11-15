@@ -634,13 +634,14 @@ class GymStore extends SimpleNotifier {
     required Customer customer,
     required SubscriptionPlan plan,
     required StartOption start,
+    DateTime? startOn,
     required int discountPct,
     required bool waiveRegistration,
     required List<PaymentLine> lines,
     RecurringMethod? recurring,
     String? newCardLast4,
   }) {
-    final s0 = startDate(start, now);
+    final s0 = startDate(start, now, startOn);
     final pending = isPending(lines);
     if (newCardLast4 != null &&
         (lines.any((l) => l.method == PayMethod.card && l.cardSource == CardSource.newCard) ||
