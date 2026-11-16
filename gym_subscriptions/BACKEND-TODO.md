@@ -136,3 +136,42 @@ until 3 and 4 exist.
   a different business signing in removes them.
 - Tests: `flutter test` — 246 passing. The check-in tests are in `test/checkin_test.dart` and show
   the exact requests and answers the app expects.
+
+---
+
+## 4. Cancel and refund: the documents that must be made (owner's rule, 16 Nov 2026)
+
+- **Cancelling a receipt** (exempt dealer, type 3): a **minus receipt** for the whole amount must be
+  issued. Today `POST gym/sales/{id}/cancel` answers `cancel_mode: "direct"` with `document: null`
+  and no minus receipt.
+- **Cancelling a tax invoice-receipt**: a **credit invoice (TIC)** for the whole document **and a
+  minus receipt** for the money given back (cash, transfer or terminal).
+- **Refund to the card** (`POST gym/sales/{id}/card-refund`): Z Credit refund, then a **TIC and a
+  minus receipt**. Reported on 16 Nov: a card refund from the app left no TIC and no minus receipt.
+
+What the app reads from the answer, so it can show the numbers to the desk:
+
+```json
+{ "data": { "document": { "reference_no": "TIC-90003" },   // or "tic": "TIC-90003"
+            "receipt":  { "reference_no": "R-50007" } } }   // or "receipt": "R-50007" / "minus_receipt"
+```
+
+When a document that must exist is missing from the answer, the app now tells the desk
+("the server did not return a minus receipt / a credit invoice. Check in AURA") instead of
+saying everything is done.
+
+## 5. Other things the app now sends or expects
+
+- `POST gym/memberships/{id}/collect` may carry `card_receipt` (Z Credit's answer) and `app_uuid`
+  when the desk collected with the member's saved card: the app first charges with
+  `POST gym/card-charges` (same `app_uuid`), then records the payment. Please save the receipt on
+  the payment and link the charge to the document (`gym/card-charges/link` is called after).
+- `POST gym/members/{id}` `{ name, phone_number, tax_no, email }`: edit a customer. If it does not
+  exist yet the app says so and changes nothing.
+- Draft sales: `gym/sales` rows and `gym/dashboard` `recent_payments` should carry `sale_status`
+  (3 = POS draft, 5 = ERP draft) or `is_draft`; the app leaves drafts out of the sales list and of
+  "recent payments". Best: do not send drafts at all, and leave them out of `revenue_today`.
+- Products and prices: the owner wants to manage them from the app. There is no endpoint, so
+  signed in the price list is read-only (an edit there used to be lost at the next sync, and a
+  sale could go out with a price the server does not have). Needed: create / update / deactivate
+  a product (`gym/products`, `gym/products/{id}`), as `gym/plans` does for plans.

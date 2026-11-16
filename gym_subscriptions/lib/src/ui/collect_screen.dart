@@ -3,10 +3,14 @@ import '../domain/help.dart';
 import 'help.dart';
 
 import '../domain/checkout.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../domain/models.dart';
 import '../state/gym_store.dart';
 import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkout/checkout_screens.dart' show methodIcon, PaymentDetailsFields;
+import 'member_card.dart' show canUpdateMembershipCard, showMembershipCardSheet;
+import 'members_screen.dart' show showMemberSheet;
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -24,7 +28,7 @@ class CollectScreen extends StatelessWidget {
     final old = store.oldDebts;
     final s = store.settings;
     // Signed in: the server's open debt, the same number as the home screen.
-    final overdueSum = store.dashboard?.openDebt ?? store.openDebt;
+    final overdueSum = store.openDebt;
     return Scaffold(
       appBar: AppBar(title: Text(t('לגבייה')), actions: [HelpButton.topic(HelpTopic.collect)]),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
@@ -176,6 +180,8 @@ class ChargeCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Panel(
+        key: Key('charge-${c.id}'),
+        onTap: () => showChargeDetails(context, c),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Avatar(cust.name, size: 36),
@@ -229,7 +235,7 @@ class ChargeCard extends StatelessWidget {
                 key: Key('collect-${c.id}'),
                 style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(44), padding: const EdgeInsets.symmetric(horizontal: 8)),
-                onPressed: () => _collect(context),
+                onPressed: () => collect(context),
                 icon: const Icon(Icons.check, size: 18),
                 label: Text(t('התקבל')),
               ),
@@ -304,9 +310,16 @@ class ChargeCard extends StatelessWidget {
     );
   }
 
-  Future<void> _collect(BuildContext context) async {
+  Future<void> collect(BuildContext context) async {
     final store = StoreScope.read(context);
     final sync = SyncScope.maybeOf(context);
+    // The row may leave the list while the server answers: the message still shows.
+    final messenger = ScaffoldMessenger.of(context);
+    void done(String text, {bool ok = true}) => messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+          backgroundColor: ok ? Aura.ok : Aura.warn,
+          content: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))));
     final methods = [PayMethod.cash, PayMethod.card, PayMethod.cheque, PayMethod.bank]
         .where((m) => store.settings.enabledMethods.contains(m))
         .toList();
@@ -322,9 +335,7 @@ class ChargeCard extends StatelessWidget {
               key: Key('collectWith-${x.name}'),
               leading: Icon(methodIcon(x)),
               // Signed in, a card is recorded as charged on the card terminal.
-              title: Text(x == PayMethod.card
-                  ? (sync != null ? t('אשראי (במסוף האשראי)') : t('אשראי (כרטיס שמור או חדש)'))
-                  : x.label),
+              title: Text(x == PayMethod.card ? (sync != null ? t('אשראי') : t('אשראי (כרטיס שמור או חדש)')) : x.label),
               onTap: () => Navigator.pop(ctx, x),
             ),
           const SizedBox(height: 8),
@@ -338,16 +349,240 @@ class ChargeCard extends StatelessWidget {
       if (line == null || !context.mounted) return;
     }
     if (sync != null) {
-      // Signed in: recorded on the AURA server (document + payment), then everything reloads.
       var reference = '';
       final amount = charge.amount;
+      // A card: the member's saved card is charged now (regular or installments),
+      // or the card was taken on the terminal and is only recorded here.
+      if (m == PayMethod.card) {
+        final cust = store.customer(charge.customerId);
+        final saved = (store.posSettings?.cardTokens ?? false) && (cust?.hasSavedCard ?? false);
+        final payments = await _askCardHow(context, saved ? cust!.savedCardLast4 : null, amount);
+        if (payments == null || !context.mounted) return;
+        if (payments > 0) {
+          final ok = await runOnServer(
+              context, () async => reference = await sync.collectWithSavedCard(charge, payments: payments));
+          if (ok) {
+            done(payments > 1
+                ? t('הכרטיס חויב · {0} · {1} ב-{2} תשלומים', [reference, money(amount), payments])
+                : t('הכרטיס חויב · {0} · {1}', [reference, money(amount)]));
+          }
+          return;
+        }
+      }
+      // Recorded on the AURA server (document + payment); the list updates at once.
       final ok = await runOnServer(context, () async => reference = await sync.collectCharge(charge, m, line: line));
-      if (!ok || !context.mounted) return;
-      showDone(context, t('התקבל · {0} · {1} ב{2}', [reference, money(amount), m.label]));
+      if (ok) done(t('התקבל · {0} · {1} ב{2}', [reference, money(amount), m.label]));
       return;
     }
     final r = store.collect(charge, m, line: line);
     showDone(context, t('קבלה {0} הופקה · {1} ב{2}', [r.number, money(r.total), m.label]));
+  }
+}
+
+/// How a card pays a collection: 0 = taken on the terminal (recorded only),
+/// 1 = the saved card in one payment, 2+ = the saved card in installments.
+/// Null when closed. [last4] is null when the member has no saved card to charge.
+Future<int?> _askCardHow(BuildContext context, String? last4, double amount) => showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Text(t('איך לחייב את הכרטיס? · {0}', [money(amount)]),
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 10),
+            if (last4 != null) ...[
+              FilledButton.icon(
+                key: const Key('cardSavedRegular'),
+                onPressed: () => Navigator.pop(ctx, 1),
+                icon: const Icon(Icons.credit_card, size: 18),
+                label: Text(t('כרטיס שמור •••• {0} · תשלום רגיל', [last4])),
+              ),
+              const SizedBox(height: 12),
+              Text(t('כרטיס שמור •••• {0} · בתשלומים', [last4]),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final n in const [2, 3, 4, 6, 10, 12])
+                  ActionChip(
+                    key: Key('cardSavedPayments-$n'),
+                    label: Text('$n × ${money(amount / n)}'),
+                    onPressed: () => Navigator.pop(ctx, n),
+                  ),
+              ]),
+              const SizedBox(height: 12),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Note(t('ללקוח אין כרטיס שמור שאפשר לחייב מכאן. אפשר לשמור כרטיס מכרטיס המנוי.')),
+              ),
+            OutlinedButton.icon(
+              key: const Key('cardTerminal'),
+              onPressed: () => Navigator.pop(ctx, 0),
+              icon: const Icon(Icons.point_of_sale, size: 18),
+              label: Text(t('חויב במסוף הסליקה (רישום בלבד)')),
+            ),
+          ]),
+        ),
+      ),
+    );
+
+/// Everything about one payment to collect: whose it is, on which membership,
+/// what else is open, and what can be done about it.
+Future<void> showChargeDetails(BuildContext context, Charge c) => showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => _ChargeDetails(charge: c),
+    );
+
+class _ChargeDetails extends StatelessWidget {
+  const _ChargeDetails({required this.charge});
+  final Charge charge;
+
+  Future<void> _open(BuildContext context, Uri uri) async {
+    var ok = false;
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!ok && context.mounted) showDone(context, t('לא ניתן לפתוח במכשיר הזה'));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final c = charge;
+    final cust = store.customer(c.customerId);
+    final sub = store.subscriptions.where((s) => s.id == c.subscriptionId).firstOrNull;
+    final plan = sub == null ? null : store.plan(sub.planId);
+    // Paid meanwhile (from this sheet): nothing left to show.
+    final open = store.charges.any((x) => x.id == c.id && x.isOpen());
+    final others = store.charges
+        .where((x) => x.customerId == c.customerId && x.isOpen() && x.id != c.id && !x.dueDate.isAfter(store.today))
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final owed = round2(others.fold(open ? c.amount : 0.0, (a, x) => a + x.amount));
+    final cardBilled = sub?.recurringMethod == RecurringMethod.savedCard;
+    final failed = c.status == ChargeStatus.failed;
+    final rows = <(String, String)>[
+      (
+        t('התשלום הזה'),
+        failed
+            ? '${money(c.amount)} · ${t('חיוב חודש {0}', [c.monthLabel])} · ${t('חיוב נכשל · {0} ניסיונות', [
+                    c.attempts
+                  ])}'
+            : '${money(c.amount)} · ${t('מועד תשלום: {0}', [fmtDate(c.dueDate)])}'
+      ),
+      if (others.isNotEmpty)
+        (t('סה"כ פתוח ללקוח'), '${money(owed)} · ${t('{0} תשלומים', [others.length + (open ? 1 : 0)])}'),
+      if (plan != null) (t('מסלול'), plan.name),
+      if (sub != null) (t('סטטוס'), sub.statusText),
+      if (sub != null) (t('התחלה'), fmtDate(sub.start)),
+      if (sub?.end != null && sub!.end!.year < 2100) (t('סיום'), fmtDate(sub.end!)),
+      if (sub != null && plan != null && plan.isRecurring)
+        (t('חיוב חודשי'), '${money(sub.monthlyAmount ?? plan.price)} · ${sub.recurringMethod?.label ?? '—'}'),
+      if (sub?.nextCharge != null) (t('חיוב הבא'), fmtDate(sub!.nextCharge!)),
+      if (sub != null && store.entriesLeft(sub) != null) (t('כניסות שנותרו'), '${store.entriesLeft(sub)}'),
+      if (cardBilled) (t('כרטיס המנוי'), sub!.hasCardToken ? t('שמור') : t('לא שמור')),
+      if (cust != null) (t('כרטיס אשראי'), cust.hasSavedCard ? '•••• ${cust.savedCardLast4}' : t('לא שמור')),
+      if (sub?.cancelEffective != null) (t('ביטול נכנס לתוקף'), fmtDate(sub!.cancelEffective!)),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: SingleChildScrollView(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Avatar(cust?.name ?? '', size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(cust?.name ?? t('לקוח'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                Text(cust?.phone ?? '', style: const TextStyle(color: Aura.muted)),
+              ]),
+            ),
+            Pill(open ? (failed ? t('חיוב נכשל') : t('לגבייה')) : t('שולם'), tone: open ? PillTone.bad : PillTone.ok),
+          ]),
+          const SizedBox(height: 12),
+          // What needs doing, said first.
+          if (open && failed && cardBilled && !(sub?.hasCardToken ?? false))
+            Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Note(t('אין כרטיס שמור במנוי: החיוב החודשי ימשיך להיכשל עד שיעודכן כרטיס.'), warn: true)),
+          if (open && failed && cardBilled && (sub?.hasCardToken ?? false))
+            Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Note(t('הכרטיס של המנוי נדחה. אפשר לחייב אותו שוב, לעדכן כרטיס, או לגבות באמצעי אחר.'))),
+          if (cust != null && store.entryBlocked(cust.id))
+            Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Note(t('הכניסה חסומה: יש תשלום באיחור מעבר לימי החסד.'), warn: true)),
+          SummaryBox(rows: rows),
+          const SizedBox(height: 14),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (open)
+              FilledButton.icon(
+                key: const Key('detailsCollect'),
+                onPressed: () async {
+                  await ChargeCard(charge: c).collect(context);
+                },
+                icon: const Icon(Icons.check, size: 18),
+                label: Text(t('גבייה · {0}', [money(c.amount)])),
+              ),
+            if (sub != null && canUpdateMembershipCard(context, store, sub))
+              OutlinedButton.icon(
+                key: const Key('detailsMembershipCard'),
+                onPressed: () => showMembershipCardSheet(context, sub),
+                icon: const Icon(Icons.credit_card, size: 18),
+                label: Text(t('עדכון כרטיס המנוי')),
+              ),
+            if (cust != null && whatsappNumber(cust.phone).isNotEmpty) ...[
+              OutlinedButton.icon(
+                key: const Key('detailsCall'),
+                onPressed: () => _open(context, Uri(scheme: 'tel', path: cust.phone.replaceAll(RegExp(r'\D'), ''))),
+                icon: const Icon(Icons.call_outlined, size: 18),
+                label: Text(t('חיוג')),
+              ),
+              OutlinedButton.icon(
+                key: const Key('detailsWhatsapp'),
+                onPressed: () => _open(context, Uri.parse('https://wa.me/${whatsappNumber(cust.phone)}')),
+                icon: const Icon(Icons.chat_outlined, size: 18),
+                label: const Text('WhatsApp'),
+              ),
+            ],
+            if (sub != null)
+              OutlinedButton.icon(
+                key: const Key('detailsMember'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  showMemberSheet(context, sub);
+                },
+                icon: const Icon(Icons.person_outline, size: 18),
+                label: Text(t('כרטיס המנוי המלא')),
+              ),
+          ]),
+          if (c.tries.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            SectionLabel(t('ניסיונות חיוב')),
+            for (final x in c.tries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                    '${fmtDate(x.$1)} · ${x.$1.hour.toString().padLeft(2, '0')}:${x.$1.minute.toString().padLeft(2, '0')}'
+                    '${x.$2.isEmpty ? '' : ' · ${x.$2}'}',
+                    style: const TextStyle(fontSize: 13, color: Aura.muted)),
+              ),
+          ],
+          if (others.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            SectionLabel(t('תשלומים פתוחים נוספים ({0})', [others.length])),
+            for (final x in others) ChargeCard(charge: x),
+          ],
+        ]),
+      ),
+    );
   }
 }
 

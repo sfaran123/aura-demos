@@ -2,11 +2,13 @@
 // changes made in the app are not sent to the server yet, and the next sync
 // replaces them with the server's data).
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
 import '../domain/card_entry.dart';
+import '../domain/checkout.dart' show round2;
 import '../domain/receipt_sending.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
@@ -94,6 +96,29 @@ class GymSync extends ChangeNotifier {
       if (expired) {
         await auth.signOut(expired: true);
         throw AuraApiException(AuraErrorKind.sessionExpired);
+      }
+      rethrow;
+    }
+  }
+
+  /// Saves a member's changed details on the server (POST gym/members/{id}:
+  /// name, phone_number, tax_no, email). A server without it yet (404) says so.
+  Future<void> updateMember(Customer customer,
+      {required String name, required String phone, String? idNumber, String? email}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      await auth.api.postJson(ws, session, '/gym/members/${customer.id}', {
+        'name': name,
+        'phone_number': phone,
+        'tax_no': idNumber ?? '',
+        'email': email ?? '',
+      });
+      store.editCustomer(customer, name: name, phone: phone, idNumber: idNumber, email: email);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (_missing(e)) {
+        throw AuraApiException(AuraErrorKind.server, t('עריכת לקוח עדיין לא זמינה בשרת. אפשר לערוך במערכת AURA באתר.'));
       }
       rethrow;
     }
@@ -398,7 +423,8 @@ class GymSync extends ChangeNotifier {
   ///    payment (POST gym/memberships/{id}/collect);
   ///  - an unpaid membership invoice: the payment is added to it (POST gym/sales/{id}/payments).
   /// A card is recorded as taken on another terminal. Returns the document number.
-  Future<String> collectCharge(Charge c, PayMethod method, {PaymentLine? line}) async {
+  Future<String> collectCharge(Charge c, PayMethod method,
+      {PaymentLine? line, String? cardReceipt, String? appUuid}) async {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
     String day(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -416,6 +442,9 @@ class GymSync extends ChangeNotifier {
         'cheque_account': line.cheque.account,
         'cheque_date': day(line.cheque.firstDate ?? store.today),
       },
+      // Paid on the member's saved card: Z Credit's answer and the charge's key.
+      if (cardReceipt != null) 'card_receipt': cardReceipt,
+      if (appUuid != null) 'app_uuid': appUuid,
       if (method == PayMethod.bank && line != null) ...{
         'transfer_reference': line.transfer.reference,
         'transfer_bank': line.transfer.bank,
@@ -443,12 +472,50 @@ class GymSync extends ChangeNotifier {
         ..paidWith = method
         ..paidAt = store.now;
       store.touch();
-      await pull();
+      unawaited(pull());
       return reference;
     } on AuraApiException catch (e) {
       if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
       rethrow;
     }
+  }
+
+  /// A collection whose card was charged but whose document is not saved yet:
+  /// kept so that trying again never charges the card twice.
+  final Map<String, ({String appUuid, String receipt})> _collectCharged = {};
+
+  /// Collects [c] by charging a saved card now, [payments] 1 = regular, 2+ =
+  /// installments. A failed month of a membership billed by card, in one payment,
+  /// goes on the membership's own card as the web does (pay-failed-months).
+  /// Anything else: the member's saved card is charged first (gym/card-charges),
+  /// then the payment is recorded (collect) with Z Credit's answer. A charge that
+  /// does not succeed records nothing.
+  Future<String> collectWithSavedCard(Charge c, {required int payments}) async {
+    final sub = store.subscriptions.where((s) => s.id == c.subscriptionId).firstOrNull;
+    final customer = store.customer(c.customerId);
+    if (customer == null) throw AuraApiException(AuraErrorKind.server, 'Unknown member');
+    if (payments <= 1 &&
+        c.status == ChargeStatus.failed &&
+        c.serverRef != null &&
+        sub != null &&
+        sub.recurringMethod == RecurringMethod.savedCard &&
+        sub.hasCardToken) {
+      return (await payFailedMonths(sub, [c.serverRef!])).reference;
+    }
+    var charged = _collectCharged[c.id];
+    if (charged == null) {
+      final uuid = newAppUuid();
+      final receipt = await chargeCustomerCard(customer,
+          amount: round2(c.amount), payments: payments < 1 ? 1 : payments, appUuid: uuid);
+      charged = _collectCharged[c.id] = (appUuid: uuid, receipt: receipt);
+    }
+    final reference = await collectCharge(c, PayMethod.card, cardReceipt: charged.receipt, appUuid: charged.appUuid);
+    _collectCharged.remove(c.id);
+    // The charge gets its document; a server that cannot link them keeps both anyway.
+    try {
+      await linkCustomerCardCharge(charged.appUuid);
+    } catch (_) {}
+    return reference;
   }
 
   /// How this server saves a sale (GET gym/pos-settings); loaded once per sign-in.
@@ -581,9 +648,10 @@ class GymSync extends ChangeNotifier {
   /// The web's Cancel Document (POST gym/sales/{id}/cancel): a receipt is cancelled
   /// at once, a tax invoice(-receipt) by a credit (TIC) for the whole document, the
   /// money given back by [method]. [appUuid] stays the same when it is tried again
-  /// (nothing is saved twice). Returns the credit's number ('' for a receipt), then
-  /// loads everything again.
-  Future<String> cancelSale(int saleId,
+  /// (nothing is saved twice). Returns the numbers of the documents the server made:
+  /// the credit (TIC; '' for a receipt) and the minus receipt ('' when it made
+  /// none), then loads everything again.
+  Future<({String credit, String receipt})> cancelSale(int saleId,
       {required String appUuid, PayMethod? method, String reason = '', bool cancelMembership = false}) async {
     final res = await _saleCredit('/gym/sales/$saleId/cancel', {
       'app_uuid': appUuid,
@@ -596,11 +664,16 @@ class GymSync extends ChangeNotifier {
       if (reason.trim().isNotEmpty) 'reason': reason.trim(),
       'cancel_membership': cancelMembership,
     });
-    final doc = res is Map && res['data'] is Map && (res['data'] as Map)['document'] is Map
-        ? (res['data'] as Map)['document'] as Map
-        : null;
-    return '${doc?['reference_no'] ?? ''}';
+    final d = res is Map && res['data'] is Map ? res['data'] as Map : const {};
+    return (credit: _docNumber(d['document'] ?? d['tic'] ?? d['credit']), receipt: _minusReceipt(d));
   }
+
+  /// A document in an answer: its number, given as text or as {reference_no}.
+  static String _docNumber(Object? v) => v is Map ? '${v['reference_no'] ?? ''}' : (v == null ? '' : '$v');
+
+  /// The minus receipt of a cancel or a refund, under any of the names the web uses.
+  static String _minusReceipt(Map d) =>
+      _docNumber(d['receipt'] ?? d['minus_receipt'] ?? d['credit_receipt'] ?? d['refund_receipt']);
 
   /// The web's Refund Card Payment (POST gym/sales/{id}/card-refund): Z Credit
   /// refunds [amount] to the card, and the credit and minus receipt are made.
@@ -615,7 +688,7 @@ class GymSync extends ChangeNotifier {
       'cancel_membership': cancelMembership,
     });
     final d = res is Map && res['data'] is Map ? res['data'] as Map : const {};
-    return (tic: '${d['tic'] ?? ''}', receipt: '${d['receipt'] ?? ''}');
+    return (tic: _docNumber(d['tic'] ?? d['document'] ?? d['credit']), receipt: _minusReceipt(d));
   }
 
   Future<Object?> _saleCredit(String path, Map<String, Object?> body) async {
@@ -720,6 +793,7 @@ class GymSync extends ChangeNotifier {
       // Sales for the reports and the sales list: all staff, from the 1st of the
       // month 5 months ago (the summary's 6-month trend), every page.
       final receipts = <Receipt>[];
+      final drafts = <String>{};
       final today = store.today;
       final from = DateTime(today.year, today.month - 5, 1);
       String two(int n) => n.toString().padLeft(2, '0');
@@ -727,6 +801,7 @@ class GymSync extends ChangeNotifier {
         for (var page = 1; page <= maxGymSalePages; page++) {
           final body = await get('/gym/sales', {'from': '${from.year}-${two(from.month)}-01', 'page': '$page'});
           receipts.addAll(mapGymSales(body, names: names));
+          drafts.addAll(draftSaleIds(body));
           final last = body is Map && body['last_page'] is num ? (body['last_page'] as num).toInt() : 1;
           if (page >= last) break;
         }
@@ -780,6 +855,7 @@ class GymSync extends ChangeNotifier {
         items: items,
         receipts: receipts,
         visits: visits,
+        draftSaleIds: drafts,
       );
     } on AuraApiException catch (e) {
       _error = e;

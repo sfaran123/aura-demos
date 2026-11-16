@@ -102,8 +102,10 @@ void main() {
       return store;
     }
 
-    List<Map<String, Object?>> sent(FakeApi api, String path) =>
-        [for (final p in api.posts) if (p.$1 == path) p.$2];
+    List<Map<String, Object?>> sent(FakeApi api, String path) => [
+          for (final p in api.posts)
+            if (p.$1 == path) p.$2
+        ];
 
     testWidgets('cancel the document: a whole TIC, the money back in cash, the membership too', (t) async {
       final api = serverApi()..responses[creditPath] = options();
@@ -111,6 +113,7 @@ void main() {
             'data': {
               'sale': {'id': 500, 'reference_no': 'TIR-1001', 'cancelled': true},
               'document': {'id': 900, 'reference_no': 'TIC-90003', 'type': 10, 'grand_total': -199},
+              'receipt': {'id': 901, 'reference_no': 'R-50007', 'grand_total': -199},
             }
           };
       await openCredit(t, api);
@@ -135,7 +138,7 @@ void main() {
       expect(body['reason'], 'Double charge');
       expect(body['cancel_membership'], isTrue);
       expect(body['app_uuid'], isA<String>());
-      expect(find.text('TIR-1001 cancelled · TIC-90003 issued'), findsOneWidget);
+      expect(find.text('TIR-1001 cancelled · Credit invoice TIC-90003 · Minus receipt R-50007'), findsOneWidget);
       expect(api.calls.where((c) => c.startsWith('GET /gym/sales?')).length, greaterThan(1),
           reason: 'everything is loaded again');
     });
@@ -159,11 +162,11 @@ void main() {
 
       final body = sent(api, refundPath).single;
       expect((body['amount'], body['reason'], body['cancel_membership']), (50.0, 'Wrong price', false));
-      expect(find.text('${money(50)} refunded to the card · TIC-90004 · R-50006'), findsOneWidget);
+      expect(find.text('${money(50)} refunded to the card · Credit invoice TIC-90004 · Minus receipt R-50006'),
+          findsOneWidget);
     });
 
-    testWidgets('declined: nothing refunded, the next try is a new one; no clear answer: the same key',
-        (t) async {
+    testWidgets('declined: nothing refunded, the next try is a new one; no clear answer: the same key', (t) async {
       final api = serverApi()
         ..responses[creditPath] = options()
         ..postErrors[refundPath] = AuraApiException(AuraErrorKind.server, 'HTTP 422: refund_declined: Card blocked');
@@ -205,24 +208,25 @@ void main() {
       expect(find.text('The document is already cancelled'), findsOneWidget);
       await tapKey(t, 'cardProblemOk');
 
-      // A receipt (exempt dealer): cancelled at once, no refund method, no new document.
+      // A receipt (exempt dealer): cancelled at once, no refund method; a minus receipt is issued.
       api.responses[creditPath] = options(mode: 'direct', methods: const [], card: null);
       api.postHandlers[cancelPath] = (b) => {
             'data': {
               'sale': {'id': 500, 'reference_no': 'TIR-1001', 'cancelled': true},
               'document': null,
+              'receipt': 'R-50008',
             }
           };
       await tapKey(t, 'sale-500');
       await tapKey(t, 'creditReceipt');
       expect(find.byKey(const Key('creditMode-card')), findsNothing);
-      expect(find.text('The receipt is cancelled. No new document is issued.'), findsWidgets);
+      expect(find.text('The receipt is cancelled and a minus receipt is issued for the whole amount.'), findsWidgets);
       await t.enterText(find.byKey(const Key('creditReason')), 'Mistake');
       await t.pumpAndSettle();
       await tapKey(t, 'creditConfirm');
       await tapKey(t, 'creditConfirmYes');
       expect(sent(api, cancelPath).single.containsKey('method'), isFalse);
-      expect(find.text('TIR-1001 cancelled'), findsOneWidget);
+      expect(find.text('TIR-1001 cancelled · Minus receipt R-50008'), findsOneWidget);
     });
   });
 }

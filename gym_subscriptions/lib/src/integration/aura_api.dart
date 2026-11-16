@@ -12,6 +12,7 @@
 //   flutter run --dart-define=AURA_VERIFY_KEY=<key>
 
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -296,6 +297,56 @@ class AuraApi {
     throw AuraApiException(AuraErrorKind.server, 'HTTP ${r.status}${msg == null ? '' : ': $msg'}');
   }
 
+  /// Debug builds only (flutter run): every call and its answer on the console,
+  /// to follow a payment step by step. Card number, CVV, expiry, passwords and
+  /// tokens are never printed. A release build prints nothing.
+  static void _trace(String method, Uri uri, Object? body, int status, Object? answer) {
+    if (!kDebugMode) return;
+    Object? safe(Object? v, [String key = '']) {
+      final k = key.toLowerCase();
+      if (v is Map) return {for (final e in v.entries) '${e.key}': safe(e.value, '${e.key}')};
+      if (v is List) return [for (final x in v) safe(x, key)];
+      if (v == null) return null;
+      if (k.contains('card_number') || k.contains('cardnumber')) {
+        final d = '$v'.replaceAll(RegExp(r'\D'), '');
+        return d.length >= 4 ? '****${d.substring(d.length - 4)}' : '****';
+      }
+      if (RegExp('cvv|expiry|pass|token|track2|terminal|anydesk|tpn|merchant').hasMatch(k)) return '***';
+      return v;
+    }
+
+    String text(Object? v) {
+      String s;
+      try {
+        s = jsonEncode(safe(v));
+      } catch (_) {
+        s = '$v';
+      }
+      return s.length > 6000 ? '${s.substring(0, 6000)}… (${s.length} chars)' : s;
+    }
+
+    final query = Uri(queryParameters: {
+      for (final e in uri.queryParameters.entries) e.key: '${safe(e.value, e.key)}',
+    }).query;
+    final where = '${uri.path}${query.isEmpty ? '' : '?$query'}';
+    if (uri.path.endsWith('/call-credit-card-api')) {
+      debugPrint('[AURA] CARD CHARGE GET $where\n[AURA]   -> $status ${text(answer)}');
+      return;
+    }
+    if (method == 'GET' && (uri.path.endsWith('/gym/dashboard') || (uri.path.endsWith('/gym/sales') && uri.queryParameters['page'] == '1'))) {
+      final s = text(answer);
+      debugPrint('[AURA] GET $where -> $status ${s.length > 3000 ? '${s.substring(0, 3000)}…' : s}');
+      return;
+    }
+    if (method == 'GET') {
+      // Lists are long: the status and the size are enough; errors in full.
+      debugPrint(
+          '[AURA] GET $where -> $status${status == 200 ? ' (${text(answer).length} chars)' : ' ${text(answer)}'}');
+      return;
+    }
+    debugPrint('[AURA] $method $where\n[AURA]   sent: ${text(body)}\n[AURA]   -> $status ${text(answer)}');
+  }
+
   /// package:http, so the same code runs on devices and in the browser.
   Future<_Response> _send(String method, Uri uri, {Map<String, String> headers = const {}, Object? body}) async {
     final client = _newClient();
@@ -315,10 +366,13 @@ class AuraApi {
         // Not JSON: the text itself (e.g. the SMS endpoint's "SMS sent successfully").
         json = utf8.decode(res.bodyBytes, allowMalformed: true);
       }
+      _trace(method, uri, body, res.statusCode, json);
       return _Response(res.statusCode, json);
     } on TimeoutException {
+      _trace(method, uri, body, 0, 'TIMEOUT');
       throw AuraApiException(AuraErrorKind.timeout);
     } on Exception catch (e) {
+      _trace(method, uri, body, 0, 'NO CONNECTION: $e');
       // No internet, DNS, TLS, refused connection; in the browser also a
       // server that does not allow the page's origin (CORS).
       throw AuraApiException(AuraErrorKind.unreachable, e is http.ClientException ? e.message : '$e');

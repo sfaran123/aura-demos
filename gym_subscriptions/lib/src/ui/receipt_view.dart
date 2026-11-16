@@ -76,9 +76,8 @@ class _ReceiptSendPanelState extends State<ReceiptSendPanel> {
 
   Widget _serverPanel(GymSync sync) {
     final r = widget.receipt;
-    Widget busy(Channel ch, Widget icon) => sending == ch
-        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-        : icon;
+    Widget busy(Channel ch, Widget icon) =>
+        sending == ch ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : icon;
     // The theme's buttons are full width; next to a field they take their own size.
     final buttonStyle = FilledButton.styleFrom(minimumSize: const Size(104, 48));
     return Panel(
@@ -262,8 +261,7 @@ String docLabel(Receipt r, DocType type) => r.docType != null
 
 /// Whether the document carries VAT: a server document by its own type, an
 /// app document by the type the business issues (none for an exempt dealer).
-bool carriesVat(Receipt r, DocType type) =>
-    r.docType != null ? r.isTaxDocument : type == DocType.taxInvoiceReceipt;
+bool carriesVat(Receipt r, DocType type) => r.docType != null ? r.isTaxDocument : type == DocType.taxInvoiceReceipt;
 
 /// The document as a PDF. A sale on the AURA server: the web's own document
 /// (as the POS app shows it). A receipt made in the app only (the demo): drawn here.
@@ -517,8 +515,11 @@ String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStr
 
 /// Everything a customer paid, was credited, and still owes.
 class CustomerHistory extends StatelessWidget {
-  const CustomerHistory({super.key, required this.customerId});
+  const CustomerHistory({super.key, required this.customerId, this.all = false});
   final String customerId;
+
+  /// Every document (the customer's page); else the latest 12.
+  final bool all;
 
   @override
   Widget build(BuildContext context) {
@@ -561,7 +562,7 @@ class CustomerHistory extends StatelessWidget {
         Panel(
           padding: EdgeInsets.zero,
           child: Column(children: [
-            for (final (i, r) in docs.take(12).indexed) ...[
+            for (final (i, r) in docs.take(all ? docs.length : 12).indexed) ...[
               if (i > 0) const Divider(height: 1),
               ListTile(
                 key: Key('history-${r.number}'),
@@ -574,7 +575,7 @@ class CustomerHistory extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w700, color: r.isCredit ? Aura.warn : Aura.ink)),
               ),
             ],
-            if (docs.length > 12)
+            if (!all && docs.length > 12)
               Padding(
                 padding: const EdgeInsets.all(8),
                 child: Text(t('ועוד {0} במסך המכירות', [docs.length - 12]), style: const TextStyle(color: Aura.muted)),

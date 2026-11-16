@@ -187,7 +187,9 @@ class GymStore extends SimpleNotifier {
     Map<String, dynamic>? dashboardJson,
     String? owner,
     List<Visit>? visits,
+    Set<String>? draftSaleIds,
   }) {
+    if (draftSaleIds != null) this.draftSaleIds = draftSaleIds;
     if (owner != null) serverOwner = owner;
     serverLoaded = true;
     this.plans
@@ -348,22 +350,27 @@ class GymStore extends SimpleNotifier {
 
   /// The server's home-screen numbers without the old debts, so the home screen,
   /// the collection list and the reports show the same total.
+  /// Signed in: the draft sales the server listed (not documents yet).
+  Set<String> draftSaleIds = {};
+
   ServerDashboard? _withoutOldDebts(ServerDashboard? d) {
     if (d == null) return null;
     bool old(DebtItem x) =>
         x.kind == DebtKind.failedCharge &&
         ((x.date != null && x.date!.isBefore(debtCutoff)) || (x.subscriptionId != null && _inactive(x.subscriptionId)));
     final dropped = d.debts.where(old).fold(0.0, (a, x) => a + x.amount);
-    if (dropped == 0) return d;
     final left = round2(d.openDebt - dropped);
     return ServerDashboard(
       businessName: d.businessName,
       activeMembers: d.activeMembers,
       revenueToday: d.revenueToday,
-      openDebt: left < 0 ? 0 : left,
+      // Signed in with the data loaded: the total is the sum of what the collection
+      // list shows, so the home screen, the list and the reports never disagree.
+      openDebt: serverLoaded ? openDebt : (left < 0 ? 0 : left),
       debts: d.debts.where((x) => !old(x)).toList(),
       expiring: d.expiring,
-      recentPayments: d.recentPayments,
+      // A payment of a draft sale is not a payment yet.
+      recentPayments: d.recentPayments.where((p) => !draftSaleIds.contains(p.saleId)).toList(),
       documentsMonth: d.documentsMonth,
     );
   }
@@ -538,6 +545,19 @@ class GymStore extends SimpleNotifier {
   }
 
   /// Adds a member saved on the AURA server, or updates the one with the same id.
+  /// Changes a customer's details (the demo, or after the server saved them).
+  void editCustomer(Customer c, {required String name, required String phone, String? idNumber, String? email}) {
+    c
+      ..name = name
+      ..phone = phone
+      ..idNumber = (idNumber ?? '').isEmpty ? null : idNumber
+      ..email = (email ?? '').isEmpty ? null : email;
+    for (final r in receipts) {
+      if (r.customerId == c.id) r.customerName = name;
+    }
+    notifyListeners();
+  }
+
   Customer upsertCustomer(Customer c) {
     final i = customers.indexWhere((x) => x.id == c.id);
     if (i >= 0) {

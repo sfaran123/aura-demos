@@ -140,9 +140,8 @@ class HomeScreen extends StatelessWidget {
         ? (collect.isEmpty
             ? t('אין תשלומים פתוחים')
             : t('{0} תשלומים · {1}', [collect.length, money(collect.fold(0.0, (a, c) => a + c.amount))]))
-        : (dash.debts.isEmpty
-            ? t('אין תשלומים פתוחים')
-            : t('{0} תשלומים · {1}', [dash.debts.length, money(dash.openDebt)]));
+        // Signed in: the same payments and total as the collection list.
+        : (overdue.isEmpty ? t('אין תשלומים פתוחים') : t('{0} תשלומים · {1}', [overdue.length, money(dash.openDebt)]));
     final documentsMonth = dash?.documentsMonth ??
         store.receipts.where((r) => r.date.year == store.today.year && r.date.month == store.today.month).length;
     return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [

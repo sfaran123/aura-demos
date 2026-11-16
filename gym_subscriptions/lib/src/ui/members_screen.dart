@@ -8,6 +8,7 @@ import '../domain/checkout.dart';
 import '../domain/models.dart';
 import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkin_screen.dart';
+import 'customers_screen.dart';
 import 'checkout/checkout_screens.dart';
 import 'member_card.dart';
 import 'theme.dart';
@@ -65,7 +66,15 @@ class _MembersScreenState extends State<MembersScreen> {
       ..sort((a, b) => store.customer(a.customerId)!.name.compareTo(store.customer(b.customerId)!.name));
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('מנויים')), actions: [HelpButton.topic(HelpTopic.members)]),
+      appBar: AppBar(title: Text(t('מנויים')), actions: [
+        IconButton(
+          key: const Key('allCustomers'),
+          tooltip: t('כל הלקוחות'),
+          icon: const Icon(Icons.contacts_outlined),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomersScreen())),
+        ),
+        HelpButton.topic(HelpTopic.members)
+      ]),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'newSubFab',
         backgroundColor: Aura.goldLight,
@@ -239,6 +248,15 @@ class _MemberSheetBody extends StatelessWidget {
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
+            OutlinedButton.icon(
+              key: const Key('memberCustomerPage'),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerScreen(customerId: c.id)));
+              },
+              icon: const Icon(Icons.badge_outlined, size: 18),
+              label: Text(t('כרטסת ועריכת לקוח')),
+            ),
             if (running)
               FilledButton.icon(
                 key: const Key('memberCheckin'),

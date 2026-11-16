@@ -10,7 +10,10 @@ import '../domain/settings.dart';
 import 'gym_store.dart';
 import '../domain/l10n.dart';
 
-enum Period { today, week, month, lastMonth }
+enum Period { today, week, month, lastMonth, custom }
+
+/// The dates picked for [Period.custom]: [from, to), set by the report screen.
+(DateTime, DateTime)? customPeriodRange;
 
 extension PeriodLabel on Period {
   String get label => switch (this) {
@@ -18,6 +21,9 @@ extension PeriodLabel on Period {
         Period.week => t('7 ימים'),
         Period.month => t('החודש'),
         Period.lastMonth => t('חודש קודם'),
+        Period.custom => customPeriodRange == null
+            ? t('תאריכים אחרים')
+            : '${fmtDate(customPeriodRange!.$1)} – ${fmtDate(customPeriodRange!.$2.subtract(const Duration(days: 1)))}',
       };
 
   /// [from, to) for this period.
@@ -26,6 +32,8 @@ extension PeriodLabel on Period {
         Period.week => (today.subtract(const Duration(days: 6)), today.add(const Duration(days: 1))),
         Period.month => (DateTime(today.year, today.month, 1), DateTime(today.year, today.month + 1, 1)),
         Period.lastMonth => (DateTime(today.year, today.month - 1, 1), DateTime(today.year, today.month, 1)),
+        Period.custom =>
+          customPeriodRange ?? (DateTime(today.year, today.month, 1), DateTime(today.year, today.month + 1, 1)),
       };
 }
 
@@ -156,6 +164,8 @@ String _receiptKind(ReceiptKind k) => switch (k) {
         DateTime(today.year, today.month - 1, 1).add(Duration(days: today.day))
       ),
     Period.lastMonth => (DateTime(today.year, today.month - 2, 1), DateTime(today.year, today.month - 1, 1)),
+    // The same number of days, just before the chosen dates.
+    Period.custom => (r.$1.subtract(r.$2.difference(r.$1)), r.$1),
   };
 }
 
@@ -288,8 +298,7 @@ ReportData summaryReport(GymStore s, Period p) {
     Kpi(t('אחוז גבייה'), '$rate%',
         tone: rate >= 90 ? Tone.ok : (rate >= 75 ? Tone.warn : Tone.bad),
         sub: t('{0} מתוך {1}', [money(paidSum), money(dueSum)])),
-    Kpi(t('חוב פתוח'), money(debtSum),
-        tone: debtSum <= 0 ? Tone.ok : Tone.bad, sub: t('{0} לקוחות', [debtCustomers])),
+    Kpi(t('חוב פתוח'), money(debtSum), tone: debtSum <= 0 ? Tone.ok : Tone.bad, sub: t('{0} לקוחות', [debtCustomers])),
     Kpi(t('קבלות'), '${receipts.length}',
         sub: t('ממוצע {0}', [money(receipts.isEmpty ? 0 : revenue / receipts.length)])),
     // Sign-up links are not on the server yet: left out while signed in.
@@ -368,7 +377,8 @@ ReportData _serverAccountantReport(GymStore s, (DateTime, DateTime) r) {
   final creditGross = _sum(credits.map((x) => docTotal(x).abs()));
   final cVat = _sum(credits.map((x) => (x.vat ?? 0).abs()));
   final net = round2(gross - vat), cNet = round2(creditGross - cVat);
-  final big = sales.where((x) => docTotal(x) - (x.vat ?? 0) > allocationThreshold && x.allocationNumber == null).toList();
+  final big =
+      sales.where((x) => docTotal(x) - (x.vat ?? 0) > allocationThreshold && x.allocationNumber == null).toList();
 
   final byMethod = <PayMethod, double>{};
   for (final x in docs) {
@@ -383,7 +393,9 @@ ReportData _serverAccountantReport(GymStore s, (DateTime, DateTime) r) {
           x,
           dateOnly(l.cheque.firstDate ?? x.date),
           l.amount,
-          l.cheque.number.isEmpty ? '' : t('שיק {0} · בנק {1} · סניף {2}', [l.cheque.number, l.cheque.bank, l.cheque.branch]),
+          l.cheque.number.isEmpty
+              ? ''
+              : t('שיק {0} · בנק {1} · סניף {2}', [l.cheque.number, l.cheque.bank, l.cheque.branch]),
         )
   ];
   String label(Receipt x) => '${serverDocTypeLabel(x.docType ?? 0)} ${x.docNo}';
@@ -446,7 +458,7 @@ ReportData _serverAccountantReport(GymStore s, (DateTime, DateTime) r) {
 }
 
 ReportData accountantReport(GymStore s, Period p) {
-  final r = (p == Period.lastMonth ? Period.lastMonth : Period.month).range(s.today);
+  final r = (p == Period.lastMonth || p == Period.custom ? p : Period.month).range(s.today);
   if (_fromServer(s)) return _serverAccountantReport(s, r);
   final vatPct = s.settings.docType == DocType.taxInvoiceReceipt ? s.settings.vatPct : 0.0;
   final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.number.compareTo(b.number));
@@ -487,8 +499,7 @@ ReportData accountantReport(GymStore s, Period p) {
                 : t('שיק {0} · בנק {1} · סניף {2}', [l.cheque.numberAt(i), l.cheque.bank, l.cheque.branch]),
           )
   ];
-  String label(Receipt x) =>
-      x.isCredit ? s.settings.docType.creditName : s.settings.docType.docName;
+  String label(Receipt x) => x.isCredit ? s.settings.docType.creditName : s.settings.docType.docName;
 
   return ReportData(
       kpis: [
@@ -561,7 +572,7 @@ ReportData accountantReport(GymStore s, Period p) {
 
 /// Daily close (Z report): what came in today and how, to check the cash drawer.
 ReportData dailyReport(GymStore s, Period p) {
-  final r = p == Period.week ? Period.week.range(s.today) : Period.today.range(s.today);
+  final r = p == Period.week || p == Period.custom ? p.range(s.today) : Period.today.range(s.today);
   final docs = s.receipts.where((x) => _inRange(x.date, r)).toList()..sort((a, b) => a.date.compareTo(b.date));
   double by(PayMethod m) => _sum([
         for (final x in docs)
@@ -721,7 +732,7 @@ ReportData depositsReport(GymStore s, Period _) {
 
 // ------------------------------------------------------------------ collection
 ReportData manualMonthlyReport(GymStore s, Period p) {
-  final r = p == Period.lastMonth ? p.range(s.today) : Period.month.range(s.today);
+  final r = p == Period.lastMonth || p == Period.custom ? p.range(s.today) : Period.month.range(s.today);
   final list = s.charges.where((c) => c.manual && _inRange(c.dueDate, r)).toList()
     ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
   final expected = _sum(list.map((c) => c.amount));
@@ -823,7 +834,8 @@ ReportData _serverDebtsReport(GymStore s, ServerDashboard dash) {
                   d.date == null ? '—' : fmtDate(d.date!),
                 ]),
                 value: money(d.amount),
-                tag: d.customerId != null && s.entryBlocked(d.customerId!) ? t('כניסה חסומה') : t('{0} ימים', [days(d)]),
+                tag:
+                    d.customerId != null && s.entryBlocked(d.customerId!) ? t('כניסה חסומה') : t('{0} ימים', [days(d)]),
                 tone: d.customerId != null && s.entryBlocked(d.customerId!) ? Tone.bad : Tone.warn,
                 // A failed charge is in the app's "to collect" list under the same id.
                 chargeId: s.charges.any((c) => c.id == d.id) ? d.id : null),
@@ -997,12 +1009,12 @@ List<ReportDef> get allReports => [
       ReportDef('accountant', ReportGroup.accounting, t('חבילה לרואה חשבון'),
           t('מע״מ, יומן מסמכים, זיכויים, שיקים ובדיקות לפני הגשה'), accountantReport,
           usesPeriod: true,
-          periods: const [Period.month, Period.lastMonth],
+          periods: const [Period.month, Period.lastMonth, Period.custom],
           headline: (s) => accountantReport(s, Period.lastMonth).kpis[3].value),
       ReportDef('daily', ReportGroup.accounting, t('סגירת קופה יומית'), t('מה נכנס היום ובאיזה אמצעי, לספירת הקופה'),
           dailyReport,
           usesPeriod: true,
-          periods: const [Period.today, Period.week],
+          periods: const [Period.today, Period.week, Period.custom],
           headline: (s) => dailyReport(s, Period.today).kpis.first.value),
       ReportDef('revenue', ReportGroup.money, t('הכנסות'), t('נגבה לפי תקופה, אמצעי תשלום ומקור'), revenueReport,
           usesPeriod: true, headline: (s) => revenueReport(s, Period.month).kpis.first.value),
@@ -1017,7 +1029,7 @@ List<ReportDef> get allReports => [
       ReportDef('manual', ReportGroup.collection, t('גבייה ידנית חודשית'),
           t('ממי צריך לגבות במזומן / שיק / העברה החודש'), manualMonthlyReport,
           usesPeriod: true,
-          periods: const [Period.month, Period.lastMonth],
+          periods: const [Period.month, Period.lastMonth, Period.custom],
           headline: (s) => manualMonthlyReport(s, Period.month).kpis[2].value),
       ReportDef('debts', ReportGroup.collection, t('חובות ופיגורים'), t('מי חייב, כמה ימים ומי חסום'), debtsReport,
           headline: (s) => debtsReport(s, Period.month).kpis.first.value),

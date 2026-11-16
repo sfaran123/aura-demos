@@ -2009,6 +2009,87 @@ const Map<String, (String, String)> strings = {
     'Charges that failed more than {0} months ago, or of a membership that is no longer active. Not counted in the open debt.'
   ),
   '{0} חודשים שנכשלו': ('{0} أشهر فشل خصمها', '{0} failed months'),
+  // Reports: any dates
+  'תאריכים אחרים': ('تواريخ أخرى', 'Other dates'),
+  'שינוי תאריכים': ('تغيير التواريخ', 'Change dates'),
+  'תאריכים לדוח': ('تواريخ التقرير', 'Dates for the report'),
+  // Collection: details and the saved card
+  'איך לחייב את הכרטיס? · {0}': ('كيف تُخصم البطاقة؟ · {0}', 'How is the card charged? · {0}'),
+  'כרטיס שמור •••• {0} · תשלום רגיל': (
+    'البطاقة المحفوظة •••• {0} · دفعة عادية',
+    'Saved card •••• {0} · regular payment'
+  ),
+  'כרטיס שמור •••• {0} · בתשלומים': ('البطاقة المحفوظة •••• {0} · بالتقسيط', 'Saved card •••• {0} · in installments'),
+  'ללקוח אין כרטיס שמור שאפשר לחייב מכאן. אפשר לשמור כרטיס מכרטיס המנוי.': (
+    'لا توجد للزبون بطاقة محفوظة يمكن خصمها من هنا. يمكن حفظ بطاقة من بطاقة المشترك.',
+    'The member has no saved card to charge from here. A card can be saved from the member card.'
+  ),
+  'חויב במסוף הסליקה (רישום בלבד)': ('خُصمت على جهاز الدفع (تسجيل فقط)', 'Charged on the card terminal (record only)'),
+  'הכרטיס חויב · {0} · {1} ב-{2} תשלומים': (
+    'خُصمت البطاقة · {0} · {1} على {2} دفعات',
+    'The card was charged · {0} · {1} in {2} installments'
+  ),
+  'הכרטיס חויב · {0} · {1}': ('خُصمت البطاقة · {0} · {1}', 'The card was charged · {0} · {1}'),
+  'התשלום הזה': ('هذه الدفعة', 'This payment'),
+  'סה"כ פתוח ללקוח': ('إجمالي المفتوح للزبون', 'Total open for the member'),
+  'אין כרטיס שמור במנוי: החיוב החודשי ימשיך להיכשל עד שיעודכן כרטיס.': (
+    'لا توجد بطاقة محفوظة في الاشتراك: سيستمر فشل الخصم الشهري حتى تُحدَّث البطاقة.',
+    'The membership has no saved card: the monthly charge keeps failing until a card is updated.'
+  ),
+  'הכרטיס של המנוי נדחה. אפשר לחייב אותו שוב, לעדכן כרטיס, או לגבות באמצעי אחר.': (
+    'رُفضت بطاقة الاشتراك. يمكن خصمها مجدداً، تحديث البطاقة، أو التحصيل بوسيلة أخرى.',
+    "The membership's card was declined. Charge it again, update the card, or collect another way."
+  ),
+  'גבייה · {0}': ('تحصيل · {0}', 'Collect · {0}'),
+  'כרטיס המנוי המלא': ('بطاقة المشترك الكاملة', 'Full member card'),
+  'תשלומים פתוחים נוספים ({0})': ('دفعات مفتوحة أخرى ({0})', 'Other open payments ({0})'),
+  // Customers: the page of a customer and editing
+  'לקוחות ({0})': ('الزبائن ({0})', 'Customers ({0})'),
+  'מוצגים 200 הראשונים. חפשו כדי לצמצם.': (
+    'تُعرض أول 200. ابحثوا للتضييق.',
+    'The first 200 are shown. Search to narrow down.'
+  ),
+  'בלי מנוי': ('بدون اشتراك', 'No membership'),
+  'ת"ז / ח"פ': ('رقم الهوية / رقم الشركة', 'ID / company number'),
+  'אימייל': ('البريد الإلكتروني', 'Email'),
+  'עריכת לקוח': ('تعديل الزبون', 'Edit customer'),
+  'מנויים ({0})': ('الاشتراكات ({0})', 'Memberships ({0})'),
+  'ללקוח אין מנוי.': ('لا يوجد اشتراك للزبون.', 'The customer has no membership.'),
+  'התחלה {0}': ('البداية {0}', 'Started {0}'),
+  'צריך שם': ('يجب إدخال اسم', 'Enter a name'),
+  'כתובת האימייל לא תקינה': ('عنوان البريد غير صحيح', 'The email address is not valid'),
+  'פרטי הלקוח נשמרו': ('حُفظت بيانات الزبون', "The customer's details were saved"),
+  'כל הלקוחות': ('كل الزبائن', 'All customers'),
+  'כרטסת ועריכת לקוח': ('كشف الحساب وتعديل الزبون', 'Ledger and edit customer'),
+  'עריכת לקוח עדיין לא זמינה בשרת. אפשר לערוך במערכת AURA באתר.': (
+    'تعديل الزبون غير متاح بعد على الخادم. يمكن التعديل في نظام AURA على الموقع.',
+    'Editing a customer is not available on the server yet. It can be edited in AURA on the web.'
+  ),
+  // Cancel and refund: the documents that are made
+  'הוחזר {0} לכרטיס': ('أُعيد {0} إلى البطاقة', '{0} refunded to the card'),
+  'הקבלה תבוטל ותופק קבלה במינוס על כל הסכום.': (
+    'ستُلغى الإيصال ويُصدر إيصال بالسالب على كامل المبلغ.',
+    'The receipt is cancelled and a minus receipt is issued for the whole amount.'
+  ),
+  'תופק חשבונית זיכוי על כל הסכום וקבלה במינוס על הכסף שהוחזר, והמסמך יסומן כמבוטל.': (
+    'ستُصدر فاتورة دائنة على كامل المبلغ وإيصال بالسالب على المبلغ المُعاد، ويُعلَّم المستند كملغى.',
+    'A credit invoice is issued for the whole amount and a minus receipt for the money given back, and the document is marked cancelled.'
+  ),
+  'חשבונית זיכוי {0}': ('فاتورة دائنة {0}', 'Credit invoice {0}'),
+  'קבלה במינוס {0}': ('إيصال بالسالب {0}', 'Minus receipt {0}'),
+  'שימו לב': ('انتبهوا', 'Note'),
+  'שימו לב: השרת לא החזיר חשבונית זיכוי. בדקו במערכת AURA.': (
+    'انتبهوا: الخادم لم يُرجع فاتورة دائنة. تحققوا في نظام AURA.',
+    'Note: the server did not return a credit invoice. Check in AURA.'
+  ),
+  'שימו לב: השרת לא החזיר קבלה במינוס. בדקו במערכת AURA.': (
+    'انتبهوا: الخادم لم يُرجع إيصالاً بالسالب. تحققوا في نظام AURA.',
+    'Note: the server did not return a minus receipt. Check in AURA.'
+  ),
+  'המוצרים והמחירים מנוהלים במערכת AURA באתר. שינוי שם מופיע כאן אחרי עדכון.': (
+    'المنتجات والأسعار تُدار في نظام AURA على الموقع. التغيير هناك يظهر هنا بعد التحديث.',
+    'Products and prices are managed in AURA on the web. A change there shows here after an update.'
+  ),
   // Check-in
   'לא נשארו כניסות': ('لم يبقَ دخول', 'No entries left'),
   'נשארה כניסה אחת': ('بقي دخول واحد', '1 entry left'),
@@ -2197,7 +2278,10 @@ const Map<String, (String, String)> strings = {
   'שמרו את הכרטיס של הלקוח': ('احفظوا بطاقة العميل', "Save the member's card"),
   // Regular or installments, asked for every saved-card charge at the desk.
   'בחרו: תשלום רגיל או תשלומים': ('اختاروا: دفعة عادية أو أقساط', 'Choose: regular payment or installments'),
-  'מספר התשלומים חייב להיות 2 לפחות': ('عدد الأقساط يجب أن يكون 2 على الأقل', 'The number of installments must be 2 or more'),
+  'מספר התשלומים חייב להיות 2 לפחות': (
+    'عدد الأقساط يجب أن يكون 2 على الأقل',
+    'The number of installments must be 2 or more'
+  ),
   'איך לחייב את הכרטיס?': ('كيف يتم خصم البطاقة؟', 'How should the card be charged?'),
   'תשלום רגיל': ('دفعة عادية', 'Regular payment'),
   'תשלומים': ('أقساط', 'Installments'),
@@ -2301,7 +2385,10 @@ const Map<String, (String, String)> strings = {
     'ستصدر فاتورة ضريبية دائنة بكامل المبلغ، ويُعلَّم المستند كملغى.',
     'A tax credit invoice is issued for the whole amount, and the document is marked cancelled.'
   ),
-  'הקבלה תבוטל. לא מופק מסמך חדש.': ('سيُلغى الإيصال. لا يصدر مستند جديد.', 'The receipt is cancelled. No new document is issued.'),
+  'הקבלה תבוטל. לא מופק מסמך חדש.': (
+    'سيُلغى الإيصال. لا يصدر مستند جديد.',
+    'The receipt is cancelled. No new document is issued.'
+  ),
   'כבר הוחזר לכרטיס: {0}': ('أُعيد إلى البطاقة سابقًا: {0}', 'Already refunded to the card: {0}'),
   'יש החזר של {0} שעדיין לא ידוע אם עבר. בדקו במערכת Z Credit.': (
     'هناك استرداد بقيمة {0} لا يُعرف بعد إن تم. افحصوا في نظام Z Credit.',
@@ -2319,7 +2406,10 @@ const Map<String, (String, String)> strings = {
   'המסמך לא בוטל': ('لم يُلغَ المستند', 'The document was not cancelled'),
   'לא ידוע אם ההחזר בוצע': ('لا يُعرف إن تم الاسترداد', 'Unknown whether the refund was made'),
   'אין לכם הרשאה לבטל מסמכים': ('ليست لديكم صلاحية لإلغاء المستندات', "You don't have permission to cancel documents"),
-  'Z Credit לא אישר את ההחזר: {0}': ('لم يوافق Z Credit على الاسترداد: {0}', 'Z Credit did not approve the refund: {0}'),
+  'Z Credit לא אישר את ההחזר: {0}': (
+    'لم يوافق Z Credit على الاسترداد: {0}',
+    'Z Credit did not approve the refund: {0}'
+  ),
   'המסמך כבר בוטל': ('المستند ملغى مسبقًا', 'The document is already cancelled'),
   'אי אפשר לבטל את המסמך הזה': ('لا يمكن إلغاء هذا المستند', 'This document cannot be cancelled'),
   'בחרו איך מחזירים את הכסף': ('اختاروا كيف يُعاد المال', 'Choose how the money is given back'),

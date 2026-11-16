@@ -414,16 +414,17 @@ ServerDashboard? mapDashboard(Object? body) {
     ],
     recentPayments: [
       for (final x in _list(d['recent_payments']))
-        RecentPayment(
-          id: _s(x['id']),
-          amount: _d(x['amount']),
-          method: _payMethod(x['paying_method']),
-          methodName: _s(x['paying_method']),
-          saleId: opt(x['sale_id']),
-          reference: opt(x['reference_no']),
-          customerName: opt(x['customer_name']),
-          date: _date(x['created_at']),
-        ),
+        if (!isDraftSale(x))
+          RecentPayment(
+            id: _s(x['id']),
+            amount: _d(x['amount']),
+            method: _payMethod(x['paying_method']),
+            methodName: _s(x['paying_method']),
+            saleId: opt(x['sale_id']),
+            reference: opt(x['reference_no']),
+            customerName: opt(x['customer_name']),
+            date: _date(x['created_at']),
+          ),
     ],
     documentsMonth: _i(d['documents_month']),
   );
@@ -431,56 +432,72 @@ ServerDashboard? mapDashboard(Object? body) {
 
 /// One page of GET gym/sales -> receipts (all staff, from a date; see GymController::sales).
 /// [names] is used when a product has no name in the answer.
+/// A sale kept as a draft on the web or the POS (sale_status 3 = POS draft,
+/// 5 = ERP draft): not a document yet, so not a sale and not a payment here.
+bool isDraftSale(Map x) {
+  final status = x['sale_status'];
+  return (status != null && (_i(status) == 3 || _i(status) == 5)) ||
+      _b(x['is_draft']) ||
+      _s(x['status']).toLowerCase() == 'draft';
+}
+
+/// The ids of the draft sales on a page of GET gym/sales.
+Set<String> draftSaleIds(Object? body) => {
+      for (final d in _list(body is Map ? body['data'] : null))
+        if (isDraftSale(d)) _s(d['id'])
+    };
+
 List<Receipt> mapGymSales(Object? body, {Map<String, String> names = const {}}) {
   final data = body is Map ? body['data'] : null;
   return [
     for (final d in _list(data))
-      () {
-        final products = _list(d['products']);
-        final description = products
-            .map((p) => _s(p['name']).isNotEmpty ? _s(p['name']) : (names[_s(p['id'])] ?? '#${_s(p['id'])}'))
-            .toSet()
-            .join(', ');
-        final lines = [
-          for (final p in _list(d['payments']))
-            if (_d(p['amount']) != 0)
-              PaymentLine(
-                method: _payMethod(p['paying_method']),
-                amount: _d(p['amount']),
-                cheques: 1,
-                cheque: _payMethod(p['paying_method']) == PayMethod.cheque
-                    ? ChequeDetails(
-                        number: _s(p['cheque_number']),
-                        bank: _s(p['cheque_bank']),
-                        branch: _s(p['cheque_branch']),
-                        firstDate: _date(p['cheque_date']) ?? _date(p['created_at']),
-                      )
-                    : null,
-              ),
-        ];
-        final subscriptionId = _s(d['subscription_id']);
-        return Receipt(
-          number: _i(d['id']),
-          saleId: _i(d['id']),
-          reference: _s(d['reference_no']).isEmpty ? '#${_s(d['id'])}' : _s(d['reference_no']),
-          kind: _b(d['is_credit'])
-              ? ReceiptKind.credit
-              : subscriptionId.isNotEmpty
-                  ? ReceiptKind.subscription
-                  : ReceiptKind.quickPay,
-          customerId: d['customer_id'] == null ? null : _s(d['customer_id']),
-          customerName: _s(d['customer_name']),
-          subscriptionId: subscriptionId.isEmpty ? null : subscriptionId,
-          description: description,
-          lines: lines,
-          date: _date(d['created_at']) ?? DateTime.now(),
-          docType: d['type'] == null ? null : _i(d['type']),
-          docTotal: d['grand_total'] == null ? null : _d(d['grand_total']),
-          vat: d['total_tax'] == null ? null : _d(d['total_tax']),
-          cancelled: _b(d['is_cancelled']),
-          allocationNumber: _s(d['allocation_number']).isEmpty ? null : _s(d['allocation_number']),
-        );
-      }(),
+      if (!isDraftSale(d))
+        () {
+          final products = _list(d['products']);
+          final description = products
+              .map((p) => _s(p['name']).isNotEmpty ? _s(p['name']) : (names[_s(p['id'])] ?? '#${_s(p['id'])}'))
+              .toSet()
+              .join(', ');
+          final lines = [
+            for (final p in _list(d['payments']))
+              if (_d(p['amount']) != 0)
+                PaymentLine(
+                  method: _payMethod(p['paying_method']),
+                  amount: _d(p['amount']),
+                  cheques: 1,
+                  cheque: _payMethod(p['paying_method']) == PayMethod.cheque
+                      ? ChequeDetails(
+                          number: _s(p['cheque_number']),
+                          bank: _s(p['cheque_bank']),
+                          branch: _s(p['cheque_branch']),
+                          firstDate: _date(p['cheque_date']) ?? _date(p['created_at']),
+                        )
+                      : null,
+                ),
+          ];
+          final subscriptionId = _s(d['subscription_id']);
+          return Receipt(
+            number: _i(d['id']),
+            saleId: _i(d['id']),
+            reference: _s(d['reference_no']).isEmpty ? '#${_s(d['id'])}' : _s(d['reference_no']),
+            kind: _b(d['is_credit'])
+                ? ReceiptKind.credit
+                : subscriptionId.isNotEmpty
+                    ? ReceiptKind.subscription
+                    : ReceiptKind.quickPay,
+            customerId: d['customer_id'] == null ? null : _s(d['customer_id']),
+            customerName: _s(d['customer_name']),
+            subscriptionId: subscriptionId.isEmpty ? null : subscriptionId,
+            description: description,
+            lines: lines,
+            date: _date(d['created_at']) ?? DateTime.now(),
+            docType: d['type'] == null ? null : _i(d['type']),
+            docTotal: d['grand_total'] == null ? null : _d(d['grand_total']),
+            vat: d['total_tax'] == null ? null : _d(d['total_tax']),
+            cancelled: _b(d['is_cancelled']),
+            allocationNumber: _s(d['allocation_number']).isEmpty ? null : _s(d['allocation_number']),
+          );
+        }(),
   ];
 }
 

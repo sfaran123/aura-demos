@@ -9,6 +9,7 @@ import '../domain/help.dart';
 import 'help.dart';
 import 'plans_screen.dart';
 import 'receipt_view.dart';
+import 'auth_screens.dart' show SyncScope;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -45,7 +46,8 @@ class _SalesScreenState extends State<SalesScreen> {
       if (kind != null && x.kind != kind) return false;
       if (method != null && !x.lines.any((l) => l.method == method)) return false;
       if (q.trim().isEmpty) return true;
-      return x.customerName.contains(q.trim()) || (digits.isNotEmpty && x.docNo.replaceAll(RegExp(r'\D'), '').contains(digits));
+      return x.customerName.contains(q.trim()) ||
+          (digits.isNotEmpty && x.docNo.replaceAll(RegExp(r'\D'), '').contains(digits));
     }).toList();
     final total = round2(list.fold(0.0, (a, x) => a + x.total));
     // Each document's own VAT (a credit note takes its VAT back; none for an exempt dealer).
@@ -221,7 +223,8 @@ class PriceListScreen extends StatelessWidget {
     );
     final p = double.tryParse(price.text) ?? 0;
     if (ok == true && name.text.trim().isNotEmpty && p > 0) {
-      store.saveItem(ShopItem(item?.id ?? '', name.text.trim(), p, taxRate: item?.taxRate ?? 0, taxMethod: item?.taxMethod));
+      store.saveItem(
+          ShopItem(item?.id ?? '', name.text.trim(), p, taxRate: item?.taxRate ?? 0, taxMethod: item?.taxMethod));
       if (context.mounted) showDone(context, t('המחירון עודכן'));
     }
   }
@@ -231,18 +234,30 @@ class PriceListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    // Signed in, the products and their prices are the AURA server's: a change
+    // made here would be gone at the next update (and a sale would go out with a
+    // price the server does not know), so here they are shown, not edited.
+    final signedIn = SyncScope.maybeOf(context) != null;
     return Scaffold(
       appBar: AppBar(title: Text(t('מחירון')), actions: [HelpButton.topic(HelpTopic.prices)]),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('newItem'),
-        heroTag: 'newItemFab',
-        backgroundColor: Aura.goldLight,
-        foregroundColor: Aura.ink,
-        onPressed: () => _edit(context),
-        icon: const Icon(Icons.add),
-        label: Text(t('מוצר חדש')),
-      ),
+      floatingActionButton: signedIn
+          ? null
+          : FloatingActionButton.extended(
+              key: const Key('newItem'),
+              heroTag: 'newItemFab',
+              backgroundColor: Aura.goldLight,
+              foregroundColor: Aura.ink,
+              onPressed: () => _edit(context),
+              icon: const Icon(Icons.add),
+              label: Text(t('מוצר חדש')),
+            ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
+        if (signedIn)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Note(t('המוצרים והמחירים מנוהלים במערכת AURA באתר. שינוי שם מופיע כאן אחרי עדכון.'),
+                key: const Key('pricesReadOnly'), icon: Icons.lock_outline),
+          ),
         SectionLabel(t('מוצרים ושירותים בקבלה')),
         Panel(
           padding: EdgeInsets.zero,
@@ -254,10 +269,12 @@ class PriceListScreen extends StatelessWidget {
                 title: Text(x.name),
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(money(x.price), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 6),
-                  const Icon(Icons.edit_outlined, size: 18, color: Aura.muted),
+                  if (!signedIn) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.edit_outlined, size: 18, color: Aura.muted),
+                  ],
                 ]),
-                onTap: () => _edit(context, x),
+                onTap: signedIn ? null : () => _edit(context, x),
               ),
             ],
           ]),

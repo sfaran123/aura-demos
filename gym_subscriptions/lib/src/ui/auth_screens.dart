@@ -10,6 +10,7 @@ import '../integration/aura_api.dart';
 import '../state/auth.dart';
 import '../state/gym_store.dart';
 import '../state/server_sync.dart';
+import '../domain/card_entry.dart' show CardChargeException, CardSaveException;
 import 'theme.dart';
 
 /// Makes the [AuthController] available below the gate (settings uses it for
@@ -107,29 +108,29 @@ class _FirstSyncGateState extends State<FirstSyncGate> {
           child: Padding(
             padding: const EdgeInsets.all(28),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.cloud_off_outlined, size: 44, color: Aura.warn),
-                    const SizedBox(height: 14),
-                    Text(t('לא הצלחנו לטעון את נתוני העסק'),
-                        textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
-                    const SizedBox(height: 8),
-                    Text(authErrorText(error, workspace: widget.auth.workspace),
-                        key: const Key('firstSyncError'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Aura.muted)),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      key: const Key('firstSyncRetry'),
-                      onPressed: widget.sync.pull,
-                      icon: const Icon(Icons.refresh),
-                      label: Text(t('ניסיון נוסף')),
-                    ),
-                    const SizedBox(height: 6),
-                    TextButton(
-                      key: const Key('firstSyncSignOut'),
-                      onPressed: () => widget.auth.signOut(),
-                      child: Text(t('התנתקות')),
-                    ),
-                  ]),
+              const Icon(Icons.cloud_off_outlined, size: 44, color: Aura.warn),
+              const SizedBox(height: 14),
+              Text(t('לא הצלחנו לטעון את נתוני העסק'),
+                  textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17)),
+              const SizedBox(height: 8),
+              Text(authErrorText(error, workspace: widget.auth.workspace),
+                  key: const Key('firstSyncError'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Aura.muted)),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                key: const Key('firstSyncRetry'),
+                onPressed: widget.sync.pull,
+                icon: const Icon(Icons.refresh),
+                label: Text(t('ניסיון נוסף')),
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                key: const Key('firstSyncSignOut'),
+                onPressed: () => widget.auth.signOut(),
+                child: Text(t('התנתקות')),
+              ),
+            ]),
           ),
         ),
       ),
@@ -553,7 +554,8 @@ class _Brand extends StatelessWidget {
           ),
           boxShadow: [BoxShadow(color: Aura.gold.withValues(alpha: .45), blurRadius: 28, offset: const Offset(0, 10))],
         ),
-        child: const Icon(Icons.fitness_center_rounded, size: 38, color: Aura.ink),
+        clipBehavior: Clip.antiAlias,
+        child: Image.asset('assets/icon/icon.png', key: const Key('auraLogo'), fit: BoxFit.cover),
       ),
       const SizedBox(height: 18),
       // The brand name reads left to right in every language.
@@ -868,18 +870,24 @@ Future<bool> runOnServer(BuildContext context, Future<void> Function() action) a
     barrierDismissible: false,
     builder: (_) => const PopScope(canPop: false, child: Center(child: CircularProgressIndicator())),
   );
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final messenger = ScaffoldMessenger.of(context);
   var ok = false;
   try {
     await action();
     ok = true;
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(authErrorText(e))));
-    }
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+          backgroundColor: Aura.warn,
+          content: Text(e is CardChargeException
+              ? e.message
+              : e is CardSaveException
+                  ? e.message
+                  : authErrorText(e))));
   } finally {
-    if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+    navigator.pop();
   }
   return ok;
 }

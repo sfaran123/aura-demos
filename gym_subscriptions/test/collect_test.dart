@@ -106,7 +106,7 @@ void main() {
     final (store, _) = await boot(t, a);
     expect(store.toCollect.map((c) => c.id), containsAll(['failed-3', 'failed-92']));
     expect(store.oldDebts.map((c) => c.id), ['failed-91', 'failed-90']);
-    expect(store.dashboard!.openDebt, 179.1, reason: 'the old debt is taken off the server total');
+    expect(store.dashboard!.openDebt, 358.2, reason: 'the two months in the list; the old debts are outside the total');
     expect(store.dashboard!.debts.any((d) => d.id == 'failed-90'), isFalse);
     // Two failed months in the window: one row for the member, opening the months.
     expect(find.byKey(const Key('collect-failed-3')), findsNothing);

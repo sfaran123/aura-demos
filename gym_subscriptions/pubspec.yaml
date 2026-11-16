@@ -30,9 +30,16 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#101A28"
   adaptive_icon_foreground: assets/icon/foreground.png
+  web:
+    generate: true
+    image_path: assets/icon/icon.png
+    background_color: "#101A28"
+    theme_color: "#101A28"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/icon.png
   fonts:
     - family: Rubik
       fonts:

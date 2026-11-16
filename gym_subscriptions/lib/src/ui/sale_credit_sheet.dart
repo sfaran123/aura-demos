@@ -51,7 +51,13 @@ Future<void> showServerCreditSheet(BuildContext context, GymSync sync, Receipt r
     useSafeArea: true,
     builder: (_) => _CreditSheet(sync: sync, receipt: r, options: options),
   );
-  if (done != null && context.mounted) showDone(context, done);
+  if (done != null && context.mounted) {
+    if (done.contains(t('שימו לב'))) {
+      await showCardProblem(context, t('זיכוי / ביטול עסקה'), done);
+    } else {
+      showDone(context, done);
+    }
+  }
 }
 
 class _CreditSheet extends StatefulWidget {
@@ -127,14 +133,24 @@ class _CreditSheetState extends State<_CreditSheet> {
       if (card) {
         final docs = await widget.sync.refundSaleCard(o.saleId,
             appUuid: appUuid, amount: a, reason: reason.text, cancelMembership: cancelMembership);
-        text = t('הוחזר {0} לכרטיס · {1}', [money(a), [docs.tic, docs.receipt].where((x) => x.isNotEmpty).join(' · ')]);
+        text = [
+          t('הוחזר {0} לכרטיס', [money(a)]),
+          ..._made(credit: docs.tic, receipt: docs.receipt, needsCredit: true, needsReceipt: true),
+        ].join(' · ');
       } else {
         final credit = await widget.sync.cancelSale(o.saleId,
             appUuid: appUuid,
             method: o.refundMethods.isEmpty ? null : method,
             reason: reason.text,
             cancelMembership: cancelMembership);
-        text = credit.isEmpty ? t('בוטל {0}', [o.reference]) : t('בוטל {0} · הופקה {1}', [o.reference, credit]);
+        // A receipt: a minus receipt. A tax invoice(-receipt): a credit, and a minus
+        // receipt for the money that was paid.
+        final direct = o.cancelMode == 'direct';
+        text = [
+          t('בוטל {0}', [o.reference]),
+          ..._made(
+              credit: credit.credit, receipt: credit.receipt, needsCredit: !direct, needsReceipt: direct || o.paid > 0),
+        ].join(' · ');
       }
       if (mounted) Navigator.pop(context, text);
       return;
@@ -168,8 +184,21 @@ class _CreditSheetState extends State<_CreditSheet> {
   }
 
   String get _cancelNote => o.cancelMode == 'direct'
-      ? t('הקבלה תבוטל. לא מופק מסמך חדש.')
-      : t('תופק חשבונית זיכוי על כל הסכום, והמסמך יסומן כמבוטל.');
+      ? t('הקבלה תבוטל ותופק קבלה במינוס על כל הסכום.')
+      : o.paid > 0
+          ? t('תופק חשבונית זיכוי על כל הסכום וקבלה במינוס על הכסף שהוחזר, והמסמך יסומן כמבוטל.')
+          : t('תופק חשבונית זיכוי על כל הסכום, והמסמך יסומן כמבוטל.');
+
+  /// What the server made, in words; a document that had to be made and did not
+  /// come back is said clearly, so nobody assumes it exists.
+  List<String> _made(
+          {required String credit, required String receipt, required bool needsCredit, required bool needsReceipt}) =>
+      [
+        if (credit.isNotEmpty) t('חשבונית זיכוי {0}', [credit]),
+        if (receipt.isNotEmpty) t('קבלה במינוס {0}', [receipt]),
+        if (needsCredit && credit.isEmpty) t('שימו לב: השרת לא החזיר חשבונית זיכוי. בדקו במערכת AURA.'),
+        if (needsReceipt && receipt.isEmpty) t('שימו לב: השרת לא החזיר קבלה במינוס. בדקו במערכת AURA.'),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +258,8 @@ class _CreditSheetState extends State<_CreditSheet> {
               ),
           ] else ...[
             Text(t('סכום לזיכוי'), style: const TextStyle(fontSize: 13, color: Aura.muted)),
-            Text(money(o.total), key: const Key('creditTotal'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            Text(money(o.total),
+                key: const Key('creditTotal'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             if (o.refundMethods.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(t('איך מחזירים את הכסף?'), style: const TextStyle(fontSize: 13, color: Aura.muted)),
@@ -278,7 +308,8 @@ class _CreditSheetState extends State<_CreditSheet> {
             style: FilledButton.styleFrom(backgroundColor: Aura.warn, minimumSize: const Size.fromHeight(46)),
             onPressed: p != null || busy ? null : submit,
             child: busy
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                ? const SizedBox(
+                    width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                 : Text(mode == _Mode.card
                     ? t('החזר לכרטיס · {0}', [money(double.tryParse(amount.text) ?? 0)])
                     : t('ביטול המסמך · {0}', [money(o.total)])),

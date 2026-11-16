@@ -238,6 +238,32 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   late Period period = widget.report.periods?.first ?? Period.month;
+
+  /// Any dates for the report: from a day to a day (both included).
+  Future<void> _pickDates() async {
+    final store = StoreScope.read(context);
+    final today = store.today;
+    final now = customPeriodRange;
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(today.year - 3),
+      lastDate: DateTime(today.year + 1, 12, 31),
+      initialDateRange: now == null
+          ? DateTimeRange(start: DateTime(today.year, today.month, 1), end: today)
+          : DateTimeRange(start: now.$1, end: now.$2.subtract(const Duration(days: 1))),
+      helpText: t('תאריכים לדוח'),
+      saveText: t('אישור'),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      customPeriodRange = (
+        DateTime(picked.start.year, picked.start.month, picked.start.day),
+        DateTime(picked.end.year, picked.end.month, picked.end.day).add(const Duration(days: 1)),
+      );
+      period = Period.custom;
+    });
+  }
+
   final Set<String> expanded = {};
   static const _rowsShown = 15;
 
@@ -398,7 +424,8 @@ class _ReportScreenState extends State<ReportScreen> {
                 context,
                 title: r.title,
                 fileName: pdfFileName([r.title, if (when != null) when].join(' ')),
-                load: () => reportPdf(data, title: r.title, subtitle: r.subtitle, period: when, business: businessNameOf(store)),
+                load: () => reportPdf(data,
+                    title: r.title, subtitle: r.subtitle, period: when, business: businessNameOf(store)),
               );
             },
           ),
@@ -421,8 +448,18 @@ class _ReportScreenState extends State<ReportScreen> {
             values: r.periods ?? Period.values,
             selected: (r.periods ?? Period.values).contains(period) ? period : (r.periods ?? Period.values).first,
             label: (p) => p.label,
-            onSelected: (p) => setState(() => period = p),
+            onSelected: (p) => p == Period.custom ? _pickDates() : setState(() => period = p),
           ),
+          if (period == Period.custom)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton.icon(
+                key: const Key('changeDates'),
+                onPressed: _pickDates,
+                icon: const Icon(Icons.date_range, size: 18),
+                label: Text(t('שינוי תאריכים')),
+              ),
+            ),
         ],
         if (r.id == 'accountant') ...[
           const SizedBox(height: 10),
