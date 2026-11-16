@@ -2420,4 +2420,33 @@ const Map<String, (String, String)> strings = {
     'لم يصل رد واضح من Z Credit. افحصوا في نظام Z Credit إن تم الاسترداد قبل المحاولة مجددًا.',
     'No clear answer from Z Credit. Check in Z Credit whether the refund went through before trying again.'
   ),
+  // Products from the app (POST gym/products)
+  'המוצר "{0}" נשמר': ('تم حفظ المنتج "{0}"', 'Product "{0}" saved'),
+  'העסק מנהל מלאי: המוצר יופיע למכירה אחרי שיוסף לו מלאי באתר AURA.': (
+    'العمل يدير المخزون: سيظهر المنتج للبيع بعد إضافة مخزون له في موقع AURA.',
+    'The business tracks stock: the product can be sold once stock is added to it on the AURA website.'
+  ),
+  'המוצר "{0}" נוסף': ('تمت إضافة المنتج "{0}"', 'Product "{0}" added'),
+  'צריך שם למוצר': ('يلزم اسم للمنتج', 'The product needs a name'),
+  'בחרו קטגוריה': ('اختاروا فئة', 'Choose a category'),
+  'מחיר (כולל מע״מ)': ('السعر (شامل الضريبة)', 'Price (incl. VAT)'),
+  'הקטגוריות לא נטענו: {0}': ('لم يتم تحميل الفئات: {0}', 'Categories did not load: {0}'),
+  'קטגוריה *': ('الفئة *', 'Category *'),
+  'אין קטגוריות פעילות. הוסיפו קטגוריה באתר AURA.': (
+    'لا توجد فئات فعالة. أضيفوا فئة في موقع AURA.',
+    'There are no active categories. Add a category on the AURA website.'
+  ),
+  'המוצרים נשמרים במערכת AURA. מוצר חדש או שינוי מופיעים גם באתר ובקופה.': (
+    'المنتجات تُحفظ في نظام AURA. المنتج الجديد أو التغيير يظهر أيضًا في الموقع وفي الكاشير.',
+    'Products are saved in AURA. A new product or a change also shows on the website and in the POS.'
+  ),
+  'הקטגוריה לא נמצאה. בחרו קטגוריה אחרת.': ('الفئة غير موجودة. اختاروا فئة أخرى.', 'Category not found. Choose another category.'),
+  'זה מסלול מנוי: עורכים אותו במסלולי המנוי.': (
+    'هذا مسار اشتراك: يُعدَّل من مسارات الاشتراك.',
+    'This is a membership plan: edit it from the plans.'
+  ),
+  'אין לך הרשאה להוסיף או לערוך מוצרים.': (
+    'ليس لديك صلاحية لإضافة أو تعديل المنتجات.',
+    'You are not allowed to add or edit products.'
+  ),
 };

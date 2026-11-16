@@ -275,6 +275,18 @@ class GymStore extends SimpleNotifier {
     notifyListeners();
   }
 
+  /// A product as the AURA server saved it (signed in): replaces the one with its id, else added.
+  ShopItem putServerItem(ShopItem item) {
+    final i = items.indexWhere((x) => x.id == item.id);
+    if (i >= 0) {
+      items[i] = item;
+    } else {
+      items.add(item);
+    }
+    notifyListeners();
+    return item;
+  }
+
   void removeItem(String id) {
     items.removeWhere((x) => x.id == id);
     notifyListeners();

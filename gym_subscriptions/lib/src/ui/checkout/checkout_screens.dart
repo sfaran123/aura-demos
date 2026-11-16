@@ -12,6 +12,7 @@ import '../auth_screens.dart' show SyncScope, authErrorText;
 import '../theme.dart';
 import '../widgets.dart';
 import '../plans_screen.dart' show PlanEditor;
+import '../product_editor.dart';
 import '../receipt_view.dart';
 import '../sales_screen.dart' show PriceListScreen;
 import 'card_sheet.dart';
@@ -550,6 +551,19 @@ class _ItemsStepState extends State<ItemsStep> {
               label: Text(t('עריכת מחירון')),
             ),
           ]),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ActionChip(
+              key: const Key('itemsNewProduct'),
+              avatar: const Icon(Icons.add, size: 18),
+              label: Text(t('מוצר חדש')),
+              // Saved (on the AURA server when signed in, with its category), then put in the cart.
+              onPressed: () async {
+                final item = await showProductEditor(context);
+                if (item != null && d.store.items.any((x) => x.id == item.id)) d.addItem(item.id);
+              },
+            ),
+          ),
           LayoutBuilder(
             builder: (context, box) => Wrap(
               spacing: 8,

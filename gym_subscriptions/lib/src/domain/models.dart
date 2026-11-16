@@ -817,10 +817,13 @@ class Receipt {
 }
 
 class ShopItem {
-  const ShopItem(this.id, this.name, this.price, {this.taxRate = 0, this.taxMethod});
+  const ShopItem(this.id, this.name, this.price, {this.taxRate = 0, this.taxMethod, this.categoryId});
   final String id;
   final String name;
   final double price;
+
+  /// The AURA product's category (products.category_id); signed in only.
+  final int? categoryId;
 
   /// From the AURA server (products.tax_id / tax_method): VAT rate in %, and 1 when
   /// [price] is before VAT (else it includes VAT). Used to save the sale as the POS does.
@@ -833,9 +836,20 @@ class ShopItem {
         'price': price,
         if (taxRate != 0) 'taxRate': taxRate,
         if (taxMethod != null) 'taxMethod': taxMethod,
+        if (categoryId != null) 'categoryId': categoryId,
       };
   factory ShopItem.fromJson(Map<String, dynamic> j) => ShopItem(j['id'], j['name'], (j['price'] as num).toDouble(),
-      taxRate: (j['taxRate'] as num? ?? 0).toDouble(), taxMethod: j['taxMethod']);
+      taxRate: (j['taxRate'] as num? ?? 0).toDouble(), taxMethod: j['taxMethod'], categoryId: j['categoryId']);
+}
+
+/// An AURA product category (GET gym/categories), for the product sheet.
+class ProductCategory {
+  const ProductCategory(this.id, this.name, {this.parentName});
+  final int id;
+  final String name;
+  final String? parentName;
+
+  String get label => parentName == null ? name : '$parentName › $name';
 }
 
 enum LinkStatus { waiting, paid }

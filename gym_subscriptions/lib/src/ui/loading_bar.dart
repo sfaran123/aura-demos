@@ -126,7 +126,7 @@ class _TopLoadingBarState extends State<TopLoadingBar> with SingleTickerProvider
                 liveRegion: true,
                 child: RepaintBoundary(
                   child: CustomPaint(
-                    painter: reduceMotion ? _StaticLinePainter() : _SweepPainter(_sweep, rtl: rtl),
+                    painter: reduceMotion ? _StaticLinePainter() : SweepPainter(_sweep, rtl: rtl),
                   ),
                 ),
               ),
@@ -135,10 +135,11 @@ class _TopLoadingBarState extends State<TopLoadingBar> with SingleTickerProvider
   }
 }
 
+/// (Also the launch screen's loading line, lib/src/ui/splash.dart.)
 /// A faint track with two gold comets: a long one and a short, fainter one
 /// following half a cycle behind, both easing in and out.
-class _SweepPainter extends CustomPainter {
-  _SweepPainter(this.anim, {required this.rtl}) : super(repaint: anim);
+class SweepPainter extends CustomPainter {
+  SweepPainter(this.anim, {required this.rtl}) : super(repaint: anim);
   final Animation<double> anim;
   final bool rtl;
 
@@ -188,7 +189,7 @@ class _SweepPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SweepPainter old) => old.rtl != rtl || old.anim != anim;
+  bool shouldRepaint(SweepPainter old) => old.rtl != rtl || old.anim != anim;
 }
 
 /// Reduce motion: a still, softly graded line.

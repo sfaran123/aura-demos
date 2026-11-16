@@ -197,17 +197,79 @@ void main() {
     }
   });
 
-  testWidgets('signed in, the price list is shown, not edited: a change here would be lost at the next update',
-      (t) async {
-    final store = await boot(t, api: fullApi());
-    final before = [for (final i in store.items) (i.id, i.price)];
-    await tapKey(t, 'homePrices');
-    expect(find.byKey(const Key('pricesReadOnly')), findsOneWidget);
-    expect(find.byKey(const Key('newItem')), findsNothing);
-    await t.tap(find.byKey(Key('price-${store.items.first.id}')));
-    await t.pumpAndSettle();
-    expect(find.byKey(const Key('itemPrice')), findsNothing, reason: 'no edit form');
-    expect([for (final i in store.items) (i.id, i.price)], before);
+  group('signed in, products are saved on the server with a category', () {
+    FakeApi productApi({bool needsStock = false}) {
+      final a = fullApi();
+      a.responses['/gym/categories'] = {
+        'data': [
+          {'id': 4, 'name': 'Drinks', 'parent_id': null, 'parent_name': null},
+          {'id': 9, 'name': 'Training', 'parent_id': null, 'parent_name': null},
+        ]
+      };
+      Map<String, Object?> row(String id, Map<String, Object?> b) =>
+          {'id': int.parse(id), 'name': b['name'], 'price': b['price'], 'category_id': b['category_id'], 'tax_rate': 18, 'tax_method': 2};
+      a.postHandlers['/gym/products'] = (b) => {'data': row('900', b), 'needs_stock': needsStock};
+      return a;
+    }
+
+    Future<void> fill(WidgetTester t, String name, String price) async {
+      await t.enterText(find.byKey(const Key('itemName')), name);
+      await t.enterText(find.byKey(const Key('itemPrice')), price);
+    }
+
+    testWidgets('a new product needs a category, then is saved and sold', (t) async {
+      final a = productApi();
+      final store = await boot(t, api: a);
+      await tapKey(t, 'homePrices');
+      expect(find.byKey(const Key('pricesOnServer')), findsOneWidget);
+      await tapKey(t, 'newItem');
+      await fill(t, 'Protein bar', '12');
+      await tapKey(t, 'itemSave');
+      expect(find.byKey(const Key('itemError')), findsOneWidget, reason: 'category is required');
+      expect(a.posts.where((p) => p.$1 == '/gym/products'), isEmpty);
+      await tapKey(t, 'itemCategory');
+      await t.tap(find.text('Drinks').last);
+      await t.pumpAndSettle();
+      await tapKey(t, 'itemSave');
+      final body = a.posts.lastWhere((p) => p.$1 == '/gym/products').$2;
+      expect(body, {'name': 'Protein bar', 'price': 12.0, 'category_id': 4});
+      final item = store.items.firstWhere((i) => i.id == '900');
+      expect((item.name, item.price, item.categoryId, item.taxRate), ('Protein bar', 12.0, 4, 18.0));
+    });
+
+    testWidgets('editing sends name, price and category to the product', (t) async {
+      final a = productApi();
+      final store = await boot(t, api: a);
+      final first = store.items.first;
+      a.postHandlers['/gym/products/${first.id}'] = (b) => {
+            'data': {'id': int.parse(first.id), 'name': b['name'], 'price': b['price'], 'category_id': b['category_id']}
+          };
+      await tapKey(t, 'homePrices');
+      await tapKey(t, 'price-${first.id}');
+      await fill(t, 'Renamed', '33');
+      await tapKey(t, 'itemCategory');
+      await t.tap(find.text('Training').last);
+      await t.pumpAndSettle();
+      await tapKey(t, 'itemSave');
+      expect(a.posts.last.$1, '/gym/products/${first.id}');
+      expect(a.posts.last.$2, {'name': 'Renamed', 'price': 33.0, 'category_id': 9});
+      final edited = store.items.firstWhere((i) => i.id == first.id);
+      expect((edited.name, edited.price, edited.categoryId), ('Renamed', 33.0, 9));
+    });
+
+    testWidgets('stock tracked: the new product is saved but not offered until it has stock', (t) async {
+      final a = productApi(needsStock: true);
+      final store = await boot(t, api: a);
+      await tapKey(t, 'homePrices');
+      await tapKey(t, 'newItem');
+      await fill(t, 'Towel', '30');
+      await tapKey(t, 'itemCategory');
+      await t.tap(find.text('Drinks').last);
+      await t.pumpAndSettle();
+      await tapKey(t, 'itemSave');
+      expect(find.byKey(const Key('productNeedsStock')), findsOneWidget);
+      expect(store.items.any((i) => i.id == '900'), isFalse);
+    });
   });
 
   testWidgets('the price list: a product is removed', (t) async {

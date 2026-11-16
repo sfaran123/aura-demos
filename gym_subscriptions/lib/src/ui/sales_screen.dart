@@ -8,6 +8,7 @@ import '../state/reports.dart' show Period, PeriodLabel;
 import '../domain/help.dart';
 import 'help.dart';
 import 'plans_screen.dart';
+import 'product_editor.dart';
 import 'receipt_view.dart';
 import 'auth_screens.dart' show SyncScope;
 import 'theme.dart';
@@ -180,83 +181,31 @@ class _SalesScreenState extends State<SalesScreen> {
 class PriceListScreen extends StatelessWidget {
   const PriceListScreen({super.key});
 
-  Future<void> _edit(BuildContext context, [ShopItem? item]) async {
-    final store = StoreScope.read(context);
-    final name = TextEditingController(text: item?.name ?? '');
-    final price = TextEditingController(text: item == null ? '' : _fmt(item.price));
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(item == null ? t('מוצר חדש') : t('עריכת מוצר'),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 10),
-          TextField(
-              key: const Key('itemName'),
-              controller: name,
-              decoration: InputDecoration(labelText: t('שם המוצר או השירות'))),
-          const SizedBox(height: 8),
-          TextField(
-            key: const Key('itemPrice'),
-            controller: price,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-            decoration: InputDecoration(labelText: t('מחיר'), suffixText: '₪'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(key: const Key('itemSave'), onPressed: () => Navigator.pop(ctx, true), child: Text(t('שמירה'))),
-          if (item != null)
-            TextButton(
-              key: const Key('itemRemove'),
-              onPressed: () {
-                store.removeItem(item.id);
-                Navigator.pop(ctx, false);
-              },
-              child: Text(t('הסרה מהמחירון'), style: const TextStyle(color: Aura.warn)),
-            ),
-        ]),
-      ),
-    );
-    final p = double.tryParse(price.text) ?? 0;
-    if (ok == true && name.text.trim().isNotEmpty && p > 0) {
-      store.saveItem(
-          ShopItem(item?.id ?? '', name.text.trim(), p, taxRate: item?.taxRate ?? 0, taxMethod: item?.taxMethod));
-      if (context.mounted) showDone(context, t('המחירון עודכן'));
-    }
-  }
-
-  static String _fmt(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+  Future<void> _edit(BuildContext context, [ShopItem? item]) => showProductEditor(context, item: item);
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    // Signed in, the products and their prices are the AURA server's: a change
-    // made here would be gone at the next update (and a sale would go out with a
-    // price the server does not know), so here they are shown, not edited.
+    // Signed in, the products are the AURA server's: added and edited there
+    // (POST gym/products), with a category as on the web.
     final signedIn = SyncScope.maybeOf(context) != null;
     return Scaffold(
       appBar: AppBar(title: Text(t('מחירון')), actions: [HelpButton.topic(HelpTopic.prices)]),
-      floatingActionButton: signedIn
-          ? null
-          : FloatingActionButton.extended(
-              key: const Key('newItem'),
-              heroTag: 'newItemFab',
-              backgroundColor: Aura.goldLight,
-              foregroundColor: Aura.ink,
-              onPressed: () => _edit(context),
-              icon: const Icon(Icons.add),
-              label: Text(t('מוצר חדש')),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('newItem'),
+        heroTag: 'newItemFab',
+        backgroundColor: Aura.goldLight,
+        foregroundColor: Aura.ink,
+        onPressed: () => _edit(context),
+        icon: const Icon(Icons.add),
+        label: Text(t('מוצר חדש')),
+      ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 90), children: [
         if (signedIn)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Note(t('המוצרים והמחירים מנוהלים במערכת AURA באתר. שינוי שם מופיע כאן אחרי עדכון.'),
-                key: const Key('pricesReadOnly'), icon: Icons.lock_outline),
+            child: Note(t('המוצרים נשמרים במערכת AURA. מוצר חדש או שינוי מופיעים גם באתר ובקופה.'),
+                key: const Key('pricesOnServer'), icon: Icons.cloud_done_outlined),
           ),
         SectionLabel(t('מוצרים ושירותים בקבלה')),
         Panel(
@@ -269,12 +218,10 @@ class PriceListScreen extends StatelessWidget {
                 title: Text(x.name),
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(money(x.price), style: const TextStyle(fontWeight: FontWeight.w700)),
-                  if (!signedIn) ...[
-                    const SizedBox(width: 6),
-                    const Icon(Icons.edit_outlined, size: 18, color: Aura.muted),
-                  ],
+                  const SizedBox(width: 6),
+                  const Icon(Icons.edit_outlined, size: 18, color: Aura.muted),
                 ]),
-                onTap: signedIn ? null : () => _edit(context, x),
+                onTap: () => _edit(context, x),
               ),
             ],
           ]),

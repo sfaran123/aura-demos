@@ -1,7 +1,7 @@
 name: aura_gym
 description: AURA gym subscriptions – memberships, split payments and collections.
 publish_to: none
-version: 1.0.4+5
+version: 1.0.5+6
 
 environment:
   sdk: ^3.6.0
@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  flutter_native_splash: ^2.4.8
   http: ^1.6.0
   package_info_plus: ^10.2.2
   pdf: ^3.13.1
@@ -36,10 +37,39 @@ flutter_launcher_icons:
     background_color: "#101A28"
     theme_color: "#101A28"
 
+# Launch screen: dart run flutter_native_splash:create
+# The AURA mark on the brand navy, with the "AURA GYM" wordmark at the bottom;
+# the same in dark mode. Android 12+ uses its own splash API (round icon area).
+# The app then fades it out into the first screen (lib/src/ui/splash.dart).
+flutter_native_splash:
+  color: "#101A28"
+  image: assets/splash/logo.png
+  branding: assets/splash/branding.png
+  branding_mode: bottom
+  branding_bottom_padding: 32
+  color_dark: "#101A28"
+  image_dark: assets/splash/logo.png
+  branding_dark: assets/splash/branding.png
+  android_12:
+    color: "#101A28"
+    image: assets/splash/logo.png
+    icon_background_color: "#101A28"
+    branding: assets/splash/branding.png
+    color_dark: "#101A28"
+    image_dark: assets/splash/logo.png
+    icon_background_color_dark: "#101A28"
+    branding_dark: assets/splash/branding.png
+  android: true
+  ios: true
+  web: true
+  fullscreen: false
+
 flutter:
   uses-material-design: true
   assets:
     - assets/icon/icon.png
+    - assets/splash/logo.png
+    - assets/splash/branding.png
   fonts:
     - family: Rubik
       fonts:

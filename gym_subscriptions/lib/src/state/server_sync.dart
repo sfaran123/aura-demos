@@ -20,6 +20,15 @@ import '../integration/server_mapping.dart';
 import 'auth.dart';
 import 'gym_store.dart';
 
+/// The server did not save a product; [message] says why.
+class ProductSaveException implements Exception {
+  const ProductSaveException(this.message);
+  final String message;
+
+  @override
+  String toString() => 'ProductSaveException($message)';
+}
+
 /// The server did not save a plan; [message] says why.
 class PlanSaveException implements Exception {
   const PlanSaveException(this.message);
@@ -186,6 +195,55 @@ class GymSync extends ChangeNotifier {
       }
       if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 422: ')) {
         throw PlanSaveException(e.detail.substring('HTTP 422: '.length));
+      }
+      rethrow;
+    }
+  }
+
+  /// The AURA product categories (GET gym/categories), for the product sheet.
+  Future<List<ProductCategory>> categories() async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      return mapCategories(await auth.api.getJson(ws, session, '/gym/categories'));
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  /// Saves a regular product (quick payment) on the AURA server: new (POST
+  /// gym/products, as the POS app's Add Product) when [id] is null, else its name,
+  /// price and category (POST gym/products/{id}). The category is required, as on
+  /// the web. [needsStock]: the business tracks stock, so a new product is sold
+  /// only after stock is added on the web (it is not put in the price list yet).
+  Future<({ShopItem item, bool needsStock})> saveProduct(
+      {String? id, required String name, required double price, required int categoryId}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, id == null ? '/gym/products' : '/gym/products/$id',
+          {'name': name, 'price': price, 'category_id': categoryId});
+      final row = res is Map ? res['data'] : null;
+      final mapped = mapProducts([row], planIds: const {});
+      if (row is! Map || mapped.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      final needsStock = res is Map && res['needs_stock'] == true;
+      final item = mapped.single;
+      if (!needsStock || id != null) store.putServerItem(item);
+      return (item: item, needsStock: needsStock && id == null);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (e.kind == AuraErrorKind.server && e.detail.endsWith(': category_not_found')) {
+        throw ProductSaveException(t('הקטגוריה לא נמצאה. בחרו קטגוריה אחרת.'));
+      }
+      if (e.kind == AuraErrorKind.server && e.detail.endsWith(': is_plan')) {
+        throw ProductSaveException(t('זה מסלול מנוי: עורכים אותו במסלולי המנוי.'));
+      }
+      if (e.kind == AuraErrorKind.forbidden) {
+        throw ProductSaveException(t('אין לך הרשאה להוסיף או לערוך מוצרים.'));
+      }
+      if (e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 422: ')) {
+        throw ProductSaveException(e.detail.substring('HTTP 422: '.length));
       }
       rethrow;
     }

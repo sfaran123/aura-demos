@@ -295,9 +295,18 @@ List<ShopItem> mapProducts(Object? body, {required Set<String> planIds}) {
     for (final p in _list(body))
       if (!planIds.contains(_s(p['id'])) && seen.add(_s(p['id'])))
         ShopItem(_s(p['id']), _s(p['name']), _d(p['price']),
-            taxRate: _d(p['tax_rate']), taxMethod: p['tax_method'] == null ? null : _i(p['tax_method'])),
+            taxRate: _d(p['tax_rate']),
+            taxMethod: p['tax_method'] == null ? null : _i(p['tax_method']),
+            categoryId: p['category_id'] == null ? null : _i(p['category_id'])),
   ];
 }
+
+/// GET gym/categories -> the categories, as the web's product form lists them.
+List<ProductCategory> mapCategories(Object? body) => [
+      for (final c in _list(body is Map ? body['data'] : body))
+        ProductCategory(_i(c['id']), _s(c['name']),
+            parentName: _s(c['parent_name']).isEmpty ? null : _s(c['parent_name'])),
+    ];
 
 PayMethod _payMethod(Object? m) => switch (_s(m).toLowerCase()) {
       'credit card' || 'card' => PayMethod.card,
