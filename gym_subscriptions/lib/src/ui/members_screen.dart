@@ -11,6 +11,7 @@ import 'checkin_screen.dart';
 import 'customers_screen.dart';
 import 'checkout/checkout_screens.dart';
 import 'member_card.dart';
+import 'pay_debts.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -223,6 +224,7 @@ class _MemberSheetBody extends StatelessWidget {
       if (cardBilled) (t('כרטיס המנוי'), sub.hasCardToken ? t('שמור') : t('לא שמור')),
     ];
     final visits = store.visitsOf(sub.id);
+    final debts = store.openDebtsOf(c.id);
     final canFreeze = sub.status == SubStatus.active && freezeDaysLeft(p, sub) >= store.settings.freezeMinDays;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -248,6 +250,13 @@ class _MemberSheetBody extends StatelessWidget {
           SummaryBox(rows: rows),
           const SizedBox(height: 14),
           Wrap(spacing: 8, runSpacing: 8, children: [
+            if (debts.isNotEmpty)
+              FilledButton.icon(
+                key: const Key('memberPayDebts'),
+                onPressed: () => showPayDebts(context, c),
+                icon: const Icon(Icons.done_all, size: 18),
+                label: Text(t('תשלום חובות · {0}', [money(debts.fold(0.0, (a, x) => a + x.amount))])),
+              ),
             OutlinedButton.icon(
               key: const Key('memberCustomerPage'),
               onPressed: () {
@@ -257,7 +266,7 @@ class _MemberSheetBody extends StatelessWidget {
               icon: const Icon(Icons.badge_outlined, size: 18),
               label: Text(t('כרטסת ועריכת לקוח')),
             ),
-            if (running)
+            if (store.countsVisits(sub))
               FilledButton.icon(
                 key: const Key('memberCheckin'),
                 onPressed: () async {

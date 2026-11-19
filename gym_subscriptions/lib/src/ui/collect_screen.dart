@@ -11,6 +11,7 @@ import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkout/checkout_screens.dart' show methodIcon, PaymentDetailsFields;
 import 'member_card.dart' show canUpdateMembershipCard, showMembershipCardSheet;
 import 'members_screen.dart' show showMemberSheet;
+import 'pay_debts.dart' show payDebtsByCard, showPayDebts;
 import 'theme.dart';
 import 'widgets.dart';
 import '../domain/l10n.dart';
@@ -144,7 +145,19 @@ class _CustomerDebts extends StatelessWidget {
               style: const TextStyle(fontSize: 12.5, color: Aura.muted)),
           trailing: Text(money(total), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-          children: [for (final c in months) ChargeCard(charge: c)],
+          children: [
+            for (final c in months) ChargeCard(charge: c),
+            if (cust != null && months.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: FilledButton.tonalIcon(
+                  key: Key('payAll-${cust.id}'),
+                  onPressed: () => showPayDebts(context, cust, preselect: {for (final c in months) c.id}),
+                  icon: const Icon(Icons.done_all, size: 18),
+                  label: Text(t('תשלום כמה חודשים יחד · {0}', [money(total)])),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -355,17 +368,8 @@ class ChargeCard extends StatelessWidget {
       // or the card was taken on the terminal and is only recorded here.
       if (m == PayMethod.card) {
         final cust = store.customer(charge.customerId);
-        final saved = (store.posSettings?.cardTokens ?? false) && (cust?.hasSavedCard ?? false);
-        final payments = await _askCardHow(context, saved ? cust!.savedCardLast4 : null, amount);
-        if (payments == null || !context.mounted) return;
-        if (payments > 0) {
-          final ok = await runOnServer(
-              context, () async => reference = await sync.collectWithSavedCard(charge, payments: payments));
-          if (ok) {
-            done(payments > 1
-                ? t('הכרטיס חויב · {0} · {1} ב-{2} תשלומים', [reference, money(amount), payments])
-                : t('הכרטיס חויב · {0} · {1}', [reference, money(amount)]));
-          }
+        if (cust != null) {
+          await payDebtsByCard(context, sync, cust, [charge], messenger: messenger);
           return;
         }
       }
@@ -378,56 +382,6 @@ class ChargeCard extends StatelessWidget {
     showDone(context, t('קבלה {0} הופקה · {1} ב{2}', [r.number, money(r.total), m.label]));
   }
 }
-
-/// How a card pays a collection: 0 = taken on the terminal (recorded only),
-/// 1 = the saved card in one payment, 2+ = the saved card in installments.
-/// Null when closed. [last4] is null when the member has no saved card to charge.
-Future<int?> _askCardHow(BuildContext context, String? last4, double amount) => showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text(t('איך לחייב את הכרטיס? · {0}', [money(amount)]),
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-            if (last4 != null) ...[
-              FilledButton.icon(
-                key: const Key('cardSavedRegular'),
-                onPressed: () => Navigator.pop(ctx, 1),
-                icon: const Icon(Icons.credit_card, size: 18),
-                label: Text(t('כרטיס שמור •••• {0} · תשלום רגיל', [last4])),
-              ),
-              const SizedBox(height: 12),
-              Text(t('כרטיס שמור •••• {0} · בתשלומים', [last4]),
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 6),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final n in const [2, 3, 4, 6, 10, 12])
-                  ActionChip(
-                    key: Key('cardSavedPayments-$n'),
-                    label: Text('$n × ${money(amount / n)}'),
-                    onPressed: () => Navigator.pop(ctx, n),
-                  ),
-              ]),
-              const SizedBox(height: 12),
-            ] else
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Note(t('ללקוח אין כרטיס שמור שאפשר לחייב מכאן. אפשר לשמור כרטיס מכרטיס המנוי.')),
-              ),
-            OutlinedButton.icon(
-              key: const Key('cardTerminal'),
-              onPressed: () => Navigator.pop(ctx, 0),
-              icon: const Icon(Icons.point_of_sale, size: 18),
-              label: Text(t('חויב במסוף הסליקה (רישום בלבד)')),
-            ),
-          ]),
-        ),
-      ),
-    );
 
 /// Everything about one payment to collect: whose it is, on which membership,
 /// what else is open, and what can be done about it.
@@ -530,6 +484,13 @@ class _ChargeDetails extends StatelessWidget {
                 },
                 icon: const Icon(Icons.check, size: 18),
                 label: Text(t('גבייה · {0}', [money(c.amount)])),
+              ),
+            if (cust != null && others.isNotEmpty)
+              FilledButton.tonalIcon(
+                key: const Key('detailsPayAll'),
+                onPressed: () => showPayDebts(context, cust),
+                icon: const Icon(Icons.done_all, size: 18),
+                label: Text(t('תשלום כל החובות · {0}', [money(owed)])),
               ),
             if (sub != null && canUpdateMembershipCard(context, store, sub))
               OutlinedButton.icon(

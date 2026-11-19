@@ -8,6 +8,8 @@ import '../domain/models.dart';
 import 'auth_screens.dart' show SyncScope, runOnServer;
 import 'checkin_screen.dart' show recordVisit;
 import 'checkout/checkout_screens.dart';
+import 'customer_cards.dart';
+import 'pay_debts.dart' show DebtsPicker;
 import 'members_screen.dart' show showMemberSheet;
 import 'receipt_view.dart' show CustomerHistory;
 import 'theme.dart';
@@ -109,11 +111,19 @@ class CustomerScreen extends StatelessWidget {
       return Scaffold(appBar: AppBar(), body: Center(child: Text(t('לא נמצא לקוח כזה.'))));
     }
     final subs = store.subscriptions.where((s) => s.customerId == c.id).toList().reversed.toList();
+    final debts = store.openDebtsOf(c.id);
     final rows = <(String, String)>[
       (t('טלפון'), c.phone),
       if ((c.idNumber ?? '').isNotEmpty) (t('ת"ז / ח"פ'), c.idNumber!),
       if ((c.email ?? '').isNotEmpty) (t('אימייל'), c.email!),
-      (t('כרטיס אשראי'), c.hasSavedCard ? '•••• ${c.savedCardLast4}' : t('לא שמור')),
+      (
+        t('כרטיס אשראי'),
+        c.savedCards.length > 1
+            ? t('{0} כרטיסים · ברירת מחדל •••• {1}', [c.savedCards.length, c.savedCardLast4 ?? ''])
+            : c.hasSavedCard
+                ? '•••• ${c.savedCardLast4}'
+                : t('לא שמור')
+      ),
       (t('הצהרת בריאות'), c.healthDeclared ? t('נחתמה') : t('חסרה')),
     ];
     return Scaffold(
@@ -159,17 +169,29 @@ class CustomerScreen extends StatelessWidget {
             icon: const Icon(Icons.point_of_sale, size: 18),
             label: Text(t('תשלום')),
           ),
-          OutlinedButton.icon(
-            key: const Key('customerCheckin'),
-            onPressed: () async {
-              final r = await recordVisit(context, c);
-              if (r == null || !context.mounted) return;
-              showDone(context, [t('הגעה נרשמה'), if (r.message.isNotEmpty) r.message].join(' · '));
-            },
-            icon: const Icon(Icons.how_to_reg, size: 18),
-            label: Text(t('הגעה')),
-          ),
+          if (subs.any(store.countsVisits))
+            OutlinedButton.icon(
+              key: const Key('customerCheckin'),
+              onPressed: () async {
+                final r = await recordVisit(context, c);
+                if (r == null || !context.mounted) return;
+                showDone(context, [t('הגעה נרשמה'), if (r.message.isNotEmpty) r.message].join(' · '));
+              },
+              icon: const Icon(Icons.how_to_reg, size: 18),
+              label: Text(t('הגעה')),
+            ),
         ]),
+        if (debts.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SectionLabel(t('חודשים שלא שולמו ({0})', [debts.length])),
+          Panel(
+            key: const Key('customerDebts'),
+            padding: const EdgeInsets.fromLTRB(8, 4, 12, 12),
+            child: DebtsPicker(customer: c),
+          ),
+        ],
+        const SizedBox(height: 16),
+        CustomerCardsSection(customer: c),
         const SizedBox(height: 16),
         SectionLabel(t('מנויים ({0})', [subs.length])),
         if (subs.isEmpty) Note(t('ללקוח אין מנוי.')),
@@ -200,6 +222,7 @@ class CustomerScreen extends StatelessWidget {
         const SizedBox(height: 8),
         // The ledger: every document of the customer, not only the latest.
         CustomerHistory(customerId: c.id, all: true),
+        CardAttemptsSection(customer: c),
       ]),
     );
   }

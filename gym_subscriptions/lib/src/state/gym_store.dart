@@ -3,6 +3,7 @@
 
 import 'dart:async';
 
+import '../domain/card_entry.dart' show cardBrand;
 import '../domain/checkout.dart';
 import '../domain/l10n.dart';
 import '../domain/models.dart';
@@ -441,6 +442,13 @@ class GymStore extends SimpleNotifier {
   int visitsThisWeek(String subscriptionId) =>
       visits.where((v) => v.subscriptionId == subscriptionId && !v.at.isBefore(weekStart)).length;
 
+  /// Is a visit counted on [s]: a running punch card, or a membership with a
+  /// weekly limit. Only then is there anything to record at the desk.
+  bool countsVisits(Subscription s) =>
+      s.status != SubStatus.cancelled &&
+      s.status != SubStatus.expired &&
+      (s.entriesLeft != null || (plan(s.planId)?.weeklyLimit ?? 0) > 0);
+
   /// Entries left on a punch card: the membership's number less the visits kept
   /// on this device only. Null for a membership without entries.
   int? entriesLeft(Subscription s) {
@@ -575,6 +583,7 @@ class GymStore extends SimpleNotifier {
     if (i >= 0) {
       final old = customers[i];
       // The server's answer has no card or health details: keep what the app already knows.
+      if (c.savedCardLast4 == null && c.cards.isEmpty) c.cards.addAll(old.cards);
       c.savedCardLast4 ??= old.savedCardLast4;
       c.healthDeclared = c.healthDeclared || old.healthDeclared;
       c.email ??= old.email;
@@ -586,10 +595,61 @@ class GymStore extends SimpleNotifier {
     return c;
   }
 
+  /// Demo (not signed in): another card is saved for the member, in the app only.
+  void addCustomerCard(Customer c, String number, {String expiry = '', bool makeDefault = false}) {
+    final d = number.replaceAll(RegExp(r'\D'), '');
+    final list = [
+      for (final x in c.savedCards) x.id.isEmpty ? SavedCard(id: 'c0', last4: x.last4, isDefault: true) : x
+    ];
+    final card = SavedCard(
+        id: 'c${DateTime.now().microsecondsSinceEpoch}',
+        last4: d.length >= 4 ? d.substring(d.length - 4) : d,
+        brand: cardBrand(d),
+        expiry: expiry.trim());
+    if (makeDefault || list.isEmpty) {
+      for (final x in list) {
+        x.isDefault = false;
+      }
+      card.isDefault = true;
+    }
+    c.setCards([...list, card]);
+    notifyListeners();
+  }
+
+  /// Demo: [card] becomes the one recurring charges use.
+  void setDefaultCustomerCard(Customer c, SavedCard card) {
+    final list = c.savedCards;
+    for (final x in list) {
+      x.isDefault = x.id == card.id;
+    }
+    c.setCards(list);
+    notifyListeners();
+  }
+
+  /// Demo: [card] is removed; another card becomes the default when it was.
+  void removeCustomerCard(Customer c, SavedCard card) {
+    final list = c.savedCards.where((x) => x.id != card.id).toList();
+    c.setCards(list);
+    if (list.isEmpty) c.savedCardLast4 = null;
+    notifyListeners();
+  }
+
+  /// A membership the server (or the demo) charges on a saved card every month.
+  bool hasCardBilledMembership(String customerId) => subscriptions.any((s) =>
+      s.customerId == customerId &&
+      s.recurringMethod == RecurringMethod.savedCard &&
+      s.status != SubStatus.cancelled &&
+      s.status != SubStatus.expired);
+
+  /// Everything [customerId] owes up to today, oldest first.
+  List<Charge> openDebtsOf(String customerId) =>
+      charges.where((x) => x.customerId == customerId && x.isOpen() && !x.dueDate.isAfter(today)).toList()
+        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
   /// Demo (not signed in): the member's card is saved in the app only.
   void setCustomerCard(Customer c, String number) {
     final d = number.replaceAll(RegExp(r'\D'), '');
-    c.savedCardLast4 = d.length >= 4 ? d.substring(d.length - 4) : d;
+    c.replaceDefaultCard(d.length >= 4 ? d.substring(d.length - 4) : d, brand: cardBrand(d));
     notifyListeners();
   }
 

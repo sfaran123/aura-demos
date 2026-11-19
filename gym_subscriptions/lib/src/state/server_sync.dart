@@ -38,6 +38,43 @@ class PlanSaveException implements Exception {
   String toString() => 'PlanSaveException($message)';
 }
 
+/// A card typed at the desk for one charge. Never kept by the app.
+typedef NewCard = ({String number, String cvv, String expiry});
+
+/// One try to charge a card, from the server's log.
+class CardAttempt {
+  const CardAttempt(
+      {required this.at,
+      required this.amount,
+      required this.ok,
+      this.last4 = '',
+      this.message = '',
+      this.payments = 1});
+  final DateTime at;
+  final double amount;
+  final bool ok;
+  final String last4;
+  final String message;
+  final int payments;
+
+  static CardAttempt? fromServer(Object? v) {
+    if (v is! Map) return null;
+    final at = DateTime.tryParse('${v['created_at'] ?? v['date'] ?? ''}'.replaceFirst(' ', 'T'));
+    final amount = v['amount'];
+    if (at == null) return null;
+    final status = '${v['status'] ?? ''}';
+    final p = v['payments'];
+    return CardAttempt(
+      at: at,
+      amount: amount is num ? amount.toDouble() : double.tryParse('$amount') ?? 0,
+      ok: v['success'] == true || status == 'success' || status == 'charged' || status == 'paid',
+      last4: '${v['card_last4'] ?? ''}',
+      message: '${v['message'] ?? ''}',
+      payments: p is num ? p.toInt() : 1,
+    );
+  }
+}
+
 class GymSync extends ChangeNotifier {
   GymSync({required this.auth, required this.store, this.maxSalePages = 10, this.maxGymSalePages = 40});
 
@@ -64,7 +101,8 @@ class GymSync extends ChangeNotifier {
 
   /// A server that does not have this endpoint yet (404). Any other failure is a
   /// real error: it is shown, never covered by numbers worked out in the app.
-  static bool _missing(AuraApiException e) => e.kind == AuraErrorKind.server && e.detail.startsWith('HTTP 404');
+  static bool _missing(AuraApiException e) =>
+      e.kind == AuraErrorKind.server && (e.detail.startsWith('HTTP 404') || e.detail.startsWith('HTTP 405'));
 
   /// The last failure (an [AuraApiException] or anything else); null after a successful sync.
   Object? get error => _error;
@@ -153,12 +191,163 @@ class GymSync extends ChangeNotifier {
         throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
       }
       final last4 = '${data['card_last4'] ?? ''}';
-      customer.savedCardLast4 = last4.isEmpty ? '••••' : last4;
+      final cards = _cardsIn(body);
+      if (cards != null && cards.isNotEmpty) {
+        customer.setCards(cards);
+      } else {
+        customer.replaceDefaultCard(last4.isEmpty ? '••••' : last4);
+      }
       store.touch();
       return customer;
     } on AuraApiException catch (e) {
       await _cardError(e);
       rethrow;
+    }
+  }
+
+  /// The cards in an answer ({data: {cards: [...]}} or {cards: [...]}); null when it has none.
+  static List<SavedCard>? _cardsIn(Object? res) {
+    final data = res is Map && res['data'] is Map ? res['data'] as Map : (res is Map ? res : const {});
+    return data['cards'] is List ? SavedCard.listFromServer(data['cards']) : null;
+  }
+
+  void _setCards(Customer customer, List<SavedCard> cards) {
+    customer.setCards(cards);
+    if (cards.isEmpty) customer.savedCardLast4 = null;
+    store.touch();
+  }
+
+  /// Saves one more card for [customer] (POST gym/members/{id}/cards: a Z Credit
+  /// check, nothing is charged); the cards already saved stay. A server that
+  /// keeps one card only saves a first card the old way, and says so for a second.
+  Future<void> addMemberCard(Customer customer,
+      {required String number, required String cvv, required String expiry, bool makeDefault = false}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/members/${customer.id}/cards', {
+        'card_number': cardDigits(number),
+        'cvv': cvv.trim(),
+        'card_expiry_date': expiry.trim(),
+        'make_default': makeDefault,
+      });
+      final cards = _cardsIn(res);
+      if (cards == null || cards.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      _setCards(customer, cards);
+    } on AuraApiException catch (e) {
+      if (_missing(e)) {
+        if (!customer.hasSavedCard) {
+          await saveMemberCard(customer, number: number, cvv: cvv, expiry: expiry);
+          return;
+        }
+        throw AuraApiException(AuraErrorKind.server,
+            t('השרת שומר כרגע כרטיס אחד ללקוח. אפשר להחליף את הכרטיס השמור; כמה כרטיסים יתאפשרו אחרי עדכון השרת.'));
+      }
+      await _cardError(e);
+      rethrow;
+    }
+  }
+
+  /// [card] becomes the customer's default (POST gym/members/{id}/cards/{card}/default).
+  Future<void> setDefaultCard(Customer customer, SavedCard card) =>
+      _cardAction(customer, '/gym/members/${customer.id}/cards/${card.id}/default');
+
+  /// Removes [card] (POST gym/members/{id}/cards/{card}/delete; the single card of
+  /// a server that keeps one: gym/members/{id}/card/delete).
+  Future<void> removeMemberCard(Customer customer, SavedCard card) => _cardAction(
+      customer,
+      card.id.isEmpty
+          ? '/gym/members/${customer.id}/card/delete'
+          : '/gym/members/${customer.id}/cards/${card.id}/delete');
+
+  Future<void> _cardAction(Customer customer, String path) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, path, const {});
+      _setCards(customer, _cardsIn(res) ?? const []);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (_missing(e)) {
+        throw AuraApiException(
+            AuraErrorKind.server, t('הפעולה על הכרטיס עדיין לא זמינה בשרת. אפשר לעשות אותה במערכת AURA באתר.'));
+      }
+      rethrow;
+    }
+  }
+
+  /// A charge on a card typed now and not saved (POST gym/card-charges/new-card):
+  /// the server charges through Z Credit and keeps the token with the charge, so
+  /// the card can be saved afterwards ([saveChargedCard]) without typing it again.
+  /// The customer's saved cards are not changed.
+  Future<({String receipt, String last4})> chargeNewCard(Customer customer,
+      {required NewCard card, required double amount, required int payments, required String appUuid}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api.postJson(ws, session, '/gym/card-charges/new-card', {
+        'customer_id': int.tryParse(customer.id) ?? customer.id,
+        'amount': amount,
+        'payments': payments,
+        'app_uuid': appUuid,
+        'card_number': cardDigits(card.number),
+        'cvv': card.cvv.trim(),
+        'card_expiry_date': card.expiry.trim(),
+      });
+      final receipt = res is Map ? res['receipt'] : null;
+      if (receipt is! String || receipt.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      final digits = cardDigits(card.number);
+      final last4 = res is Map && '${res['card_last4'] ?? ''}'.isNotEmpty
+          ? '${res['card_last4']}'
+          : (digits.length >= 4 ? digits.substring(digits.length - 4) : digits);
+      return (receipt: receipt, last4: last4);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (_missing(e)) {
+        throw CardChargeException(
+            t('חיוב בכרטיס חדש עדיין לא זמין בשרת. אפשר לחייב במסוף הסליקה, או לשמור את הכרטיס ללקוח ולחייב אותו.'));
+      }
+      if (e.kind == AuraErrorKind.server) {
+        final text = cardChargeText(e.detail);
+        if (text != null) throw CardChargeException(text);
+      }
+      await _cardError(e);
+      rethrow;
+    }
+  }
+
+  /// Saves for [customer] the card a new-card charge used (POST
+  /// gym/card-charges/save-card {app_uuid}): the token the server kept, nothing
+  /// is typed again. The default card stays unless there was none.
+  Future<void> saveChargedCard(Customer customer, String appUuid) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      final res = await auth.api
+          .postJson(ws, session, '/gym/card-charges/save-card', {'app_uuid': appUuid, 'make_default': false});
+      final cards = _cardsIn(res);
+      if (cards == null || cards.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');
+      _setCards(customer, cards);
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      if (_missing(e)) {
+        throw AuraApiException(AuraErrorKind.server, t('שמירת הכרטיס אחרי חיוב עדיין לא זמינה בשרת.'));
+      }
+      rethrow;
+    }
+  }
+
+  /// The card charges tried for [customer], newest first (GET
+  /// gym/members/{id}/card-charges); empty when the server has no such list.
+  Future<List<CardAttempt>> cardAttempts(Customer customer) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) return const [];
+    try {
+      final res = await auth.api.getJson(ws, session, '/gym/members/${customer.id}/card-charges');
+      final list = res is Map && res['data'] is List ? res['data'] as List : const [];
+      return list.map(CardAttempt.fromServer).whereType<CardAttempt>().toList();
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -485,8 +674,43 @@ class GymSync extends ChangeNotifier {
       {PaymentLine? line, String? cardReceipt, String? appUuid}) async {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
-    String day(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    final details = <String, Object?>{
+    final details = _payDetails(method, line: line, cardReceipt: cardReceipt, appUuid: appUuid);
+    try {
+      final String reference;
+      if (c.id.startsWith('sale-') && c.serverRef != null) {
+        final res = await auth.api.postJson(ws, session, '/gym/sales/${c.serverRef}/payments', details);
+        final sale = res is Map && res['sale'] is Map ? res['sale'] as Map : null;
+        reference = '${sale?['reference_no'] ?? ''}';
+      } else {
+        final body = {
+          ...details,
+          if (c.serverRef != null) 'month_key': c.serverRef else 'due_date': _day(c.dueDate),
+        };
+        final res = await auth.api.postJson(ws, session, '/gym/memberships/${c.subscriptionId}/collect', body);
+        final doc = res is Map && res['document'] is Map ? res['document'] as Map : null;
+        reference = '${doc?['reference_no'] ?? ''}';
+      }
+      // Paid on the server: off the list now; the sync brings the document and the next month.
+      c
+        ..status = ChargeStatus.paid
+        ..paidWith = method
+        ..paidAt = store.now;
+      store.touch();
+      unawaited(pull());
+      return reference;
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+      rethrow;
+    }
+  }
+
+  static String _day(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// How a payment at the desk was made, as the collect endpoints take it.
+  Map<String, Object?> _payDetails(PayMethod method, {PaymentLine? line, String? cardReceipt, String? appUuid}) {
+    String day(DateTime d) => _day(d);
+    return <String, Object?>{
       'method': switch (method) {
         PayMethod.cash => 'cash',
         PayMethod.card => 'card',
@@ -509,38 +733,196 @@ class GymSync extends ChangeNotifier {
         if (line.transfer.date != null) 'transfer_date': day(line.transfer.date!),
       },
     };
-    try {
-      final String reference;
-      if (c.id.startsWith('sale-') && c.serverRef != null) {
-        final res = await auth.api.postJson(ws, session, '/gym/sales/${c.serverRef}/payments', details);
-        final sale = res is Map && res['sale'] is Map ? res['sale'] as Map : null;
-        reference = '${sale?['reference_no'] ?? ''}';
-      } else {
-        final body = {
-          ...details,
-          if (c.serverRef != null) 'month_key': c.serverRef else 'due_date': day(c.dueDate),
-        };
-        final res = await auth.api.postJson(ws, session, '/gym/memberships/${c.subscriptionId}/collect', body);
-        final doc = res is Map && res['document'] is Map ? res['document'] as Map : null;
-        reference = '${doc?['reference_no'] ?? ''}';
-      }
-      // Paid on the server: off the list now; the sync brings the document and the next month.
+  }
+
+  /// Several months of one membership in one payment and ONE document with a
+  /// line per month (POST gym/memberships/{id}/collect-months). Returns the
+  /// document's number.
+  Future<String> _collectMonths(List<Charge> months, PayMethod method,
+      {PaymentLine? line, String? cardReceipt, String? appUuid}) async {
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    final res = await auth.api.postJson(ws, session, '/gym/memberships/${months.first.subscriptionId}/collect-months', {
+      ..._payDetails(method, line: line, cardReceipt: cardReceipt, appUuid: appUuid),
+      'amount': round2(months.fold(0.0, (a, c) => a + c.amount)),
+      'months': [
+        for (final c in months)
+          {
+            if (c.serverRef != null) 'month_key': c.serverRef else 'due_date': _day(c.dueDate),
+            'amount': round2(c.amount),
+            // The document's line for this month: what was paid, in words.
+            'description': [
+              store.plan(store.subscriptions.where((s) => s.id == c.subscriptionId).firstOrNull?.planId ?? '')?.name,
+              c.monthLabel,
+            ].where((x) => x != null && x.isNotEmpty).join(' · '),
+          }
+      ],
+    });
+    final doc = res is Map && res['document'] is Map ? res['document'] as Map : null;
+    for (final c in months) {
       c
         ..status = ChargeStatus.paid
         ..paidWith = method
         ..paidAt = store.now;
-      store.touch();
-      unawaited(pull());
-      return reference;
-    } on AuraApiException catch (e) {
-      if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
-      rethrow;
     }
+    store.touch();
+    unawaited(pull());
+    return '${doc?['reference_no'] ?? ''}';
+  }
+
+  /// Whether the server makes ONE document for several months (collect-months);
+  /// null until asked.
+  bool? _oneDocument;
+
+  /// Asks the server, without recording anything: no months are sent, so a
+  /// server that has the endpoint refuses the request and one that has not
+  /// answers 404 / 405.
+  Future<bool> _hasCollectMonths(String membershipId) async {
+    final known = _oneDocument;
+    if (known != null) return known;
+    final ws = auth.workspace, session = auth.session;
+    if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
+    try {
+      await auth.api.postJson(ws, session, '/gym/memberships/$membershipId/collect-months', {'months': const []});
+      return _oneDocument = true;
+    } on AuraApiException catch (e) {
+      if (e.kind == AuraErrorKind.sessionExpired) {
+        await auth.signOut(expired: true);
+        rethrow;
+      }
+      if (e.kind != AuraErrorKind.server) rethrow;
+      return _oneDocument = !_missing(e);
+    }
+  }
+
+  /// The membership's failed months go on its own card in one regular payment,
+  /// as the web does (pay-failed-months): one document.
+  bool _ownCardOnce(List<Charge> open, {int? payments, String? cardId, NewCard? newCard}) {
+    final sub = store.subscriptions.where((s) => s.id == open.first.subscriptionId).firstOrNull;
+    return payments != null &&
+        newCard == null &&
+        (cardId == null || cardId.isEmpty) &&
+        payments <= 1 &&
+        sub != null &&
+        sub.recurringMethod == RecurringMethod.savedCard &&
+        sub.hasCardToken &&
+        open.every((c) => c.status == ChargeStatus.failed && c.serverRef != null && c.subscriptionId == sub.id);
+  }
+
+  /// How many documents paying [debts] together makes on this server. More
+  /// than one for a membership's months only when the server cannot put them
+  /// in one document yet.
+  Future<int> documentsFor(List<Charge> debts, {int? payments, String? cardId, bool newCard = false}) async {
+    final open = debts.where((c) => c.isOpen()).toList();
+    if (open.length < 2) return open.length;
+    if (!newCard && _ownCardOnce(open, payments: payments, cardId: cardId)) return 1;
+    final bySub = <String, int>{};
+    var n = 0;
+    for (final c in open) {
+      c.id.startsWith('sale-') ? n++ : bySub[c.subscriptionId] = (bySub[c.subscriptionId] ?? 0) + 1;
+    }
+    for (final e in bySub.entries) {
+      n += e.value > 1 && !await _hasCollectMonths(e.key) ? e.value : 1;
+    }
+    return n;
   }
 
   /// A collection whose card was charged but whose document is not saved yet:
   /// kept so that trying again never charges the card twice.
-  final Map<String, ({String appUuid, String receipt})> _collectCharged = {};
+  final Map<String, ({String appUuid, String receipt, String? newLast4})> _collectCharged = {};
+
+  /// Collects [debts] of one customer in ONE payment with [method].
+  ///
+  /// A card charged here ([payments] not null; 1 = regular, 2+ = installments) is
+  /// charged once for the whole amount BEFORE anything is recorded: the saved
+  /// card [cardId] (null: the default), or [newCard] typed now. A charge that
+  /// does not succeed records nothing, and every debt stays open.
+  ///
+  /// Then the payment is recorded: several months of a membership as one
+  /// document with a line per month; a server without that endpoint gets a
+  /// document per month. [newCardKey] is set when a new card was charged: the
+  /// key to save that card with ([saveChargedCard]).
+  Future<({List<String> references, String? newCardKey, String? newCardLast4})> collectMany(
+      List<Charge> debts, PayMethod method,
+      {PaymentLine? line, int? payments, String? cardId, NewCard? newCard}) async {
+    final open = debts.where((c) => c.isOpen()).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    if (open.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Nothing to collect');
+    final customer = store.customer(open.first.customerId);
+    if (customer == null) throw AuraApiException(AuraErrorKind.server, 'Unknown member');
+    final key = (debts.map((c) => c.id).toList()..sort()).join(',');
+    var charged = _collectCharged[key];
+    if (payments != null && charged == null) {
+      // The failed months of a membership billed by card, in one payment, on its
+      // own card: as the web does (one tax invoice-receipt, the months cleared).
+      if (_ownCardOnce(open, payments: payments, cardId: cardId, newCard: newCard)) {
+        final sub = store.subscriptions.firstWhere((s) => s.id == open.first.subscriptionId);
+        final r = await payFailedMonths(sub, [for (final c in open) c.serverRef!]);
+        return (references: [r.reference], newCardKey: null, newCardLast4: null);
+      }
+      final uuid = newAppUuid();
+      final amount = round2(open.fold(0.0, (a, c) => a + c.amount));
+      final n = payments < 1 ? 1 : payments;
+      if (newCard != null) {
+        final r = await chargeNewCard(customer, card: newCard, amount: amount, payments: n, appUuid: uuid);
+        charged = (appUuid: uuid, receipt: r.receipt, newLast4: r.last4);
+      } else {
+        final receipt = await chargeCustomerCard(customer, amount: amount, payments: n, appUuid: uuid, cardId: cardId);
+        charged = (appUuid: uuid, receipt: receipt, newLast4: null);
+      }
+      _collectCharged[key] = charged;
+    }
+    final refs = <String>[];
+    var first = true;
+    // The charge's key goes with the first document only: it is the charge's own.
+    String? uuidOnce() {
+      final u = first ? charged?.appUuid : null;
+      first = false;
+      return u;
+    }
+
+    final bySub = <String, List<Charge>>{};
+    final singles = <Charge>[];
+    for (final c in open) {
+      (c.id.startsWith('sale-') ? singles : bySub.putIfAbsent(c.subscriptionId, () => [])).add(c);
+    }
+    try {
+      for (final group in bySub.values) {
+        if (group.length > 1) {
+          try {
+            final u = first ? charged?.appUuid : null;
+            refs.add(await _collectMonths(group, method, line: line, cardReceipt: charged?.receipt, appUuid: u));
+            first = false;
+            continue;
+          } on AuraApiException catch (e) {
+            if (e.kind == AuraErrorKind.sessionExpired) await auth.signOut(expired: true);
+            if (!_missing(e)) rethrow;
+          }
+        }
+        singles.insertAll(0, group);
+      }
+      for (final c in singles) {
+        if (!c.isOpen()) continue;
+        refs.add(await collectCharge(c, method, line: line, cardReceipt: charged?.receipt, appUuid: uuidOnce()));
+      }
+    } catch (e) {
+      // The card is charged and the payment is not written: said as it is.
+      if (charged == null || e is CardChargedNotRecordedException) rethrow;
+      throw CardChargedNotRecordedException(
+          money(round2(open.fold(0.0, (a, c) => a + c.amount))), e is AuraApiException ? e.detail : '$e');
+    }
+    _collectCharged.remove(key);
+    // The charge gets its document; a server that cannot link them keeps both anyway.
+    if (charged != null) {
+      try {
+        await linkCustomerCardCharge(charged.appUuid);
+      } catch (_) {}
+    }
+    return (
+      references: refs.where((r) => r.isNotEmpty).toList(),
+      newCardKey: charged?.newLast4 == null ? null : charged!.appUuid,
+      newCardLast4: charged?.newLast4,
+    );
+  }
 
   /// Collects [c] by charging a saved card now, [payments] 1 = regular, 2+ =
   /// installments. A failed month of a membership billed by card, in one payment,
@@ -549,31 +931,8 @@ class GymSync extends ChangeNotifier {
   /// then the payment is recorded (collect) with Z Credit's answer. A charge that
   /// does not succeed records nothing.
   Future<String> collectWithSavedCard(Charge c, {required int payments}) async {
-    final sub = store.subscriptions.where((s) => s.id == c.subscriptionId).firstOrNull;
-    final customer = store.customer(c.customerId);
-    if (customer == null) throw AuraApiException(AuraErrorKind.server, 'Unknown member');
-    if (payments <= 1 &&
-        c.status == ChargeStatus.failed &&
-        c.serverRef != null &&
-        sub != null &&
-        sub.recurringMethod == RecurringMethod.savedCard &&
-        sub.hasCardToken) {
-      return (await payFailedMonths(sub, [c.serverRef!])).reference;
-    }
-    var charged = _collectCharged[c.id];
-    if (charged == null) {
-      final uuid = newAppUuid();
-      final receipt = await chargeCustomerCard(customer,
-          amount: round2(c.amount), payments: payments < 1 ? 1 : payments, appUuid: uuid);
-      charged = _collectCharged[c.id] = (appUuid: uuid, receipt: receipt);
-    }
-    final reference = await collectCharge(c, PayMethod.card, cardReceipt: charged.receipt, appUuid: charged.appUuid);
-    _collectCharged.remove(c.id);
-    // The charge gets its document; a server that cannot link them keeps both anyway.
-    try {
-      await linkCustomerCardCharge(charged.appUuid);
-    } catch (_) {}
-    return reference;
+    final r = await collectMany([c], PayMethod.card, payments: payments);
+    return r.references.firstOrNull ?? '';
   }
 
   /// How this server saves a sale (GET gym/pos-settings); loaded once per sign-in.
@@ -636,7 +995,7 @@ class GymSync extends ChangeNotifier {
   /// the same key again never charges twice. Returns Z Credit's answer (the card
   /// payment's receipt); a charge that does not succeed throws [CardChargeException].
   Future<String> chargeCustomerCard(Customer customer,
-      {required double amount, required int payments, required String appUuid}) async {
+      {required double amount, required int payments, required String appUuid, String? cardId}) async {
     final ws = auth.workspace, session = auth.session;
     if (ws == null || session == null) throw AuraApiException(AuraErrorKind.sessionExpired);
     try {
@@ -645,6 +1004,8 @@ class GymSync extends ChangeNotifier {
         'amount': amount,
         'payments': payments,
         'app_uuid': appUuid,
+        // Only a server that lists the cards gives them ids: an older one charges its one card.
+        if (cardId != null && cardId.isNotEmpty) 'card_id': int.tryParse(cardId) ?? cardId,
       });
       final receipt = res is Map ? res['receipt'] : null;
       if (receipt is! String || receipt.isEmpty) throw AuraApiException(AuraErrorKind.server, 'Unexpected answer');

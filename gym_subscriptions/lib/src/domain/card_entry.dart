@@ -97,12 +97,32 @@ class CardSaveException implements Exception {
 }
 
 /// A card charge the card company did not approve; [message] is its answer.
+/// The card's brand from its number; '' when not recognised.
+String cardBrand(String number) {
+  final d = number.replaceAll(RegExp(r'\D'), '');
+  if (d.startsWith('4')) return 'Visa';
+  if (RegExp(r'^(5[1-5]|2[2-7])').hasMatch(d)) return 'Mastercard';
+  if (RegExp(r'^3[47]').hasMatch(d)) return 'Amex';
+  if (RegExp(r'^(30|36|38)').hasMatch(d)) return 'Diners';
+  if (d.length == 8 || d.length == 9) return 'Isracard';
+  return '';
+}
+
 class CardChargeException implements Exception {
   const CardChargeException(this.message);
   final String message;
 
   @override
   String toString() => 'CardChargeException($message)';
+}
+
+/// The card WAS charged, but the payment could not be written on the server.
+/// Trying again with the same debts records it without charging again.
+class CardChargedNotRecordedException extends CardChargeException {
+  CardChargedNotRecordedException(String amount, String why)
+      : super(t(
+            'הכרטיס חויב {0}, אבל התשלום לא נרשם ({1}). לחצו שוב על תשלום עם אותם חודשים: הכרטיס לא יחויב שוב. אם זה חוזר, פנו לתמיכה לפני שמחייבים שוב.',
+            [amount, why]));
 }
 
 /// The desk's text for a refused desk card charge (gym/memberships/{id}/charge-card),
@@ -118,7 +138,8 @@ String? cardChargeText(String detail) {
   return switch (m.split(' ').first) {
     'charge_unknown' => t('לא התקבלה תשובה ברורה מחברת האשראי. בדקו במערכת Z Credit אם החיוב עבר לפני שמחייבים שוב.'),
     'charge_in_progress' => t('החיוב עדיין בטיפול. המתינו רגע ונסו שוב.'),
-    'already_charged' => t('כבר חויב כרטיס על המנוי הזה. אין לחייב שוב; פנו למנהל.'),
+    'already_charged' =>
+      t('כרטיס הלקוח כבר חויב לפני כמה דקות והתשלום ההוא עוד לא נרשם. אין לחייב שוב: בדקו את החיוב במערכת AURA או פנו לתמיכה.'),
     'already_paid' => t('המנוי כבר שולם.'),
     'member_has_no_card' => t('ללקוח אין כרטיס שמור. שמרו כרטיס או בחרו אמצעי אחר.'),
     'card_terminal_not_set' => t('לא הוגדר מסוף Z Credit בהגדרות המערכת של AURA.'),

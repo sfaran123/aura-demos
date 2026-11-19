@@ -2090,6 +2090,119 @@ const Map<String, (String, String)> strings = {
     'المنتجات والأسعار تُدار في نظام AURA على الموقع. التغيير هناك يظهر هنا بعد التحديث.',
     'Products and prices are managed in AURA on the web. A change there shows here after an update.'
   ),
+  // Several cards, a new card, several months in one payment
+  'יופקו {0} מסמכים נפרדים': ('ستصدر {0} مستندات منفصلة', '{0} separate documents will be made'),
+  'השרת עדיין לא מפיק מסמך אחד לכמה חודשים. אם תמשיכו, יופק מסמך נפרד לכל חודש ({0} מסמכים), ואי אפשר לאחד אותם אחר כך. כדי לקבל מסמך אחד, חכו לעדכון השרת.':
+      (
+    'الخادم لا يصدر بعد مستنداً واحداً لعدة أشهر. إذا تابعتم، سيصدر مستند منفصل لكل شهر ({0} مستندات)، ولا يمكن دمجها لاحقاً. للحصول على مستند واحد، انتظروا تحديث الخادم.',
+    'The server does not make one document for several months yet. If you continue, a separate document is made for each month ({0} documents), and they cannot be merged later. For one document, wait for the server update.'
+  ),
+  'להפיק {0} מסמכים': ('إصدار {0} مستندات', 'Make {0} documents'),
+  'הכרטיס חויב {0}, אבל התשלום לא נרשם ({1}). לחצו שוב על תשלום עם אותם חודשים: הכרטיס לא יחויב שוב. אם זה חוזר, פנו לתמיכה לפני שמחייבים שוב.':
+      (
+    'تم خصم {0} من البطاقة، لكن الدفعة لم تُسجَّل ({1}). اضغطوا مرة أخرى على الدفع مع نفس الأشهر: لن تُخصم البطاقة مرة أخرى. إذا تكرر ذلك، تواصلوا مع الدعم قبل الخصم مجدداً.',
+    'The card was charged {0}, but the payment was not recorded ({1}). Press pay again with the same months: the card is not charged again. If it repeats, contact support before charging again.'
+  ),
+  'כרטיס הלקוח כבר חויב לפני כמה דקות והתשלום ההוא עוד לא נרשם. אין לחייב שוב: בדקו את החיוב במערכת AURA או פנו לתמיכה.':
+      (
+    'بطاقة الزبون خُصمت قبل دقائق وتلك الدفعة لم تُسجَّل بعد. لا تخصموا مرة أخرى: افحصوا الخصم في نظام AURA أو تواصلوا مع الدعم.',
+    "The customer's card was charged a few minutes ago and that payment is not recorded yet. Do not charge again: check the charge in AURA or contact support."
+  ),
+  'הכרטיס חויב, התשלום לא נרשם': ('خُصمت البطاقة، الدفعة لم تُسجَّل', 'Card charged, payment not recorded'),
+  'התשלום לא נרשם': ('الدفعة لم تُسجَّل', 'The payment was not recorded'),
+  '{0} כרטיסים · ברירת מחדל •••• {1}': ('{0} بطاقات · الافتراضية •••• {1}', '{0} cards · default •••• {1}'),
+  '{0} תשלומים נגבו': ('تم تحصيل {0} دفعات', '{0} payments collected'),
+  'אחרי ההסרה אי אפשר יהיה לחייב את הכרטיס הזה.': (
+    'بعد الإزالة لن يمكن الخصم من هذه البطاقة.',
+    'After removing it, this card can no longer be charged.'
+  ),
+  'איזה כרטיס שמור לחייב?': ('أي بطاقة محفوظة نخصم منها؟', 'Which saved card to charge?'),
+  'אין חובות פתוחים ללקוח.': ('لا ديون مفتوحة على الزبون.', 'The customer has no open debts.'),
+  'ב{0}': ('بـ{0}', 'by {0}'),
+  'בחירת הכול ({0})': ('اختيار الكل ({0})', 'Select all ({0})'),
+  'בכרטיס •••• {0}': ('بالبطاقة •••• {0}', 'on card •••• {0}'),
+  'בכרטיס •••• {0} ב-{1} תשלומים': ('بالبطاقة •••• {0} على {1} دفعات', 'on card •••• {0} in {1} payments'),
+  'במסוף הסליקה': ('على جهاز الدفع', 'on the card terminal'),
+  'ברירת מחדל': ('الافتراضية', 'Default'),
+  'הוספת כרטיס נוסף': ('إضافة بطاقة أخرى', 'Add another card'),
+  'החוב נשאר פתוח. אפשר לנסות כרטיס אחר.': (
+    'الدين بقي مفتوحاً. يمكن تجربة بطاقة أخرى.',
+    'The debt stays open. You can try another card.'
+  ),
+  'החיוב החודשי יורד מכרטיס ברירת המחדל.': (
+    'الخصم الشهري يتم من البطاقة الافتراضية.',
+    'The monthly charge goes to the default card.'
+  ),
+  'הכרטיס יחויב עכשיו. הכרטיס השמור של הלקוח לא משתנה. אחרי החיוב תישאלו אם לשמור את הכרטיס החדש.': (
+    'ستُخصم البطاقة الآن. بطاقة الزبون المحفوظة لا تتغير. بعد الخصم ستُسألون إن كنتم تريدون حفظ البطاقة الجديدة.',
+    "The card is charged now. The customer's saved card is not changed. After the charge you are asked whether to save the new card."
+  ),
+  'הכרטיס •••• {0} הוא עכשיו ברירת המחדל': ('البطاقة •••• {0} أصبحت الافتراضية', 'Card •••• {0} is now the default'),
+  'הכרטיס •••• {0} הוסר': ('أُزيلت البطاقة •••• {0}', 'Card •••• {0} was removed'),
+  'הכרטיסים השמורים נשארים. כרטיס ברירת המחדל לא משתנה.': (
+    'البطاقات المحفوظة تبقى. البطاقة الافتراضية لا تتغير.',
+    'The saved cards stay. The default card is not changed.'
+  ),
+  'הסרת הכרטיס': ('إزالة البطاقة', 'Remove card'),
+  'הפעולה על הכרטיס עדיין לא זמינה בשרת. אפשר לעשות אותה במערכת AURA באתר.': (
+    'هذه العملية على البطاقة غير متاحة في الخادم بعد. يمكن تنفيذها في نظام AURA على الموقع.',
+    'This card action is not available on the server yet. It can be done in AURA on the web.'
+  ),
+  'השרת שומר כרגע כרטיס אחד ללקוח. אפשר להחליף את הכרטיס השמור; כמה כרטיסים יתאפשרו אחרי עדכון השרת.': (
+    'الخادم يحفظ حالياً بطاقة واحدة للزبون. يمكن استبدال البطاقة المحفوظة؛ عدة بطاقات ستتاح بعد تحديث الخادم.',
+    'The server keeps one card per customer for now. The saved card can be replaced; several cards will be possible after the server is updated.'
+  ),
+  'זה הכרטיס האחרון של הלקוח, ויש לו מנוי פעיל שמחויב בכרטיס. בלי כרטיס שמור החיוב החודשי ייכשל.': (
+    'هذه آخر بطاقة للزبون، ولديه اشتراك فعّال يُخصم بالبطاقة. بدون بطاقة محفوظة سيفشل الخصم الشهري.',
+    "This is the customer's last card, and there is an active membership charged by card. Without a saved card the monthly charge will fail."
+  ),
+  'זה כרטיס ברירת המחדל. אחרי ההסרה כרטיס אחר יהפוך לברירת המחדל.': (
+    'هذه البطاقة الافتراضية. بعد الإزالة ستصبح بطاقة أخرى هي الافتراضية.',
+    'This is the default card. After removing it another card becomes the default.'
+  ),
+  'חודשים שלא שולמו ({0})': ('أشهر غير مدفوعة ({0})', 'Unpaid months ({0})'),
+  'חויב': ('خُصم', 'Charged'),
+  'חיוב {0}': ('خصم {0}', 'Charge {0}'),
+  'חיוב אחד על כל הסכום. אם התשלום לא עובר, שום חודש לא מסומן כשולם.': (
+    'خصم واحد على كامل المبلغ. إذا لم تنجح الدفعة، لا يُعلَّم أي شهر كمدفوع.',
+    'One charge for the whole amount. If the payment does not go through, no month is marked as paid.'
+  ),
+  'חיוב בכרטיס חדש עדיין לא זמין בשרת. אפשר לחייב במסוף הסליקה, או לשמור את הכרטיס ללקוח ולחייב אותו.': (
+    'الخصم ببطاقة جديدة غير متاح في الخادم بعد. يمكن الخصم على جهاز الدفع، أو حفظ البطاقة للزبون ثم الخصم منها.',
+    'Charging a new card is not available on the server yet. Charge on the card terminal, or save the card for the customer and charge it.'
+  ),
+  'כרטיסים שמורים ({0})': ('البطاقات المحفوظة ({0})', 'Saved cards ({0})'),
+  'לא לשמור': ('عدم الحفظ', "Don't save"),
+  'להסיר את הכרטיס •••• {0}?': ('إزالة البطاقة •••• {0}؟', 'Remove card •••• {0}?'),
+  'להסיר בכל זאת': ('إزالة على أي حال', 'Remove anyway'),
+  'ללקוח אין כרטיס שמור שאפשר לחייב מכאן.': (
+    'لا توجد للزبون بطاقة محفوظة يمكن الخصم منها من هنا.',
+    'The customer has no saved card that can be charged from here.'
+  ),
+  'ללקוח אין כרטיס שמור.': ('لا توجد للزبون بطاقة محفوظة.', 'The customer has no saved card.'),
+  'לשמור את הכרטיס ללקוח?': ('حفظ البطاقة للزبون؟', 'Save the card for the customer?'),
+  'הכרטיס •••• {0} חויב בהצלחה. אפשר לשמור אותו ל{1} לחיובים הבאים. הכרטיס השמור הקיים לא משתנה.': (
+    'تم خصم البطاقة •••• {0} بنجاح. يمكن حفظها لـ{1} للدفعات القادمة. البطاقة المحفوظة الحالية لا تتغير.',
+    'Card •••• {0} was charged. It can be saved for {1} for later charges. The saved card that exists is not changed.'
+  ),
+  'מספר הכרטיס וה-CVV נשלחים לחברת האשראי בלבד ולא נשמרים באפליקציה.': (
+    'رقم البطاقة ورمز CVV يُرسلان لشركة الائتمان فقط ولا يُحفظان في التطبيق.',
+    'The card number and CVV go to the card company only and are not kept in the app.'
+  ),
+  'נבחרו {0} מתוך {1}': ('تم اختيار {0} من {1}', '{0} of {1} selected'),
+  'ניסיונות חיוב בכרטיס ({0})': ('محاولات الخصم بالبطاقة ({0})', 'Card charge attempts ({0})'),
+  'קביעה כברירת מחדל': ('تعيين كافتراضية', 'Set as default'),
+  'שמירת הכרטיס אחרי חיוב עדיין לא זמינה בשרת.': (
+    'حفظ البطاقة بعد الخصم غير متاح في الخادم بعد.',
+    'Saving the card after a charge is not available on the server yet.'
+  ),
+  'תוקף {0}': ('الصلاحية {0}', 'Expires {0}'),
+  'תשלום בכרטיס חדש': ('الدفع ببطاقة جديدة', 'Pay with a new card'),
+  'תשלום בכרטיס חדש · {0}': ('الدفع ببطاقة جديدة · {0}', 'Pay with a new card · {0}'),
+  'תשלום הכול · {0}': ('دفع الكل · {0}', 'Pay all · {0}'),
+  'תשלום חובות · {0}': ('دفع الديون · {0}', 'Pay debts · {0}'),
+  'תשלום כל החובות · {0}': ('دفع كل الديون · {0}', 'Pay all debts · {0}'),
+  'תשלום כמה חודשים יחד · {0}': ('دفع عدة أشهر معاً · {0}', 'Pay several months together · {0}'),
   // Check-in
   'לא נשארו כניסות': ('لم يبقَ دخول', 'No entries left'),
   'נשארה כניסה אחת': ('بقي دخول واحد', '1 entry left'),
@@ -2440,7 +2553,10 @@ const Map<String, (String, String)> strings = {
     'المنتجات تُحفظ في نظام AURA. المنتج الجديد أو التغيير يظهر أيضًا في الموقع وفي الكاشير.',
     'Products are saved in AURA. A new product or a change also shows on the website and in the POS.'
   ),
-  'הקטגוריה לא נמצאה. בחרו קטגוריה אחרת.': ('الفئة غير موجودة. اختاروا فئة أخرى.', 'Category not found. Choose another category.'),
+  'הקטגוריה לא נמצאה. בחרו קטגוריה אחרת.': (
+    'الفئة غير موجودة. اختاروا فئة أخرى.',
+    'Category not found. Choose another category.'
+  ),
   'זה מסלול מנוי: עורכים אותו במסלולי המנוי.': (
     'هذا مسار اشتراك: يُعدَّل من مسارات الاشتراك.',
     'This is a membership plan: edit it from the plans.'

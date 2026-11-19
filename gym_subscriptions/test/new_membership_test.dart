@@ -203,7 +203,10 @@ void main() {
             'receipt': zReceipt,
             'duplicate': false,
           })
-      ..postHandlers['/gym/card-charges/link'] = ((b) => {'data': {'id': 9}, 'sale': {'id': 501}});
+      ..postHandlers['/gym/card-charges/link'] = ((b) => {
+            'data': {'id': 9},
+            'sale': {'id': 501}
+          });
 
     bool canGoOn(WidgetTester t) => t.widget<FilledButton>(find.byKey(const Key('toSummary'))).onPressed != null;
 
@@ -456,7 +459,8 @@ void main() {
 
     testWidgets('quick payment declined: an alert, no sale', (t) async {
       final api = cardApi()
-        ..postErrors['/gym/card-charges'] = AuraApiException(AuraErrorKind.server, 'HTTP 422: card_declined: Do not honor');
+        ..postErrors['/gym/card-charges'] =
+            AuraApiException(AuraErrorKind.server, 'HTTP 422: card_declined: Do not honor');
       await boot(t, api);
       await tapKey(t, 'tileQuickPay');
       await t.ensureVisible(find.text('Dana Levi').first);
@@ -479,7 +483,7 @@ void main() {
   test('desk texts for refused charges', () {
     expect(cardChargeText('HTTP 422: card_declined: Expired card'), 'The card was not approved: Expired card');
     expect(cardChargeText('HTTP 409: charge_unknown'), startsWith('No clear answer'));
-    expect(cardChargeText('HTTP 409: already_charged'), startsWith('A card was already charged'));
+    expect(cardChargeText('HTTP 409: already_charged'), startsWith("The customer's card was charged"));
     expect(cardChargeText('HTTP 500'), isNull);
   });
 
@@ -515,7 +519,8 @@ void main() {
     // The options are below the plans: built once scrolled to.
     await t.scrollUntilVisible(find.byKey(const Key('startOptions')), 200, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();
-    final other = find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(StartOption.date.label));
+    final other =
+        find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(StartOption.date.label));
     await t.ensureVisible(other);
     await t.pumpAndSettle();
     await t.tap(other);
@@ -528,7 +533,8 @@ void main() {
     await t.tap(find.descendant(of: picker, matching: find.byType(TextButton)).last); // OK
     await t.pumpAndSettle();
 
-    expect(find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(fmtDate(DateTime(2026, 11, 2)))),
+    expect(
+        find.descendant(of: find.byKey(const Key('startOptions')), matching: find.text(fmtDate(DateTime(2026, 11, 2)))),
         findsOneWidget);
     expect(find.byKey(const Key('nextChargeHint')), findsOneWidget);
     expect(find.textContaining(fmtDate(DateTime(2026, 12, 2))), findsOneWidget);

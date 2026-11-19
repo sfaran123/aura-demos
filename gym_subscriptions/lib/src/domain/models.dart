@@ -203,6 +203,51 @@ class SubscriptionPlan {
   }
 }
 
+/// A card saved for a customer. Only what the desk may see: the last four
+/// digits, the brand and the expiry. The token stays on the server.
+class SavedCard {
+  SavedCard({required this.id, required this.last4, this.brand = '', this.expiry = '', this.isDefault = false});
+
+  /// The server's id; '' for the one card of a server that keeps a single card.
+  final String id;
+  final String last4;
+  final String brand;
+
+  /// "MM/YY", or '' when not known.
+  final String expiry;
+  bool isDefault;
+
+  /// "Visa •••• 4815 · 08/27".
+  String get label => [if (brand.isNotEmpty) brand, '•••• $last4', if (expiry.isNotEmpty) '· $expiry'].join(' ');
+
+  Map<String, Object?> toJson() => {'id': id, 'last4': last4, 'brand': brand, 'expiry': expiry, 'isDefault': isDefault};
+
+  factory SavedCard.fromJson(Map<String, dynamic> j) => SavedCard(
+      id: '${j['id'] ?? ''}',
+      last4: '${j['last4'] ?? ''}',
+      brand: '${j['brand'] ?? ''}',
+      expiry: '${j['expiry'] ?? ''}',
+      isDefault: j['isDefault'] == true);
+
+  /// A card as the AURA server sends it ({id, last4 | card_last4, brand, expiry, is_default}).
+  static SavedCard? fromServer(Object? v) {
+    if (v is! Map) return null;
+    String s(Object? x) => x == null ? '' : '$x';
+    final last4 = s(v['last4'] ?? v['card_last4']);
+    final d = v['is_default'];
+    return SavedCard(
+      id: s(v['id']),
+      last4: last4.isEmpty ? '••••' : last4,
+      brand: s(v['brand'] ?? v['card_brand']),
+      expiry: s(v['expiry'] ?? v['card_expiry']),
+      isDefault: d == true || d == 1 || d == '1',
+    );
+  }
+
+  static List<SavedCard> listFromServer(Object? v) =>
+      v is List ? v.map(fromServer).whereType<SavedCard>().toList() : <SavedCard>[];
+}
+
 class Customer {
   Customer({
     required this.id,
@@ -212,7 +257,44 @@ class Customer {
     this.savedCardLast4,
     this.healthDeclared = false,
     this.email,
-  });
+    List<SavedCard>? cards,
+  }) : cards = cards ?? [];
+
+  /// The saved cards as the server lists them; empty when the server keeps one
+  /// card only (then [savedCardLast4] is that card). See [savedCards].
+  final List<SavedCard> cards;
+
+  /// Every saved card, the default first.
+  List<SavedCard> get savedCards => cards.isNotEmpty
+      ? ([...cards]..sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0)))
+      : [if (savedCardLast4 != null) SavedCard(id: '', last4: savedCardLast4!, isDefault: true)];
+
+  /// The card recurring charges and "saved card" payments use.
+  SavedCard? get defaultCard => savedCards.firstOrNull;
+
+  /// The default card was replaced by another one (a server that keeps one card,
+  /// or "replace card"): the other saved cards stay.
+  void replaceDefaultCard(String last4, {String brand = '', String expiry = ''}) {
+    final old = cards.isEmpty ? null : defaultCard;
+    if (old == null) {
+      savedCardLast4 = last4;
+      return;
+    }
+    setCards([
+      SavedCard(id: old.id, last4: last4, brand: brand, expiry: expiry, isDefault: true),
+      for (final c in cards)
+        if (c.id != old.id) c,
+    ]);
+  }
+
+  /// Replaces the list; [savedCardLast4] follows the default card.
+  void setCards(List<SavedCard> list) {
+    cards
+      ..clear()
+      ..addAll(list);
+    if (list.isNotEmpty && !list.any((c) => c.isDefault)) list.first.isDefault = true;
+    savedCardLast4 = defaultCard?.last4;
+  }
 
   final String id;
   String name;
@@ -235,6 +317,7 @@ class Customer {
         'savedCardLast4': savedCardLast4,
         'healthDeclared': healthDeclared,
         if (email != null) 'email': email,
+        if (cards.isNotEmpty) 'cards': [for (final c in cards) c.toJson()],
       };
 
   factory Customer.fromJson(Map<String, dynamic> j) => Customer(
@@ -245,7 +328,19 @@ class Customer {
         savedCardLast4: j['savedCardLast4'],
         healthDeclared: j['healthDeclared'] ?? false,
         email: j['email'],
+        cards: [
+          for (final c in (j['cards'] as List? ?? const []))
+            if (c is Map) SavedCard.fromJson(Map<String, dynamic>.from(c))
+        ],
       );
+}
+
+extension CustomerServerCards on Customer {
+  /// The server's `cards` list of a member, when it sends one.
+  void applyServerCards(Object? v) {
+    final list = SavedCard.listFromServer(v);
+    if (list.isNotEmpty) setCards(list);
+  }
 }
 
 enum PayMethod { card, cash, cheque, bank, link }

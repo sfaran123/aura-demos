@@ -27,7 +27,7 @@ void main() {
   setUp(() => L10n.lang = AppLang.en);
 
   Future<(GymStore, FakeApi)> boot(WidgetTester t, FakeApi a, {String tab = 'navCollect'}) async {
-    t.view.physicalSize = const Size(1080, 2400);
+    t.view.physicalSize = Size(1080, tab == 'navMembers' ? 9000 : 2400);
     t.view.devicePixelRatio = 3;
     addTearDown(t.view.reset);
     final store = GymStore(clock: () => today);
@@ -72,13 +72,12 @@ void main() {
     expect(sent(a, '/gym/card-charges')['payments'], 3);
   });
 
-  testWidgets('the card was taken on the terminal: recorded only, nothing charged', (t) async {
-    final (_, a) = await boot(t, cardApi());
+  testWidgets('the app can charge cards: no "taken on the terminal" button', (t) async {
+    await boot(t, cardApi());
     await tapKey(t, 'collect-failed-3');
     await tapKey(t, 'collectWith-card');
-    await tapKey(t, 'cardTerminal');
-    expect(a.posts.any((p) => p.$1 == '/gym/card-charges'), isFalse);
-    expect(sent(a, '/gym/memberships/5/collect').containsKey('card_receipt'), isFalse);
+    expect(find.byKey(const Key('cardSavedRegular')), findsOneWidget);
+    expect(find.byKey(const Key('cardTerminal')), findsNothing);
   });
 
   testWidgets('a declined card: nothing is recorded, the charge stays to collect', (t) async {

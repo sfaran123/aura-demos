@@ -175,3 +175,129 @@ saying everything is done.
   signed in the price list is read-only (an edit there used to be lost at the next sync, and a
   sale could go out with a price the server does not have). Needed: create / update / deactivate
   a product (`gym/products`, `gym/products/{id}`), as `gym/plans` does for plans.
+
+---
+
+## 6. Cards and debts: three tasks built in the app (18 Nov 2026)
+
+The app side is done and tested against a fake server (`test/cards_and_debts_test.dart` shows the
+exact requests and answers). Every new endpoint is optional for the app: on HTTP 404 it falls back
+or tells the desk "not available on the server yet", so nothing breaks before you build it.
+
+Rule for all of them: **the app never keeps a card number or CVV**. It sends them once to the
+server, the server gets a Z Credit token and keeps only the token. Answers carry `last4`, `brand`,
+`expiry` only.
+
+### 6.1 Several saved cards per customer
+
+`gym/members` rows (and every answer below) may carry:
+
+```json
+"cards": [
+  { "id": 11, "last4": "4815", "brand": "Visa", "expiry": "08/27", "is_default": true },
+  { "id": 12, "last4": "2222", "brand": "Mastercard", "expiry": "01/29", "is_default": false }
+]
+```
+
+Without `cards` the app shows the one card of `has_saved_card` / `card_last4`, as today.
+
+| Action | Request | Answer |
+| --- | --- | --- |
+| Add a card (the others stay) | `POST gym/members/{id}/cards` `{card_number, cvv, card_expiry_date, make_default}` | `{ "data": { "cards": [...] } }` |
+| Set the default | `POST gym/members/{id}/cards/{card}/default` `{}` | same |
+| Remove | `POST gym/members/{id}/cards/{card}/delete` `{}` | same (`cards` may be empty) |
+| Remove the single card (old model) | `POST gym/members/{id}/card/delete` `{}` | same |
+
+- Errors as the existing card endpoint: `card_not_valid`, `card_terminal_missing`,
+  `card_service_unreachable`.
+- **Recurring charges go to the default card.** Today a membership keeps its own token
+  (`gym/memberships/{id}/card`); please decide whether the membership follows the customer's
+  default or keeps its own, and tell me. Optional: when the default fails, try the next card.
+- The app asks the desk to confirm before removing the last card of a customer with an active
+  card-billed membership; the server may also refuse with a code if you prefer.
+- `POST gym/card-charges` gets an optional `card_id` (which saved card to charge). The app sends it
+  only when the server listed cards with ids. Without it: the default card.
+
+### 6.2 A debt paid with a new card (the saved card is not changed)
+
+1. `POST gym/card-charges/new-card`
+   `{customer_id, amount, payments, app_uuid, card_number, cvv, card_expiry_date}`
+   → `{ "receipt": "<Z Credit answer>", "card_last4": "1111" }`.
+   Charge through Z Credit, keep the token **with the charge** (not on the customer). The same
+   `app_uuid` again must never charge twice. Errors as `gym/card-charges`
+   (`card_declined: <Z Credit text>`, `charge_unknown`, …): the app shows the text, records
+   nothing, keeps the debt open and lets the desk try another card.
+2. The app then records the payment as today (`collect` / `collect-months` with `card_receipt` and
+   `app_uuid`) and calls `gym/card-charges/link`.
+3. The desk is asked "save this card?". On yes:
+   `POST gym/card-charges/save-card` `{app_uuid, make_default: false}` → `{ "data": { "cards": [...] } }`.
+   The token of that charge becomes a saved card; the default does not change (unless there was none).
+
+A separate path on purpose: an older server that ignored the card fields on `gym/card-charges`
+would charge the saved card instead.
+
+**Log of attempts.** Please log every card charge try (success or not) and return them, newest
+first: `GET gym/members/{id}/card-charges` →
+`{ "data": [ { "created_at", "amount", "payments", "card_last4", "status": "success|failed", "message" } ] }`.
+The customer page shows the list when it is not empty.
+
+### 6.3 Several unpaid months in one payment
+
+The customer page and the collection list let the desk tick months, see the total and pay once.
+
+`POST gym/memberships/{id}/collect-months`
+
+```json
+{
+  "method": "cash",               // cash | card | cheque | bank (+ the same detail fields as collect)
+  "amount": 358.2,
+  "months": [
+    { "month_key": "2026-09|10", "amount": 179.1 },   // or "due_date": "2026-09-10" for a manual month
+    { "month_key": "2026-10|10", "amount": 179.1 }
+  ],
+  "card_receipt": "...", "app_uuid": "..."            // when a card was charged from the app
+}
+```
+
+→ `{ "document": { "reference_no": "TIR-…", "grand_total": 358.2 } }`: **one** document with a
+line per month, all the months cleared, or nothing at all when it fails.
+
+- A card: the app charges **once** for the whole amount first (`gym/card-charges` or
+  `…/new-card`), and only then calls this. A charge that fails records nothing.
+- Without this endpoint (404) the app records each month with `collect` (one document per month),
+  with the same `card_receipt` on each and the `app_uuid` on the first only.
+- Failed months of a card-billed membership, default card, one payment: the app still uses your
+  `pay-failed-months`, as before.
+- Not built: a partial payment applied to the oldest month first. Tell me if you want it.
+
+### 6.4 Found live on 2026-11-19 (card charged, payment not recorded)
+
+- `POST gym/memberships/{id}/collect-months` answers **405** today (a GET route matches the path),
+  not 404. The app now treats 405 like 404 and falls back to `collect` per month.
+- Before that fix, one real charge was left without a document: customer 54, membership 17,
+  354 (3 months x 118, 4 payments), `gym/card-charges` `app_uuid`
+  `8835cc93-c3d5-461a-bf87-1eae21771b55`, 2026-11-19 06:30:47. Please either record the three
+  months (2026-08, 2026-09, 2026-10) against that charge or cancel the charge.
+- While that charge is unlinked, every new `gym/card-charges` for the customer answers
+  `409 already_charged`. Please return the open charge in that answer
+  (`app_uuid`, `amount`, `receipt`), so the app can finish recording it instead of only blocking.
+
+### 6.5 Urgent, found live on 2026-11-19: one document for several months
+
+The business wants **one tax invoice-receipt** when several unpaid months are paid together, with
+**a line per month that says what it is** (for example "Monthly plan · 05/2026 · 375").
+
+- `POST gym/memberships/{id}/collect-months` (section 6.3) is the endpoint for that. It answers 405
+  today. Each item of `months` now also carries `description` (plan name and month): please use it
+  as the line's text on the document.
+- The app asks first whether the endpoint exists by posting `{"months": []}`: please answer that
+  with a 422 (validation), not 404/405, and record nothing.
+- Until it exists the app warns that a document per month will be made, and the desk can cancel.
+
+Data to repair by hand (the app cannot do it):
+
+- Membership 16 (customer 48): on 2026-11-19 the app recorded six months by bank transfer
+  (reference 34941, bank 12) as six documents, the last one TIN-80449 (id 1470). The owner deleted
+  those documents on the web. The failed months `2026-05|53` … `2026-10|53` are cleared and
+  `payments_done` went up by six: please put those six months back as unpaid (or record them
+  on one document of 2250), so the owner can pay them once with one document.

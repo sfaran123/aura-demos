@@ -47,14 +47,23 @@ class CardEntry {
 
 /// Saves the typed card for [customer]: on the AURA server when signed in,
 /// in the app in the demo. Returns null when saved, else the message to show.
-Future<String?> saveMemberCard(BuildContext context, GymStore store, Customer customer, CardEntry card) async {
+Future<String?> saveMemberCard(BuildContext context, GymStore store, Customer customer, CardEntry card,
+    {bool add = false}) async {
   final sync = SyncScope.maybeOf(context);
   if (sync == null) {
-    store.setCustomerCard(customer, card.number.text);
+    if (add) {
+      store.addCustomerCard(customer, card.number.text, expiry: card.expiry.text);
+    } else {
+      store.setCustomerCard(customer, card.number.text);
+    }
     return null;
   }
   try {
-    await sync.saveMemberCard(customer, number: card.number.text, cvv: card.cvv.text, expiry: card.expiry.text);
+    if (add) {
+      await sync.addMemberCard(customer, number: card.number.text, cvv: card.cvv.text, expiry: card.expiry.text);
+    } else {
+      await sync.saveMemberCard(customer, number: card.number.text, cvv: card.cvv.text, expiry: card.expiry.text);
+    }
     return null;
   } on CardSaveException catch (e) {
     return e.message;
@@ -272,8 +281,8 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
     if (title != null) showCardProblem(context, title, message);
   }
 
-  Widget _spinner() => const SizedBox(
-      width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight));
+  Widget _spinner() =>
+      const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4, color: Aura.goldLight));
 
   @override
   Widget build(BuildContext context) {
@@ -307,7 +316,8 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
           [
             if (sub.hasCardToken) t('הכרטיס השמור במנוי יוחלף בכרטיס החדש.'),
             if (sub.nextCharge != null)
-              t('החיוב החודשי ({0}) יחויב בכרטיס החדש החל מ-{1}.', [money(sub.monthlyAmount ?? 0), fmtDate(sub.nextCharge!)]),
+              t('החיוב החודשי ({0}) יחויב בכרטיס החדש החל מ-{1}.',
+                  [money(sub.monthlyAmount ?? 0), fmtDate(sub.nextCharge!)]),
             t('הכרטיס השמור של הלקוח לא משתנה.'),
           ].join(' '),
           icon: Icons.credit_card,
@@ -339,9 +349,8 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.leading,
             value: picked.contains(m.monthKey),
-            onChanged: busy
-                ? null
-                : (v) => setState(() => v == true ? picked.add(m.monthKey) : picked.remove(m.monthKey)),
+            onChanged:
+                busy ? null : (v) => setState(() => v == true ? picked.add(m.monthKey) : picked.remove(m.monthKey)),
             title: Text('${m.month.month.toString().padLeft(2, '0')}/${m.month.year}'),
             secondary: Text(money(m.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
@@ -369,16 +378,19 @@ class _MembershipCardSheetState extends State<_MembershipCardSheet> {
 
 /// Adds a card for [customer], or replaces the saved one. True when a card was
 /// saved now (closed without saving, or the card failed: false).
-Future<bool> showMemberCardSheet(BuildContext context, Customer customer) => showModalBottomSheet<bool>(
+/// [add]: the card is saved next to the ones already there, which stay.
+Future<bool> showMemberCardSheet(BuildContext context, Customer customer, {bool add = false}) =>
+    showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _MemberCardSheet(customer: customer),
+      builder: (_) => _MemberCardSheet(customer: customer, add: add),
     ).then((saved) => saved == true);
 
 class _MemberCardSheet extends StatefulWidget {
-  const _MemberCardSheet({required this.customer});
+  const _MemberCardSheet({required this.customer, this.add = false});
   final Customer customer;
+  final bool add;
   @override
   State<_MemberCardSheet> createState() => _MemberCardSheetState();
 }
@@ -406,7 +418,9 @@ class _MemberCardSheetState extends State<_MemberCardSheet> {
       saving = true;
       error = null;
     });
-    final failed = await saveMemberCard(context, store, widget.customer, card);
+    final digits = cardDigits(card.number.text);
+    final typed = digits.length >= 4 ? digits.substring(digits.length - 4) : digits;
+    final failed = await saveMemberCard(context, store, widget.customer, card, add: widget.add);
     if (!mounted) return;
     if (failed != null) {
       setState(() {
@@ -417,24 +431,29 @@ class _MemberCardSheetState extends State<_MemberCardSheet> {
       return showCardProblem(context, t('הכרטיס לא נשמר'), failed);
     }
     Navigator.pop(context, true);
-    showCardSaved(context, t('הכרטיס נשמר בהצלחה · •••• {0}', [widget.customer.savedCardLast4]));
+    showCardSaved(context, t('הכרטיס נשמר בהצלחה · •••• {0}', [widget.add ? typed : widget.customer.savedCardLast4]));
   }
 
   @override
   Widget build(BuildContext context) {
     final c = widget.customer;
-    final replacing = c.hasSavedCard;
+    final replacing = c.hasSavedCard && !widget.add;
+    final another = c.hasSavedCard && widget.add;
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(replacing ? t('החלפת כרטיס') : t('הוספת כרטיס'),
+          Text(replacing ? t('החלפת כרטיס') : (another ? t('הוספת כרטיס נוסף') : t('הוספת כרטיס')),
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
           Text(c.name, style: const TextStyle(color: Aura.muted)),
           if (replacing) ...[
             const SizedBox(height: 10),
             Note(t('הכרטיס השמור •••• {0} יוחלף בכרטיס החדש.', [c.savedCardLast4]), icon: Icons.credit_card),
+          ],
+          if (another) ...[
+            const SizedBox(height: 10),
+            Note(t('הכרטיסים השמורים נשארים. כרטיס ברירת המחדל לא משתנה.'), icon: Icons.credit_card),
           ],
           const SizedBox(height: 12),
           CardFields(card: card, enabled: !saving),
